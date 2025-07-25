@@ -9,7 +9,6 @@ export const chatApi = baseApi.injectEndpoints({
         method: "GET",
       }),
       providesTags: ["chat"],
-      pollingInterval: 30000, // 30 seconds
     }),
 
     createChat: builder.mutation({

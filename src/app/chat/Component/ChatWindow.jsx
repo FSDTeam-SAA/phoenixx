@@ -13,16 +13,16 @@ import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ImageUplaod } from '../../../../utils/svgImage';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
 import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
-import { addMessage, setPage } from '../../../redux/features/messageSlice';
+import { addMessage, resetMessages, setPage, updateMessagePin, updateMessageReaction } from '../../../redux/features/messageSlice';
 import { ThemeContext } from '../../ClientLayout';
 
 const ChatWindow = ({ id }) => {
   const dispatch = useDispatch();
-  const { data: chat } = useGetAllChatQuery();
-  const chatUser = chat?.data.chats.find(user => user._id === id);
+  const { data: chatData } = useGetAllChatQuery();
+  const chatUser = chatData?.data?.chats?.find(user => user._id === id);
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
 
-  const { refetch } = useGetAllMessagesQuery({ chatId: id, page, limit: 10 });
+  const { data: messagesData, refetch } = useGetAllMessagesQuery({ chatId: id, page, limit: 10 });
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();
   const [pinMessage] = usePinMessageMutation();
@@ -43,8 +43,6 @@ const ChatWindow = ({ id }) => {
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [pinnedMessageId, setPinnedMessageId] = useState(null);
-  const [clickedMessageId, setClickedMessageId] = useState(null);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -54,6 +52,13 @@ const ChatWindow = ({ id }) => {
     { emoji: '😢', name: 'sad' }
   ];
 
+  // Reset messages when chat changes
+  useEffect(() => {
+    dispatch(resetMessages());
+    setInitialLoad(true);
+  }, [id, dispatch]);
+
+  // Scroll to bottom on initial load or new messages
   useEffect(() => {
     if (initialLoad && messages.length > 0) {
       setTimeout(() => {
@@ -65,6 +70,7 @@ const ChatWindow = ({ id }) => {
     }
   }, [messages, initialLoad, isNearBottom]);
 
+  // Handle click outside emoji and reaction pickers
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showEmojiPicker && emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) &&
@@ -81,6 +87,7 @@ const ChatWindow = ({ id }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showEmojiPicker, showReactionPicker]);
 
+  // Handle scroll events for infinite loading
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -157,7 +164,7 @@ const ChatWindow = ({ id }) => {
         setTimeout(() => scrollToBottom('auto'), 100);
       }
     } catch (error) {
-      antMessage.error("Failed to send message");
+      antMessage.error(error?.data?.message || "Failed to send message");
     }
   };
 
@@ -197,23 +204,37 @@ const ChatWindow = ({ id }) => {
 
   const handleAddReaction = async (messageId, reaction) => {
     try {
+      // Optimistic update
+      dispatch(updateMessageReaction({
+        messageId,
+        reaction,
+        userId: loginUserId
+      }));
+
       await messageReact({ messageId, reaction }).unwrap();
       setShowReactionPicker({ messageId: null, show: false });
-      antMessage.success("Reaction added!");
-      refetch();
     } catch (error) {
-      antMessage.error("Failed to add reaction");
+      antMessage.error(error?.data?.message || "Failed to add reaction");
+      // Re-fetch to sync with server
+      refetch();
     }
   };
 
   const handlePinMessage = async (messageId, action) => {
     try {
+      // Optimistic update
+      dispatch(updateMessagePin({
+        messageId,
+        isPinned: action === 'pin',
+        pinnedBy: loginUserId
+      }));
+
       await pinMessage({ messageId, action }).unwrap();
-      setPinnedMessageId(action === 'pin' ? messageId : null);
       antMessage.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
-      refetch();
     } catch (error) {
-      antMessage.error(`Failed to ${action} message`);
+      antMessage.error(error?.data?.message || `Failed to ${action} message`);
+      // Re-fetch to sync with server
+      refetch();
     }
   };
 
@@ -257,7 +278,7 @@ const ChatWindow = ({ id }) => {
   return (
     <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
       {/* Header */}
-      {chatUser?.participants.map(item => (
+      {chatUser?.participants?.map(item => (
         <div key={item._id} className={`flex items-center space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="relative">
             <Avatar
@@ -273,8 +294,8 @@ const ChatWindow = ({ id }) => {
         </div>
       ))}
 
-      {/* Pinned Message */}
-      {pinnedMessageId && (
+      {/* Pinned Messages */}
+      {pinnedMessages?.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -282,16 +303,16 @@ const ChatWindow = ({ id }) => {
         >
           <div className="flex items-center text-sm font-medium text-blue-600">
             <TbPinned className="mr-2" />
-            Pinned Message
+            Pinned Messages
           </div>
-          <div className="mt-1">
-            {messages.find(msg => msg._id === pinnedMessageId) && (
-              <div className="flex items-start text-sm">
+          <div className="mt-1 space-y-2">
+            {pinnedMessages.map(msg => (
+              <div key={msg._id} className="flex items-start text-sm">
                 <span className="truncate text-gray-600">
-                  {messages.find(msg => msg._id === pinnedMessageId).text || "📷 Image"}
+                  {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
                 </span>
               </div>
-            )}
+            ))}
           </div>
         </motion.div>
       )}
@@ -346,16 +367,6 @@ const ChatWindow = ({ id }) => {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
             border-radius: 4px;
           }
-          .replied-message-click {
-            animation: animeBackground 1s;
-          }
-          @keyframes animeBackground {
-            0% { background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%); }
-            25% { background: linear-gradient(90deg, #fad0c4 0%, #fbc2eb 100%); }
-            50% { background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%); }
-            75% { background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%); }
-            100% { background: transparent; }
-          }
         `}</style>
 
         {loadingMore && (
@@ -367,16 +378,33 @@ const ChatWindow = ({ id }) => {
           </div>
         )}
 
+        {isLoading && messages.length === 0 && (
+          <div className="flex justify-center items-center h-full">
+            <div className="flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+              <span className="text-sm text-gray-500">Loading messages...</span>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && messages.length === 0 && (
+          <div className="flex justify-center items-center h-full">
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+              No messages yet. Start the conversation!
+            </p>
+          </div>
+        )}
+
         <AnimatePresence initial={false}>
-          {messages?.map((message, index) => {
+          {messages?.map((message) => {
             const isCurrentUser = message.sender?._id === loginUserId;
             const isDeleted = message.isDeleted === true;
-            const isPinned = message._id === pinnedMessageId;
+            const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
 
             return (
               <motion.div
                 id={`msg-${message._id}`}
-                key={message._id || index}
+                key={message._id}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
@@ -412,30 +440,18 @@ const ChatWindow = ({ id }) => {
                         : isDarkMode
                           ? 'bg-gray-700 text-gray-200'
                           : 'bg-white text-gray-800 border border-gray-200'
-                      } ${message.replyTo && clickedMessageId === message._id ? 'replied-message-click' : ''
                       } shadow-sm message-bubble`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (message.replyTo) {
-                        setClickedMessageId(message._id);
-                        setTimeout(() => setClickedMessageId(null), 1000);
-                      }
-                    }}
                   >
                     {/* Reply indicator */}
                     {message.replyTo && !isDeleted && (
                       <div
                         className="reply-indicator p-2 mb-2 text-xs rounded-lg cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           const originalMsg = document.getElementById(`msg-${message.replyTo._id}`);
                           if (originalMsg) {
                             originalMsg.scrollIntoView({ behavior: 'smooth' });
-                            originalMsg.classList.add('replied-message-click');
-                            setTimeout(() => {
-                              originalMsg.classList.remove('replied-message-click');
-                            }, 1000);
                           }
                         }}
                       >

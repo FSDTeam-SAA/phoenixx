@@ -6,7 +6,7 @@ import {
   toggleBlockChat,
   toggleMuteChat
 } from '@/redux/features/chatSlice';
-import { Avatar, Dropdown, Flex, Input, message } from 'antd';
+import { Avatar, Dropdown, Flex, Input, Skeleton, message } from 'antd';
 import { AnimatePresence, motion } from 'framer-motion';
 import moment from 'moment';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +16,7 @@ import {
   BsBell,
   BsBellSlash,
   BsBlockquoteRight,
+  BsCheckAll,
   BsSearch,
   BsThreeDotsVertical,
   BsTrash
@@ -47,16 +48,11 @@ const ChatList = ({ setIsChatActive, status }) => {
   const [muteChat] = useMuteChatMutation();
   const [blockChat] = useChatBlockAndUnblockMutation();
 
-  const { isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
-  const { chats, unreadCount, loading: chatsLoading } = useSelector((state) => state.chats);
-
-
-  console.log(chats)
-
-  console.log(chats?.isRead)
+  const { data, isLoading, isError, error, refetch } = useGetAllChatQuery(debouncedSearchTerm);
+  const { chats, unreadCount } = useSelector((state) => state.chats);
 
   // Memoize chats to prevent unnecessary re-renders
-  const memoizedChats = useMemo(() => chats, [chats, searchTerm]);
+  const memoizedChats = useMemo(() => chats, [chats]);
 
   // Preserve scroll position
   useEffect(() => {
@@ -74,7 +70,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-  // Get current user ID with fallback
   const getCurrentUserId = useCallback(() => {
     try {
       return localStorage.getItem("login_user_id") || '';
@@ -97,15 +92,12 @@ const ChatList = ({ setIsChatActive, status }) => {
       if (setIsChatActive) setIsChatActive(true);
 
       // Then send the API request
-      const result = await markAsRead(chatId).unwrap();
-      console.log(result)
-
-      // No need to dispatch again since we did it optimistically
+      await markAsRead(chatId).unwrap();
     } catch (error) {
       console.error('Error marking as read:', error);
       toast.error(error?.data?.message || error?.message || 'Failed to mark as read');
-      // Revert the optimistic update
-      dispatch(getAllChat.initiate());
+      // Re-fetch chats to sync with server state
+      refetch();
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
@@ -121,7 +113,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       dispatch(deleteChatLocally(chatId));
       message.success('Chat deleted successfully');
 
-      // Navigate away if currently viewing deleted chat
       if (id === chatId) {
         router.push('/chat');
       }
@@ -140,9 +131,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     try {
       const chat = memoizedChats.find(c => c._id === chatId);
-      if (!chat) {
-        throw new Error('Chat not found');
-      }
+      if (!chat) throw new Error('Chat not found');
 
       const currentUserId = getCurrentUserId();
       const isCurrentlyMuted = chat.mutedBy?.includes(currentUserId);
@@ -154,7 +143,7 @@ const ChatList = ({ setIsChatActive, status }) => {
       }).unwrap();
 
       dispatch(toggleMuteChat({ chatId, isMuted: !isCurrentlyMuted }));
-      toast.success(`Chat ${action}d successfully`);
+      message.success(`Chat ${action}d successfully`);
     } catch (error) {
       console.error('Error toggling mute:', error);
       toast.error(error?.data?.message || error?.message || 'Failed to toggle mute status');
@@ -170,9 +159,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     try {
       const chat = memoizedChats.find(c => c._id === chatId);
-      if (!chat) {
-        throw new Error('Chat not found');
-      }
+      if (!chat) throw new Error('Chat not found');
 
       const currentUserId = getCurrentUserId();
       const isCurrentlyBlocked = chat.blockedUsers?.some(
@@ -180,9 +167,7 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
 
       const targetUser = chat.participants?.find(p => p._id !== currentUserId);
-      if (!targetUser) {
-        throw new Error("Target user not found");
-      }
+      if (!targetUser) throw new Error("Target user not found");
 
       const action = isCurrentlyBlocked ? 'unblock' : 'block';
 
@@ -226,21 +211,21 @@ const ChatList = ({ setIsChatActive, status }) => {
       {
         key: 'mute',
         label: isMuted ? 'Unmute Chat' : 'Mute Chat',
-        icon: isMuted ? <BsBell /> : <BsBellSlash />,
+        icon: isMuted ? <BsBell size={14} /> : <BsBellSlash size={14} />,
         onClick: () => handleMuteChat(chat._id),
         disabled: actionStates[chat._id]?.loading
       },
       {
         key: 'block',
         label: isBlocked ? 'Unblock User' : 'Block User',
-        icon: <BsBlockquoteRight />,
+        icon: <BsBlockquoteRight size={14} />,
         onClick: () => handleBlockChat(chat._id),
         disabled: actionStates[chat._id]?.loading
       },
       {
         key: 'delete',
         label: 'Delete Chat',
-        icon: <BsTrash />,
+        icon: <BsTrash size={14} />,
         danger: true,
         onClick: () => handleDeleteChat(chat._id),
         disabled: actionStates[chat._id]?.loading
@@ -254,9 +239,22 @@ const ChatList = ({ setIsChatActive, status }) => {
     return participant || { userName: 'User', profile: null };
   };
 
+  const renderLoadingState = () => (
+    <div className="space-y-4 p-4">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <Skeleton.Avatar active size={50} shape="circle" />
+          <div className="flex-1">
+            <Skeleton.Input active block size="small" />
+            <Skeleton.Input active block size="small" className="mt-2" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   const renderErrorState = () => (
-    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'
-      }`}>
+    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'}`}>
       <div className="p-4">
         <Flex gap={8}>
           <Input
@@ -269,24 +267,25 @@ const ChatList = ({ setIsChatActive, status }) => {
           />
         </Flex>
       </div>
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-          Failed to load chats.{' '}
-          <button onClick={refetch} className="text-primary hover:underline">
-            Retry
-          </button>
+          Failed to load chats. {error?.data?.message || error?.message}
         </p>
+        <button
+          onClick={refetch}
+          className={`px-4 py-2 rounded-md ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-800'}`}
+        >
+          Retry
+        </button>
       </div>
     </div>
   );
 
-  if (isError) {
-    return renderErrorState();
-  }
+  if (isError) return renderErrorState();
+  if (isLoading) return renderLoadingState();
 
   return (
-    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'
-      }`}>
+    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'}`}>
       <div className="p-4">
         <Flex gap={8}>
           <Input
@@ -304,18 +303,17 @@ const ChatList = ({ setIsChatActive, status }) => {
       <div
         ref={chatListRef}
         onScroll={handleScroll}
-        className={`chat-list-container flex-1 overflow-y-auto px-4 ${isDarkMode ? 'scrollbar-dark' : 'scrollbar-light'
-          }`}
+        className={`chat-list-container flex-1 overflow-y-auto ${isDarkMode ? 'scrollbar-dark' : 'scrollbar-light'}`}
       >
         <style jsx global>{`
           .chat-list-container::-webkit-scrollbar {
             width: 6px;
           }
           .chat-list-container::-webkit-scrollbar-track {
-            background: ${isDarkMode ? '#374151' : '#FFFFFF'};
+            background: ${isDarkMode ? '#374151' : '#f1f1f1'};
           }
           .chat-list-container::-webkit-scrollbar-thumb {
-            background-color: ${isDarkMode ? '#4B5563' : '#CBD5E0'};
+            background-color: ${isDarkMode ? '#4B5563' : '#c1c1c1'};
             border-radius: 3px;
           }
         `}</style>
@@ -324,11 +322,12 @@ const ChatList = ({ setIsChatActive, status }) => {
           <AnimatePresence>
             {memoizedChats.map((chat) => {
               const isActionLoading = actionStates[chat._id]?.loading;
-              const currentAction = actionStates[chat._id]?.action;
               const participant = getParticipantInfo(chat);
               const currentUserId = getCurrentUserId();
               const isMuted = chat.mutedBy?.includes(currentUserId);
               const isBlocked = chat.blockedUsers?.some(block => block.blocker === currentUserId);
+              const isRead = chat.lastMessage?.read || chat.unreadCount === 0;
+              const isActiveChat = chat._id === id;
 
               return (
                 <motion.div
@@ -340,44 +339,43 @@ const ChatList = ({ setIsChatActive, status }) => {
                 >
                   <div
                     onClick={() => !isActionLoading && handleSelectChat(chat._id)}
-                    className={`flex items-center gap-4 p-4 rounded-lg relative group ${chat._id === id
-                      ? (isDarkMode ? 'bg-gray-700' : 'bg-[#EBF4FF]')
-                      : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-[#EBF4FF]')
-                      } ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} ${isActionLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
+                    className={`flex items-center gap-4 p-4 rounded-lg relative group ${isActiveChat
+                      ? (isDarkMode ? 'bg-gray-700' : 'bg-blue-50')
+                      : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50')
+                      } ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} ${isActionLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <div className="relative">
                       <Avatar
                         size={50}
                         src={getImageUrl(participant?.profile)}
-                        className="transition-transform duration-200 group-hover:scale-110"
+                        className={`transition-transform duration-200 group-hover:scale-110 ${isBlocked ? 'opacity-50' : ''}`}
                       />
                       {isBlocked && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                          <BsBlockquoteRight className="text-white" />
+                          <BsBlockquoteRight className="text-white" size={18} />
                         </div>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
-                        <h3 className={`font-medium ${chats.isRead ? "font-bold" : "font-normal"
-                          } truncate ${isBlocked ? 'line-through' : ''}`}>
+                        <h3 className={`font-medium truncate ${isBlocked ? 'line-through' : ''} ${isRead ? '' : 'font-semibold'}`}>
                           {participant?.userName || "User"}
                         </h3>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs ${chats.isRead ? "font-bold" : "font-normal"
-                            } truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <span className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             {formatTime(chat?.lastMessage?.createdAt)}
                           </span>
                           {isMuted && <BsBellSlash className="text-gray-400" size={14} />}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <p className={`text-sm
-                          } truncate ${chats.isRead ? "font-bold" : "font-normal"} ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {chat?.lastMessage?.text?.slice(0, 25) || ''}
+                      <div className="flex items-center gap-2 mt-1">
+                        {isRead && chat.lastMessage?.sender === currentUserId && (
+                          <BsCheckAll className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} size={14} />
+                        )}
+                        <p className={`text-sm truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} ${isRead ? '' : 'font-medium'}`}>
+                          {chat?.lastMessage?.text?.slice(0, 30) || ''}
                           {!chat?.lastMessage?.text && chat?.lastMessage?.image && '📷 Photo'}
                           {!chat?.lastMessage?.text && !chat?.lastMessage?.image && 'No messages yet'}
                         </p>
@@ -389,7 +387,7 @@ const ChatList = ({ setIsChatActive, status }) => {
                         <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="bg-primary text-white rounded-full px-2 py-1 text-xs min-w-[20px] text-center"
+                          className="bg-blue-500 text-white rounded-full px-2 py-1 text-xs min-w-[20px] text-center"
                         >
                           {chat?.unreadCount}
                         </motion.span>
@@ -404,7 +402,7 @@ const ChatList = ({ setIsChatActive, status }) => {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+                          className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full ${isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'} cursor-pointer`}
                           onClick={(e) => e.stopPropagation()}
                           disabled={isActionLoading}
                         >
@@ -433,7 +431,7 @@ const ChatList = ({ setIsChatActive, status }) => {
       {unreadCount > 0 && (
         <div className="p-2 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center text-sm font-medium">
-            <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded-full">
+            <span className={`px-3 py-1 rounded-full ${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
               {unreadCount} unread {unreadCount === 1 ? 'message' : 'messages'}
             </span>
           </div>

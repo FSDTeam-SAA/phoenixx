@@ -40,7 +40,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const [formErrors, setFormErrors] = useState({});
   const [initialImages, setInitialImages] = useState([]);
   const [editorInitialized, setEditorInitialized] = useState(false);
-  const [editorKey, setEditorKey] = useState(0); // Add key for force re-render
   const editorRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
@@ -75,115 +74,115 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }));
   }, [category, subcategoryData]);
 
-
-
   // Initialize Froala Editor when component mounts
   useEffect(() => {
-    const loadFroala = async () => {
+    let mounted = true;
+
+    const initializeEditor = async () => {
       try {
-        await import('froala-editor/js/froala_editor.pkgd.min.js');
-        await import('froala-editor/js/plugins/lists.min.js');
-        setEditorInitialized(true);
+        // Dynamically import Froala Editor scripts
+        await Promise.all([
+          import('froala-editor/js/froala_editor.pkgd.min.js'),
+          import('froala-editor/js/plugins/lists.min.js')
+        ]);
+
+        if (mounted) {
+          setEditorInitialized(true);
+        }
       } catch (error) {
         console.error('Failed to load Froala Editor:', error);
+        if (mounted) {
+          setEditorInitialized(false);
+        }
       }
     };
 
-    loadFroala();
+    initializeEditor();
 
     return () => {
-      if (editorRef.current && editorRef.current.editor) {
-        editorRef.current.editor.destroy();
-      }
+      mounted = false;
     };
   }, []);
 
-  // Force re-render editor when theme changes
-  useEffect(() => {
-    if (editorInitialized) {
-      setEditorKey(prev => prev + 1);
-    }
-  }, [isDarkMode, editorInitialized]);
-
-  // SIMPLE AND WORKING Froala Editor Configuration
-  const config = {
+  // Froala Editor Configuration
+  const config = useMemo(() => ({
     placeholderText: 'Write your post description here...',
     heightMin: 300,
-    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage',],
+    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage'],
     pluginsEnabled: ['lists', 'emoticons', 'image'],
     quickInsertTags: [],
     listAdvancedTypes: false,
     toolbarInline: false,
     charCounterCount: false,
+    theme: isDarkMode ? 'dark' : undefined,
     events: {
       'initialized': function () {
         console.log('Editor initialized');
-        // Remove dropdown functionality and arrows
-        const editor = this;
-
         // Force show list buttons
         setTimeout(() => {
-          editor.$tb.find('.fr-command[data-cmd="formatOL"]').show();
-          editor.$tb.find('.fr-command[data-cmd="formatUL"]').show();
-
-          // Remove dropdown arrows
-          editor.$tb.find('.fr-command[data-cmd="formatOL"]').removeClass('fr-dropdown');
-          editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
+          const editor = this;
+          if (editor.$tb) {
+            editor.$tb.find('.fr-command[data-cmd="formatOL"]').show();
+            editor.$tb.find('.fr-command[data-cmd="formatUL"]').show();
+            editor.$tb.find('.fr-command[data-cmd="formatOL"]').removeClass('fr-dropdown');
+            editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
+          }
         }, 100);
+      },
+      'contentChanged': function () {
+        // Save content periodically
+        const content = this.html.get();
+        setDescription(content);
       }
     }
-  };
-
-
-
-
+  }), [isDarkMode]);
 
   // CSS to hide dropdown elements and make buttons simple
   useEffect(() => {
     const css = `
-    /* Hide all dropdown arrows and menus */
-    .fr-dropdown-arrow,
-    .fr-dropdown-menu {
-      display: none !important;
-    }
-    
-    /* Make list buttons look like simple buttons */
-    .fr-command[data-cmd="insertOrderedList"],
-    .fr-command[data-cmd="insertUnorderedList"] {
-      position: relative;
-    }
-    
-    .fr-command[data-cmd="insertOrderedList"]::after,
-    .fr-command[data-cmd="insertUnorderedList"]::after {
-      display: none !important;
-    }
-    
-    /* Hide any list style related elements */
-    [data-cmd*="listStyle"],
-    .fr-list-style,
-    .fr-dropdown[data-name*="list"] {
-      display: none !important;
-    }
-    
-    /* Ensure buttons work as simple toggles */
-    .fr-toolbar .fr-command[data-cmd="insertOrderedList"],
-    .fr-toolbar .fr-command[data-cmd="insertUnorderedList"] {
-      background: none;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .fr-toolbar .fr-command[data-cmd="insertOrderedList"]:hover,
-    .fr-toolbar .fr-command[data-cmd="insertUnorderedList"]:hover {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Active state for list buttons */
-    .fr-toolbar .fr-command[data-cmd="insertOrderedList"].fr-active,
-    .fr-toolbar .fr-command[data-cmd="insertUnorderedList"].fr-active {
-      background-color: rgba(0, 0, 0, 0.2);
-    }
-  `;
+      /* Hide all dropdown arrows and menus */
+      .fr-dropdown-arrow,
+      .fr-dropdown-menu {
+        display: none !important;
+      }
+      
+      /* Make list buttons look like simple buttons */
+      .fr-command[data-cmd="insertOrderedList"],
+      .fr-command[data-cmd="insertUnorderedList"] {
+        position: relative;
+      }
+      
+      .fr-command[data-cmd="insertOrderedList"]::after,
+      .fr-command[data-cmd="insertUnorderedList"]::after {
+        display: none !important;
+      }
+      
+      /* Hide any list style related elements */
+      [data-cmd*="listStyle"],
+      .fr-list-style,
+      .fr-dropdown[data-name*="list"] {
+        display: none !important;
+      }
+      
+      /* Ensure buttons work as simple toggles */
+      .fr-toolbar .fr-command[data-cmd="insertOrderedList"],
+      .fr-toolbar .fr-command[data-cmd="insertUnorderedList"] {
+        background: none;
+        border: none;
+        cursor: pointer;
+      }
+      
+      .fr-toolbar .fr-command[data-cmd="insertOrderedList"]:hover,
+      .fr-toolbar .fr-command[data-cmd="insertUnorderedList"]:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+      
+      /* Active state for list buttons */
+      .fr-toolbar .fr-command[data-cmd="insertOrderedList"].fr-active,
+      .fr-toolbar .fr-command[data-cmd="insertUnorderedList"].fr-active {
+        background-color: rgba(0, 0, 0, 0.2);
+      }
+    `;
 
     const styleElement = document.createElement('style');
     styleElement.textContent = css;
@@ -195,40 +194,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       }
     };
   }, []);
-
-  // Global cleanup for any dropdown elements
-  useEffect(() => {
-    if (!editorInitialized) return;
-
-    const globalCleanup = setInterval(() => {
-      // Remove any dropdown elements that might appear
-      const dropdowns = document.querySelectorAll('.fr-dropdown-menu');
-      dropdowns.forEach(dropdown => {
-        dropdown.style.display = 'none';
-      });
-
-      // Remove dropdown arrows
-      const arrows = document.querySelectorAll('.fr-dropdown-arrow');
-      arrows.forEach(arrow => {
-        arrow.style.display = 'none';
-      });
-    }, 500);
-
-    setTimeout(() => {
-      clearInterval(globalCleanup);
-    }, 10000);
-
-    return () => {
-      clearInterval(globalCleanup);
-    };
-  }, [editorInitialized]);
-
-
-
-
-
-
-
 
   useEffect(() => {
     if (!isEditing && !initialValues) {
@@ -524,7 +489,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         
         .fr-dark-mode .fr-popup {
           background-color: #111827 !important;
-          
           color: #e5e7eb !important;
         }
         
@@ -547,35 +511,14 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           color: #9ca3af !important;
         }
         
-        .fr-dark-mode .fr-box {
-          
-        }
-        
-        .fr-dark-mode .fr-second-toolbar {
-          
-          
-        }
-        
         .fr-dark-mode .fr-tooltip {
           background-color: #111827 !important;
-   
         }
         
         /* Light mode ensuring clean override */
-        .fr-wrapper:not(.fr-dark-mode) {
-          background-color: #ffffff !important;
-          color: #1f2937 !important;
-          border-color: #d1d5db !important;
-        }
-        
         .fr-element:not(.fr-dark-mode) {
           background-color: #ffffff !important;
           color: #1f2937 !important;
-        }
-        
-        .fr-toolbar:not(.fr-dark-mode) {
-          background-color: #f9fafb !important;
-          border-color: #d1d5db !important;
         }
         
         .fr-command.fr-btn:not(.fr-dark-mode) {
@@ -598,18 +541,47 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           border-color: #374151 !important;
         }
         
-        .froala-editor-container.dark .fr-command.fr-btn {
-          color: #e5e7eb !important;
+        .froala-editor-container.dark .fr-command.fr-btn,
+        .froala-editor-container.dark .fr-command.fr-btn i,
+        .froala-editor-container.dark .fr-command.fr-btn svg,
+        .froala-editor-container.dark .fr-command.fr-btn path,
+        .froala-editor-container.dark .fr-command.fr-btn::before,
+        .froala-editor-container.dark .fr-command.fr-btn::after {
+          color: #ffffff !important;
+          fill: #ffffff !important;
         }
         
-        .froala-editor-container.dark .fr-command.fr-btn:hover {
+        .froala-editor-container.dark .fr-command.fr-btn:hover,
+        .froala-editor-container.dark .fr-command.fr-btn:hover i,
+        .froala-editor-container.dark .fr-command.fr-btn:hover svg,
+        .froala-editor-container.dark .fr-command.fr-btn:hover path {
           background-color: #374151 !important;
           color: #ffffff !important;
+          fill: #ffffff !important;
         }
         
-        .froala-editor-container.dark .fr-command.fr-btn.fr-active {
+        .froala-editor-container.dark .fr-command.fr-btn.fr-active,
+        .froala-editor-container.dark .fr-command.fr-btn.fr-active i,
+        .froala-editor-container.dark .fr-command.fr-btn.fr-active svg,
+        .froala-editor-container.dark .fr-command.fr-btn.fr-active path {
           background-color: #3b82f6 !important;
           color: #ffffff !important;
+          fill: #ffffff !important;
+        }
+        
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="bold"] i,
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="italic"] i,
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="underline"] i,
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatOL"] i,
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatUL"] i,
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="insertImage"] i {
+          color: #ffffff !important;
+        }
+        
+        .froala-editor-container.dark .fr-btn i[class*="fa-"],
+        .froala-editor-container.dark .fr-btn [class*="fr-svg"] {
+          color: #ffffff !important;
+          fill: #ffffff !important;
         }
         
         .froala-editor-container.dark .fr-placeholder {
@@ -621,7 +593,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           color: #9ca3af !important;
         }
 
-         .fr-command[data-cmd="formatOL"]:after,
+        /* Hide dropdown arrows and ensure icons are visible */
+        .fr-command[data-cmd="formatOL"]:after,
         .fr-command[data-cmd="formatUL"]:after {
           display: none !important;
         }
@@ -647,7 +620,14 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           list-style-type: disc !important;
         }
 
+        .froala-editor-container.dark .fr-toolbar .fr-command {
+          color: #ffffff !important;
+        }
 
+        .froala-editor-container.dark .fr-toolbar .fr-command > * {
+          color: inherit !important;
+          fill: currentColor !important;
+        }
       `}</style>
 
       <div className={`min-h-screen ${isEditing ? '' : 'py-4 sm:py-8 px-2 sm:px-4'}  transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
@@ -746,12 +726,12 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 >
                   {editorInitialized && (
                     <FroalaEditor
+                      key={`editor-${editorInitialized}`} // Add key to force re-render
                       ref={editorRef}
-                      key={editorKey}
                       tag="textarea"
                       config={config}
                       model={description}
-                      onModelChange={setDescription}
+                      onModelChange={handleDescriptionChange}
                     />
                   )}
                 </div>
