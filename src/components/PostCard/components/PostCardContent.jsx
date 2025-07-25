@@ -6,6 +6,22 @@ const PostCardContent = ({
   handleCommentClick,
   isTablet
 }) => {
+
+  // Function to clean content by removing HTML tags and Froala footer
+  const cleanContent = (content) => {
+    if (!content) return '';
+
+    // Remove Froala "Powered by" footer
+    const withoutFroala = content.replace(
+      /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
+      ''
+    );
+
+    // Remove all HTML tags
+    return withoutFroala.replace(/<[^>]+>/g, '').trim();
+  };
+
+
   const renderTitle = () => (
     postData.title && (
       <h2
@@ -21,27 +37,32 @@ const PostCardContent = ({
     )
   );
 
-  const renderContent = () => (
-    <div className={`mb-3 ${isMobile ? 'text-sm' : 'text-base'} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
-      }`}>
-      {postData.content?.replace(/<[^>]+>/g, '')?.split(' ')?.length > 20 ? (
-        <>
-          {postData.content.replace(/<[^>]+>/g, '').split(' ').slice(0, 20).join(' ')}...
-          <button
-            className={`${isDarkMode
-              ? 'text-blue-400 hover:text-blue-300'
-              : 'text-blue-600 hover:text-blue-800'
-              } cursor-pointer font-medium ml-1`}
-            onClick={handleCommentClick}
-          >
-            See more
-          </button>
-        </>
-      ) : (
-        postData.content.replace(/<[^>]+>/g, '')
-      )}
-    </div>
-  );
+  const renderContent = () => {
+    const cleanedContent = cleanContent(postData.content);
+    const words = cleanedContent.split(' ');
+
+    return (
+      <div className={`mb-3 ${isMobile ? 'text-sm' : 'text-base'} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
+        }`}>
+        {words.length > 20 ? (
+          <>
+            {words.slice(0, 20).join(' ')}...
+            <button
+              className={`${isDarkMode
+                ? 'text-blue-400 hover:text-blue-300'
+                : 'text-blue-600 hover:text-blue-800'
+                } cursor-pointer font-medium ml-1`}
+              onClick={handleCommentClick}
+            >
+              See more
+            </button>
+          </>
+        ) : (
+          cleanedContent
+        )}
+      </div>
+    );
+  };
 
   return (
     <>

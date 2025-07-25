@@ -43,6 +43,7 @@ const ChatWindow = ({ id }) => {
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [sendingMessage, setSendingMessage] = useState(false); // New state for send button loading
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -136,6 +137,8 @@ const ChatWindow = ({ id }) => {
     }
 
     try {
+      setSendingMessage(true); // Start loading
+
       let response;
       const formData = new FormData();
 
@@ -155,7 +158,16 @@ const ChatWindow = ({ id }) => {
       }
 
       if (response.data) {
-        dispatch(addMessage(response.data));
+        // Ensure the sender ID matches before adding to the store
+        const confirmedMessage = {
+          ...response.data,
+          sender: {
+            ...response.data.sender,
+            _id: loginUserId // Force the sender ID to match current user
+          }
+        };
+
+        dispatch(addMessage(confirmedMessage));
         form.resetFields();
         setImagePreview(null);
         setShowEmojiPicker(false);
@@ -165,6 +177,8 @@ const ChatWindow = ({ id }) => {
       }
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to send message");
+    } finally {
+      setSendingMessage(false); // Stop loading regardless of outcome
     }
   };
 
@@ -755,7 +769,7 @@ const ChatWindow = ({ id }) => {
             icon={<IoMdSend />}
             style={{ width: "40px" }}
             className="ml-2"
-            loading={isSending}
+            loading={sendingMessage || isSending} // Use our new loading state
           />
         </Form>
       </div>

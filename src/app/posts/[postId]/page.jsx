@@ -206,6 +206,18 @@ const PostDetailsPage = () => {
     }
   };
 
+
+
+  const cleanPostContent = (content) => {
+    if (!content) return '';
+
+    // Remove Froala "Powered by" footer
+    return content.replace(
+      /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
+      ''
+    ).trim();
+  };
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentText.trim() || !login_user_id) {
@@ -730,7 +742,7 @@ const PostDetailsPage = () => {
 
             <div
               className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: cleanPostContent(post.content) }}
             />
 
             {renderImageGrid}
@@ -818,7 +830,7 @@ const PostDetailsPage = () => {
         </form>
 
         <div id="comments" className='flex flex-col gap-3'>
-        
+
 
           {comments.length === 0 ? (
             <Card className={`text-center p-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : ''}`}>

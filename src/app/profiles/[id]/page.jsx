@@ -2,7 +2,7 @@
 import AuthorPostCard from '@/components/AuthorPostCard';
 import { useCreateChatMutation } from '@/features/chat/massage';
 import { useGetByUserIdQuery, useGetProfileByIdQuery, useLikePostMutation } from '@/features/post/postApi';
-import { Button, Grid } from 'antd';
+import { Grid } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -87,7 +87,7 @@ const ProfileBanner = () => {
 
               {/* Message Button - Right Aligned */}
               <div className="flex-1"></div>
-              <Button
+              {/* <Button
                 loading={loading}
                 onClick={() => handleChat(id)}
                 className={`
@@ -116,7 +116,41 @@ const ProfileBanner = () => {
                   <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" />
                 </svg>
                 <span>Send Message</span>
-              </Button>
+              </Button> */}
+
+              <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
+                <button
+                  loading={loading}
+                  onClick={() => handleChat(id)}
+                  className={`
+                  ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'} 
+                  bg-[#1C37E0] hover:bg-[#1530C7] transition-colors cursor-pointer
+                  text-white flex items-center justify-center gap-2
+                  rounded-md shadow-sm border-none
+                `}
+                  aria-label="Edit profile"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width={isMobile ? "18" : "20"}
+                    height={isMobile ? "18" : "20"}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9.99952 10L3.84252 16.162C3.60992 16.3944 3.43819 16.6805 3.34252 16.995L2.02052 21.355C1.9943 21.4415 1.99202 21.5335 2.01392 21.6212C2.03583 21.7089 2.08109 21.789 2.1449 21.853C2.20871 21.917 2.28869 21.9626 2.37631 21.9847C2.46394 22.0069 2.55593 22.0049 2.64252 21.979L7.00052 20.656C7.31399 20.5599 7.59902 20.3882 7.83052 20.156L13.9995 13.982" />
+                    <path d="M12.8291 7.17153L17.1881 2.82553C17.4498 2.5638 17.7605 2.35619 18.1025 2.21455C18.4445 2.0729 18.811 2 19.1811 2C19.5512 2 19.9177 2.0729 20.2597 2.21455C20.6017 2.35619 20.9124 2.5638 21.1741 2.82553C21.4358 3.08725 21.6434 3.39796 21.7851 3.73992C21.9267 4.08188 21.9996 4.44839 21.9996 4.81853C21.9996 5.18866 21.9267 5.55517 21.7851 5.89713C21.6434 6.23909 21.4358 6.5498 21.1741 6.81153L16.8211 11.1645" />
+                    <path d="M15 5L19 9" />
+                    <path d="M2 2L22 22" />
+                  </svg>
+                  <span className="font-medium">Send Message</span>
+                </button>
+              </div>
+
+
             </div>
 
             {/* Profile Info */}

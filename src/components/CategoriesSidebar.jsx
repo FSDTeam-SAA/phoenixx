@@ -72,8 +72,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
         <Image
           src={`${baseURL}${imageUrl}`}
           alt={category?.name || "Category image"}
-          width={18}
-          height={18}
+          width={23}
+          height={23}
           className="object-contain"
         />
       </div>

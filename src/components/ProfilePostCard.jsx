@@ -97,6 +97,23 @@ const ProfilePostCard = ({
     }
   };
 
+  // Add this function at the top of your component
+  const cleanPostContent = (content) => {
+    if (!content) return '';
+
+    // Remove Froala "Powered by" footer
+    return content.replace(
+      /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
+      ''
+    ).trim();
+  };
+
+  // Replace this line:
+  // dangerouslySetInnerHTML={{ __html: post.content }}
+
+  // With this:
+
+
   const renderAuthorAvatar = () => {
     const author = postData?.author || {};
     return (
@@ -115,7 +132,7 @@ const ProfilePostCard = ({
   };
 
   const renderContent = () => {
-    const content = postData.content || '';
+    const content = cleanPostContent(postData.content) || '';
     const plainContent = content.replace(/<[^>]+>/g, '');
 
     return (
