@@ -8,6 +8,7 @@ import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { isAuthenticated } from '../../../../utils/auth';
 import { getImageUrl } from '../../../../utils/getImageUrl';
+import FollowButton from '../../../components/FollowButton';
 import Loading from '../../../components/Loading/Loading';
 import { ThemeContext } from '../../ClientLayout';
 
@@ -117,6 +118,8 @@ const ProfileBanner = () => {
                 </svg>
                 <span>Send Message</span>
               </Button> */}
+
+              <FollowButton subscriberId={localStorage.getItem("login_user_id")} subscribedToId={id} />
 
               <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
                 <button

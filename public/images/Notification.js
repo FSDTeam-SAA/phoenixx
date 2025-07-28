@@ -43,7 +43,7 @@ const ErrorIcon = () => {
     <>
       <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <circle cx="12" cy="12" r="10" fill="#0001FB" />
-        <path d="M8 8 l8 8 m0 -8 l-8 8" stroke="white" stroke-width="2" stroke-linecap="round" />
+        <path d="M8 8 l8 8 m0 -8 l-8 8" stroke="white" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </>
   )
@@ -54,7 +54,7 @@ const SuccessIcon = () => {
     <>
       <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <circle cx="12" cy="12" r="10" fill="#0001FB" />
-        <path d="M8 12 l3 3 l5 -6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        <path d="M8 12 l3 3 l5 -6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
     </>
   )
@@ -90,7 +90,7 @@ const ReplyIcon = () => {
   return (
     <>
       <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M9 7 l-4 4 l4 4 m-3 -4 h10 a4 4 0 0 1 4 4 v6" stroke="#0001FB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        <path d="M9 7 l-4 4 l4 4 m-3 -4 h10 a4 4 0 0 1 4 4 v6" stroke="#0001FB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
     </>
   )

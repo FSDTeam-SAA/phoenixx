@@ -4,6 +4,7 @@ import { Avatar, Button, Dropdown, Form, Input, Tooltip, Upload, message as antM
 import EmojiPicker from 'emoji-picker-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useContext, useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { BsEmojiSmile, BsPinAngleFill } from 'react-icons/bs';
 import { FiMoreVertical } from 'react-icons/fi';
 import { IoMdSend } from 'react-icons/io';
@@ -172,7 +173,6 @@ const ChatWindow = ({ id }) => {
         setImagePreview(null);
         setShowEmojiPicker(false);
         setReplyingTo(null);
-        antMessage.success("Message sent successfully!");
         setTimeout(() => scrollToBottom('auto'), 100);
       }
     } catch (error) {
@@ -244,7 +244,7 @@ const ChatWindow = ({ id }) => {
       }));
 
       await pinMessage({ messageId, action }).unwrap();
-      antMessage.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
+      toast.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
     } catch (error) {
       antMessage.error(error?.data?.message || `Failed to ${action} message`);
       // Re-fetch to sync with server

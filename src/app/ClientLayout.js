@@ -178,7 +178,7 @@ export default function ClientLayout({ children }) {
   if (!mounted || isDarkMode === null) {
     return (
       <html lang="en">
-        <body className="antialiased">
+        <body className="antialiased" cz-shortcut-listen="true">
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
             Loading...
           </div>
@@ -186,6 +186,7 @@ export default function ClientLayout({ children }) {
       </html>
     );
   }
+
 
   return (
     <html lang="en" className={isDarkMode ? 'dark' : ''}>
@@ -203,7 +204,7 @@ export default function ClientLayout({ children }) {
             >
               <Provider store={store}>
                 {!isAuthPage && <Navbar />}
-                <main className="theme-transition">
+                <main className="theme-transition" cz-shortcut-listen="true">
                   {children}
                 </main>
                 <Toaster

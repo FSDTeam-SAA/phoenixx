@@ -1,5 +1,4 @@
 "use client";
-
 import {
   deleteChatLocally,
   markChatAsRead,
@@ -42,17 +41,45 @@ const ChatList = ({ setIsChatActive, status }) => {
   const dispatch = useDispatch();
   const [actionStates, setActionStates] = useState({});
   const chatListRef = useRef(null);
-
   const [markAsRead] = useMarkAsReadMutation();
   const [deleteChat] = useDeleteChatMutation();
   const [muteChat] = useMuteChatMutation();
   const [blockChat] = useChatBlockAndUnblockMutation();
 
-  const { data, isLoading, isError, error, refetch } = useGetAllChatQuery(debouncedSearchTerm);
-  const { chats, unreadCount } = useSelector((state) => state.chats);
+  // Always fetch all chats, but filter locally when searching
+  const { data: apiData, isLoading, isError, error, refetch } = useGetAllChatQuery(undefined, {
+    refetchOnMountOrArgChange: true
+  });
+
+  // Get chats from Redux store
+  const { chats: reduxChats, unreadCount } = useSelector((state) => state.chats);
+
+  const getCurrentUserId = useCallback(() => {
+    try {
+      return localStorage.getItem("login_user_id") || '';
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      return '';
+    }
+  }, []);
+
+
+  // Determine which chats to display
+  const chatsToShow = useMemo(() => {
+    if (debouncedSearchTerm) {
+      // Filter chats locally based on search term
+      return reduxChats?.filter(chat => {
+        const participant = chat.participants?.find(p => p._id !== getCurrentUserId());
+        return participant?.userName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      }) || [];
+    } else {
+      // Show all chats when not searching
+      return reduxChats;
+    }
+  }, [debouncedSearchTerm, reduxChats]);
 
   // Memoize chats to prevent unnecessary re-renders
-  const memoizedChats = useMemo(() => chats, [chats]);
+  const memoizedChats = useMemo(() => chatsToShow, [chatsToShow]);
 
   // Preserve scroll position
   useEffect(() => {
@@ -70,27 +97,15 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-  const getCurrentUserId = useCallback(() => {
-    try {
-      return localStorage.getItem("login_user_id") || '';
-    } catch (error) {
-      console.error('Error accessing localStorage:', error);
-      return '';
-    }
-  }, []);
 
   const handleSelectChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
-
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
-
     try {
       // Optimistically update UI first
       dispatch(markChatAsRead(chatId));
-
       router.push(`/chat/${chatId}`);
       if (setIsChatActive) setIsChatActive(true);
-
       // Then send the API request
       await markAsRead(chatId).unwrap();
     } catch (error) {
@@ -105,14 +120,11 @@ const ChatList = ({ setIsChatActive, status }) => {
 
   const handleDeleteChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
-
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'delete' } }));
-
     try {
       await deleteChat(chatId).unwrap();
       dispatch(deleteChatLocally(chatId));
       message.success('Chat deleted successfully');
-
       if (id === chatId) {
         router.push('/chat');
       }
@@ -126,22 +138,17 @@ const ChatList = ({ setIsChatActive, status }) => {
 
   const handleMuteChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
-
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'mute' } }));
-
     try {
       const chat = memoizedChats.find(c => c._id === chatId);
       if (!chat) throw new Error('Chat not found');
-
       const currentUserId = getCurrentUserId();
       const isCurrentlyMuted = chat.mutedBy?.includes(currentUserId);
       const action = isCurrentlyMuted ? 'unmute' : 'mute';
-
       await muteChat({
         id: chatId,
         body: { action }
       }).unwrap();
-
       dispatch(toggleMuteChat({ chatId, isMuted: !isCurrentlyMuted }));
       message.success(`Chat ${action}d successfully`);
     } catch (error) {
@@ -154,31 +161,24 @@ const ChatList = ({ setIsChatActive, status }) => {
 
   const handleBlockChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
-
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'block' } }));
-
     try {
       const chat = memoizedChats.find(c => c._id === chatId);
       if (!chat) throw new Error('Chat not found');
-
       const currentUserId = getCurrentUserId();
       const isCurrentlyBlocked = chat.blockedUsers?.some(
         block => block.blocker === currentUserId
       );
-
       const targetUser = chat.participants?.find(p => p._id !== currentUserId);
       if (!targetUser) throw new Error("Target user not found");
-
       const action = isCurrentlyBlocked ? 'unblock' : 'block';
-
       await blockChat({
         chatId,
         targetId: targetUser._id,
         body: { action }
       }).unwrap();
-
       dispatch(toggleBlockChat({ chatId, isBlocked: !isCurrentlyBlocked }));
-      message.success(`User ${action}ed successfully`);
+      toast.success(`User ${action}ed successfully`);
     } catch (error) {
       console.error('Error toggling block:', error);
       toast.error(error?.data?.message || error?.message || 'Failed to toggle block status');
@@ -206,7 +206,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     const currentUserId = getCurrentUserId();
     const isMuted = chat.mutedBy?.includes(currentUserId);
     const isBlocked = chat.blockedUsers?.some(block => block.blocker === currentUserId);
-
     return [
       {
         key: 'mute',
@@ -281,8 +280,8 @@ const ChatList = ({ setIsChatActive, status }) => {
     </div>
   );
 
+  if (isLoading && !reduxChats?.length) return renderLoadingState();
   if (isError) return renderErrorState();
-  if (isLoading) return renderLoadingState();
 
   return (
     <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'}`}>
@@ -299,7 +298,6 @@ const ChatList = ({ setIsChatActive, status }) => {
           />
         </Flex>
       </div>
-
       <div
         ref={chatListRef}
         onScroll={handleScroll}
@@ -317,7 +315,6 @@ const ChatList = ({ setIsChatActive, status }) => {
             border-radius: 3px;
           }
         `}</style>
-
         {memoizedChats?.length > 0 ? (
           <AnimatePresence>
             {memoizedChats.map((chat) => {
@@ -328,7 +325,6 @@ const ChatList = ({ setIsChatActive, status }) => {
               const isBlocked = chat.blockedUsers?.some(block => block.blocker === currentUserId);
               const isRead = chat.lastMessage?.read || chat.unreadCount === 0;
               const isActiveChat = chat._id === id;
-
               return (
                 <motion.div
                   key={chat._id}
@@ -356,7 +352,6 @@ const ChatList = ({ setIsChatActive, status }) => {
                         </div>
                       )}
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
                         <h3 className={`font-medium truncate ${isBlocked ? 'line-through' : ''} ${isRead ? '' : 'font-semibold'}`}>
@@ -369,7 +364,6 @@ const ChatList = ({ setIsChatActive, status }) => {
                           {isMuted && <BsBellSlash className="text-gray-400" size={14} />}
                         </div>
                       </div>
-
                       <div className="flex items-center gap-2 mt-1">
                         {isRead && chat.lastMessage?.sender === currentUserId && (
                           <BsCheckAll className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} size={14} />
@@ -381,7 +375,6 @@ const ChatList = ({ setIsChatActive, status }) => {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex flex-col items-end gap-2">
                       {chat?.unreadCount > 0 && (
                         <motion.span
@@ -392,7 +385,6 @@ const ChatList = ({ setIsChatActive, status }) => {
                           {chat?.unreadCount}
                         </motion.span>
                       )}
-
                       <Dropdown
                         menu={{ items: getMenuItems(chat) }}
                         trigger={['click']}
@@ -427,7 +419,6 @@ const ChatList = ({ setIsChatActive, status }) => {
           </motion.div>
         )}
       </div>
-
       {unreadCount > 0 && (
         <div className="p-2 border-t border-gray-200 dark:border-gray-700">
           <div className="text-center text-sm font-medium">
