@@ -17,6 +17,7 @@ const messageSlice = createSlice({
   reducers: {
     addMessage: (state, action) => {
       const existingIndex = state.messages.findIndex(msg => msg._id === action.payload._id);
+      
       if (existingIndex >= 0) {
         state.messages[existingIndex] = action.payload;
       } else {

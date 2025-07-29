@@ -3,6 +3,7 @@
 import { Avatar, Button, Dropdown, Form, Input, Tooltip, Upload, message as antMessage } from 'antd';
 import EmojiPicker from 'emoji-picker-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BsEmojiSmile, BsPinAngleFill } from 'react-icons/bs';
@@ -19,6 +20,7 @@ import { ThemeContext } from '../../ClientLayout';
 
 const ChatWindow = ({ id }) => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
@@ -44,7 +46,7 @@ const ChatWindow = ({ id }) => {
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
-  const [sendingMessage, setSendingMessage] = useState(false); // New state for send button loading
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -54,13 +56,18 @@ const ChatWindow = ({ id }) => {
     { emoji: '😢', name: 'sad' }
   ];
 
-  // Reset messages when chat changes
+  // Helper function to check if current user has reacted with a specific reaction
+  const hasUserReacted = (message, reactionType) => {
+    return message.reactions?.some(reaction =>
+      reaction.userId?._id === loginUserId && reaction.reactionType === reactionType
+    );
+  };
+
   useEffect(() => {
     dispatch(resetMessages());
     setInitialLoad(true);
   }, [id, dispatch]);
 
-  // Scroll to bottom on initial load or new messages
   useEffect(() => {
     if (initialLoad && messages.length > 0) {
       setTimeout(() => {
@@ -72,7 +79,6 @@ const ChatWindow = ({ id }) => {
     }
   }, [messages, initialLoad, isNearBottom]);
 
-  // Handle click outside emoji and reaction pickers
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showEmojiPicker && emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) &&
@@ -89,7 +95,6 @@ const ChatWindow = ({ id }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showEmojiPicker, showReactionPicker]);
 
-  // Handle scroll events for infinite loading
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -132,13 +137,39 @@ const ChatWindow = ({ id }) => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  const navigateToRepliedMessage = (replyToMessage) => {
+    const originalMessageId = replyToMessage._id;
+    const originalMsg = document.getElementById(`msg-${originalMessageId}`);
+
+    if (originalMsg) {
+      originalMsg.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      originalMsg.classList.add('message-highlight');
+
+      setTimeout(() => {
+        originalMsg.classList.remove('message-highlight');
+      }, 2000);
+    } else {
+      const messageExists = messages.find(msg => msg._id === originalMessageId);
+
+      if (messageExists) {
+        antMessage.info('Message found but not visible. Loading more messages...');
+      } else {
+        antMessage.warning('Original message not found or may have been deleted');
+      }
+    }
+  };
+
   const handleCreateNewMessage = async (values) => {
     if (!values.message && (!values?.file?.fileList || values?.file?.fileList.length === 0)) {
       return;
     }
 
     try {
-      setSendingMessage(true); // Start loading
+      setSendingMessage(true);
 
       let response;
       const formData = new FormData();
@@ -146,26 +177,36 @@ const ChatWindow = ({ id }) => {
       if (values?.file?.fileList?.length > 0) {
         formData.append("image", values?.file?.fileList[0]?.originFileObj);
       }
-      formData.append("text", values.message || "");
+      if (values.message) {
+        formData.append("text", values.message);
+      }
 
       if (replyingTo) {
-        response = await replyMessage({
-          chatId: id,
-          messageId: replyingTo._id,
-          body: formData
-        }).unwrap();
+        if (values?.file?.fileList?.length > 0) {
+          response = await replyMessage({
+            chatId: id,
+            messageId: replyingTo._id,
+            body: formData
+          }).unwrap();
+        } else {
+          response = await replyMessage({
+            chatId: id,
+            messageId: replyingTo._id,
+            body: { text: values.message }
+          }).unwrap();
+        }
       } else {
         response = await sendMessage({ chatId: id, body: formData }).unwrap();
       }
 
       if (response.data) {
-        // Ensure the sender ID matches before adding to the store
         const confirmedMessage = {
           ...response.data,
           sender: {
             ...response.data.sender,
-            _id: loginUserId // Force the sender ID to match current user
-          }
+            _id: loginUserId
+          },
+          ...(replyingTo && { replyTo: replyingTo })
         };
 
         dispatch(addMessage(confirmedMessage));
@@ -177,8 +218,9 @@ const ChatWindow = ({ id }) => {
       }
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to send message");
+      console.error("Message send error:", error);
     } finally {
-      setSendingMessage(false); // Stop loading regardless of outcome
+      setSendingMessage(false);
     }
   };
 
@@ -218,25 +260,29 @@ const ChatWindow = ({ id }) => {
 
   const handleAddReaction = async (messageId, reaction) => {
     try {
-      // Optimistic update
+      const message = messages.find(msg => msg._id === messageId);
+      const hasReacted = hasUserReacted(message, reaction);
+
+      // Toggle the reaction in Redux state
       dispatch(updateMessageReaction({
         messageId,
         reaction,
-        userId: loginUserId
+        userId: loginUserId,
+        remove: hasReacted // Add this flag to indicate removal
       }));
 
       await messageReact({ messageId, reaction }).unwrap();
-      setShowReactionPicker({ messageId: null, show: false });
+
+      // Keep the picker open so users can select multiple reactions
+      // setShowReactionPicker({ messageId: null, show: false });
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to add reaction");
-      // Re-fetch to sync with server
       refetch();
     }
   };
 
   const handlePinMessage = async (messageId, action) => {
     try {
-      // Optimistic update
       dispatch(updateMessagePin({
         messageId,
         isPinned: action === 'pin',
@@ -247,7 +293,6 @@ const ChatWindow = ({ id }) => {
       toast.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
     } catch (error) {
       antMessage.error(error?.data?.message || `Failed to ${action} message`);
-      // Re-fetch to sync with server
       refetch();
     }
   };
@@ -293,7 +338,7 @@ const ChatWindow = ({ id }) => {
     <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
       {/* Header */}
       {chatUser?.participants?.map(item => (
-        <div key={item._id} className={`flex items-center space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div onClick={() => router.push(`/profiles/${item._id}`)} key={item._id} className={`flex items-center cursor-pointer space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="relative">
             <Avatar
               src={getImageUrl(item?.profile)}
@@ -381,6 +426,20 @@ const ChatWindow = ({ id }) => {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
             border-radius: 4px;
           }
+          .reply-indicator:hover {
+            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)'};
+            transform: translateX(2px);
+            transition: all 0.2s ease;
+          }
+          .message-highlight {
+            transform: scale(1.05) !important;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6) !important;
+            border: 2px solid #3B82F6 !important;
+            border-radius: 16px !important;
+            transition: all 0.3s ease !important;
+            z-index: 10 !important;
+            position: relative !important;
+          }
         `}</style>
 
         {loadingMore && (
@@ -435,7 +494,6 @@ const ChatWindow = ({ id }) => {
                 )}
 
                 <div className="relative group max-w-[75%]">
-                  {/* Pin indicator */}
                   {isPinned && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -458,16 +516,10 @@ const ChatWindow = ({ id }) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {/* Reply indicator */}
                     {message.replyTo && !isDeleted && (
                       <div
                         className="reply-indicator p-2 mb-2 text-xs rounded-lg cursor-pointer"
-                        onClick={() => {
-                          const originalMsg = document.getElementById(`msg-${message.replyTo._id}`);
-                          if (originalMsg) {
-                            originalMsg.scrollIntoView({ behavior: 'smooth' });
-                          }
-                        }}
+                        onClick={() => navigateToRepliedMessage(message.replyTo)}
                       >
                         <div className="flex items-center space-x-2">
                           <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
@@ -481,14 +533,13 @@ const ChatWindow = ({ id }) => {
                               {message.replyTo.sender?.userName || 'User'}
                             </p>
                             <p className="truncate text-gray-500">
-                              {message.replyTo.text || "📷 Image"}
+                              {message.replyTo.text || (message.replyTo.images?.length > 0 ? "📷 Image" : "Message")}
                             </p>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Message content */}
                     {message.images?.length > 0 && !isDeleted && (
                       <div className="mb-3">
                         <img
@@ -511,7 +562,6 @@ const ChatWindow = ({ id }) => {
                       </p>
                     )}
 
-                    {/* Message meta */}
                     <div className="flex items-center justify-between mt-2">
                       <span className={`text-xs ${isCurrentUser
                         ? 'text-blue-100'
@@ -526,7 +576,6 @@ const ChatWindow = ({ id }) => {
                       )}
                     </div>
 
-                    {/* Reactions */}
                     {!isDeleted && message.reactions?.length > 0 && (
                       <motion.div
                         initial={{ scale: 0 }}
@@ -550,7 +599,6 @@ const ChatWindow = ({ id }) => {
                     )}
                   </motion.div>
 
-                  {/* Message options */}
                   {!isDeleted && (
                     <div className={`message-options absolute ${isCurrentUser ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'
                       } top-1/2 -translate-y-1/2 flex space-x-1`}>
@@ -597,7 +645,6 @@ const ChatWindow = ({ id }) => {
                     </div>
                   )}
 
-                  {/* Reaction picker */}
                   {!isDeleted && showReactionPicker.show && showReactionPicker.messageId === message._id && (
                     <motion.div
                       ref={reactionPickerRef}
@@ -610,17 +657,27 @@ const ChatWindow = ({ id }) => {
                         } shadow-lg ${isCurrentUser ? 'right-0' : 'left-0'
                         } -top-12`}
                     >
-                      {reactions.map((reaction) => (
-                        <Button
-                          key={reaction.name}
-                          type="text"
-                          size="small"
-                          className="p-1 hover:bg-gray-100 rounded-full transition-all hover:scale-110"
-                          onClick={() => handleAddReaction(message._id, reaction.name)}
-                        >
-                          <span className="text-lg">{reaction.emoji}</span>
-                        </Button>
-                      ))}
+                      {reactions.map((reaction) => {
+                        const isSelected = hasUserReacted(message, reaction.name);
+                        return (
+                          <Button
+                            key={reaction.name}
+                            type="text"
+                            size="small"
+                            className={`p-1 rounded-full transition-all hover:scale-110 ${isSelected
+                              ? isDarkMode
+                                ? 'bg-blue-600 hover:bg-blue-700'
+                                : 'bg-blue-500 hover:bg-blue-600'
+                              : isDarkMode
+                                ? 'hover:bg-gray-600'
+                                : 'hover:bg-gray-100'
+                              }`}
+                            onClick={() => handleAddReaction(message._id, reaction.name)}
+                          >
+                            <span className="text-lg">{reaction.emoji}</span>
+                          </Button>
+                        );
+                      })}
                     </motion.div>
                   )}
                 </div>
@@ -639,7 +696,6 @@ const ChatWindow = ({ id }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply indicator */}
       <AnimatePresence>
         {replyingTo && (
           <motion.div
@@ -678,7 +734,6 @@ const ChatWindow = ({ id }) => {
         )}
       </AnimatePresence>
 
-      {/* Image preview */}
       <AnimatePresence>
         {imagePreview && (
           <motion.div
@@ -707,7 +762,6 @@ const ChatWindow = ({ id }) => {
         )}
       </AnimatePresence>
 
-      {/* Message input */}
       <div className={`p-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center`}>
         <Form form={form} onFinish={handleCreateNewMessage} className="flex-1 flex items-center">
           <Form.Item name="file" noStyle>
@@ -769,7 +823,7 @@ const ChatWindow = ({ id }) => {
             icon={<IoMdSend />}
             style={{ width: "40px" }}
             className="ml-2"
-            loading={sendingMessage || isSending} // Use our new loading state
+            loading={sendingMessage || isSending}
           />
         </Form>
       </div>

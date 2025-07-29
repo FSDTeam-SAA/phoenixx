@@ -89,7 +89,7 @@ const ProfileBanner = () => {
               {/* Message Button - Right Aligned */}
               <div className="flex-1"></div>
               {/* <Button
-                loading={loading}
+                loading={loading.toString()}
                 onClick={() => handleChat(id)}
                 className={`
                   ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2 text-base'} 
@@ -123,7 +123,7 @@ const ProfileBanner = () => {
 
               <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
                 <button
-                  loading={loading}
+                  loading={loading.toString()}
                   onClick={() => handleChat(id)}
                   className={`
                   ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'} 
