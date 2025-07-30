@@ -2,8 +2,8 @@
 
 const page = () => {
   return (
-    <div>
-      This is chatBox
+    <div className='flex justify-center items-center h-[500px] select-none'>
+      Continue your Chat
     </div>
   );
 };

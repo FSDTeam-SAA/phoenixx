@@ -119,7 +119,9 @@ const ProfileBanner = () => {
                 <span>Send Message</span>
               </Button> */}
 
-              <FollowButton subscriberId={localStorage.getItem("login_user_id")} subscribedToId={id} />
+             <div className='pr-3'>
+             <FollowButton subscriberId={localStorage.getItem("login_user_id")} subscribedToId={id} />
+             </div>
 
               <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
                 <button

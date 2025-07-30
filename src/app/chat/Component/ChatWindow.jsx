@@ -1,3 +1,5 @@
+// Fixed ChatWindow.js
+
 'use client';
 
 import { Avatar, Button, Dropdown, Form, Input, Tooltip, Upload, message as antMessage } from 'antd';
@@ -26,7 +28,24 @@ const ChatWindow = ({ id }) => {
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
 
-  const { data: messagesData, refetch } = useGetAllMessagesQuery({ chatId: id, page, limit: 10 });
+  const { chats: reduxChats } = useSelector((state) => state.chats);
+
+
+  const users = reduxChats.find(item => item._id === id);
+
+
+
+
+
+  // FIXED: Add proper dependency array and skip logic
+  const { refetch, isFetching } = useGetAllMessagesQuery(
+    { chatId: id, page, limit: 10 },
+    {
+      skip: !id,
+      refetchOnMountOrArgChange: true // This ensures fresh data when component mounts
+    }
+  );
+
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();
   const [pinMessage] = usePinMessageMutation();
@@ -49,6 +68,9 @@ const ChatWindow = ({ id }) => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // FIXED: Track current chat ID to detect changes
+  const [currentChatId, setCurrentChatId] = useState(null);
+
   const reactions = [
     { emoji: '❤️', name: 'love' },
     { emoji: '👍', name: 'thumbs_up' },
@@ -69,18 +91,36 @@ const ChatWindow = ({ id }) => {
     return messages.find(msg => msg._id === replyToId);
   };
 
+  // FIXED: Better chat switching logic
   useEffect(() => {
-    dispatch(resetMessages());
-    setInitialLoad(true);
-  }, [id, dispatch]);
+    if (id && id !== currentChatId) {
+      console.log('Switching to new chat:', id);
 
+      // Reset all state when switching chats
+      dispatch(resetMessages());
+      setCurrentChatId(id);
+      setInitialLoad(true);
+      setReplyingTo(null);
+      setImagePreview(null);
+      setShowEmojiPicker(false);
+      setShowReactionPicker({ messageId: null, show: false });
+      form.resetFields();
+
+      // Force refetch for new chat
+      if (refetch) {
+        refetch();
+      }
+    }
+  }, [id, dispatch, refetch, currentChatId, form]);
+
+  // FIXED: Scroll to bottom logic
   useEffect(() => {
     if (initialLoad && messages.length > 0) {
       setTimeout(() => {
         scrollToBottom('auto');
         setInitialLoad(false);
       }, 100);
-    } else if (isNearBottom && messages.length > 0) {
+    } else if (isNearBottom && messages.length > 0 && !initialLoad) {
       setTimeout(() => scrollToBottom('smooth'), 100);
     }
   }, [messages, initialLoad, isNearBottom]);
@@ -110,17 +150,17 @@ const ChatWindow = ({ id }) => {
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
       setIsNearBottom(distanceFromBottom < 100);
 
-      if (scrollTop < 100 && hasMore && !loadingMore && !isLoading && !initialLoad) {
+      if (scrollTop < 100 && hasMore && !loadingMore && !isLoading && !initialLoad && !isFetching) {
         loadMoreMessages();
       }
     };
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [hasMore, isLoading, loadingMore, initialLoad]);
+  }, [hasMore, isLoading, loadingMore, initialLoad, isFetching]);
 
   const loadMoreMessages = async () => {
-    if (loadingMore || !hasMore || isLoading) return;
+    if (loadingMore || !hasMore || isLoading || isFetching) return;
 
     setLoadingMore(true);
     try {
@@ -170,6 +210,7 @@ const ChatWindow = ({ id }) => {
   };
 
   const handleCreateNewMessage = async (values) => {
+    if (sendingMessage || isSending) return; // Prevent multiple submissions
     if (!values.message && (!values?.file?.fileList || values?.file?.fileList.length === 0)) {
       return;
     }
@@ -188,7 +229,6 @@ const ChatWindow = ({ id }) => {
       }
 
       if (replyingTo) {
-        // FIXED: Reply message handling
         if (values?.file?.fileList?.length > 0) {
           response = await replyMessage({
             chatId: id,
@@ -203,9 +243,7 @@ const ChatWindow = ({ id }) => {
           }).unwrap();
         }
 
-        // FIXED: Handle reply response properly
         if (response.data) {
-          // If server returns both originalMessage and reply
           if (response.data.originalMessage && response.data.reply) {
             const replyWithReference = {
               ...response.data.reply,
@@ -217,7 +255,6 @@ const ChatWindow = ({ id }) => {
             };
             dispatch(addMessage(replyWithReference));
           } else {
-            // If server returns just the reply message
             const replyWithReference = {
               ...response.data,
               replyTo: replyingTo._id,
@@ -230,7 +267,6 @@ const ChatWindow = ({ id }) => {
           }
         }
       } else {
-        // Regular message
         response = await sendMessage({ chatId: id, body: formData }).unwrap();
 
         if (response.data) {
@@ -245,7 +281,6 @@ const ChatWindow = ({ id }) => {
         }
       }
 
-      // Reset form and UI state
       form.resetFields();
       setImagePreview(null);
       setShowEmojiPicker(false);
@@ -319,17 +354,18 @@ const ChatWindow = ({ id }) => {
     }
   };
 
-
-
   const handlePinMessage = async (messageId, action) => {
     try {
+
+
+      const response = await pinMessage({ messageId, action }).unwrap();
+      console.log(response)
       dispatch(updateMessagePin({
         messageId,
         isPinned: action === 'pin',
         pinnedBy: loginUserId
       }));
 
-      await pinMessage({ messageId, action }).unwrap();
       toast.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
     } catch (error) {
       antMessage.error(error?.data?.message || `Failed to ${action} message`);
@@ -363,16 +399,20 @@ const ChatWindow = ({ id }) => {
     return reactionMap[reactionType] || "👍";
   };
 
-  const messageVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.8 },
-    visible: { opacity: 1, y: 0, scale: 1 },
-    exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } }
-  };
 
   const replyVariants = {
     hidden: { opacity: 0, height: 0 },
     visible: { opacity: 1, height: 'auto' }
   };
+
+  // FIXED: Show loading state when switching chats
+  if (!id) {
+    return (
+      <div className="flex justify-center items-center h-[80vh]">
+        <p className="text-gray-500">Select a chat to start messaging</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -473,15 +513,24 @@ const ChatWindow = ({ id }) => {
             transform: translateX(4px);
             border-left-width: 6px;
           }
-          .message-highlight {
-            transform: scale(1.05) !important;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6) !important;
-            border: 2px solid #3B82F6 !important;
-            border-radius: 16px !important;
-            transition: all 0.3s ease !important;
-            z-index: 10 !important;
-            position: relative !important;
-          }
+         .message-highlight {
+  border-radius: 16px !important;
+  animation: pulse-bg 2s ease-in-out infinite !important;
+  z-index: 10 !important;
+  position: relative !important;
+}
+
+@keyframes pulse-bg {
+  0% {
+    background-color: rgba(156, 163, 175, 0.1);
+  }
+  50% {
+    background-color: rgba(156, 163, 175, 0.3);
+  }
+  100% {
+    background-color: rgba(156, 163, 175, 0.1);
+  }
+}
           
           .reply-preview {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
@@ -543,7 +592,7 @@ const ChatWindow = ({ id }) => {
           </div>
         )}
 
-        {isLoading && messages.length === 0 && (
+        {(isLoading || isFetching) && messages.length === 0 && (
           <div className="flex justify-center items-center h-full">
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
@@ -552,7 +601,7 @@ const ChatWindow = ({ id }) => {
           </div>
         )}
 
-        {!isLoading && messages.length === 0 && (
+        {!isLoading && !isFetching && messages.length === 0 && (
           <div className="flex justify-center items-center h-full">
             <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
               No messages yet. Start the conversation!
@@ -586,7 +635,7 @@ const ChatWindow = ({ id }) => {
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-5 left-1/2 transform -translate-x-1/2"
+                      className="absolute -top-5  left-1/2 transform -translate-x-1/2"
                     >
                       <BsPinAngleFill className="text-blue-500 text-sm" />
                     </motion.div>
@@ -596,13 +645,12 @@ const ChatWindow = ({ id }) => {
                     className={`relative p-4 rounded-2xl ${isDeleted
                       ? 'deleted-message'
                       : isCurrentUser
-                        ? 'bg-blue-500 text-white'
+                        ? ''
                         : isDarkMode
                           ? 'bg-gray-700 text-gray-200'
                           : 'bg-white text-gray-800 border border-gray-200'
-                      } shadow-sm message-bubble`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                      }  ${isDarkMode ? "bg-gray-600" : "bg-gray-200"}`}
+
                   >
                     {/* Enhanced Reply Indicator */}
                     {originalMessage && !isDeleted && (
@@ -654,11 +702,11 @@ const ChatWindow = ({ id }) => {
 
                     <div className="flex items-center justify-between mt-2">
                       <span className={`text-xs ${isCurrentUser
-                        ? 'text-blue-100'
+                        ? ''
                         : isDarkMode
                           ? 'text-gray-400'
-                          : 'text-gray-500'
-                        }`}>
+                          : 'text-black'
+                        } t`}>
                         {formatDate(message.createdAt)}
                       </span>
                       {message.read && isCurrentUser && (
@@ -668,8 +716,6 @@ const ChatWindow = ({ id }) => {
 
                     {!isDeleted && message.reactions?.length > 0 && (
                       <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
                         className="flex gap-1 mt-2"
                       >
                         <div className={`flex items-center px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
@@ -757,12 +803,12 @@ const ChatWindow = ({ id }) => {
                         {reactions.map((reaction) => {
                           const isSelected = hasUserReacted(message, reaction.name);
                           return (
-                            <Button
+                            <div
                               key={reaction.name}
                               type="text"
                               size="small"
-                              className={`p-2 rounded-full transition-all duration-200 hover:scale-125 transform ${isSelected
-                                ? 'reaction-selected'
+                              className={`p-2 rounded cursor-pointer  transition-all duration-200 transform ${isSelected
+                                ? 'bg-gray-300'
                                 : isDarkMode
                                   ? 'hover:bg-gray-600'
                                   : 'hover:bg-gray-100'
@@ -770,7 +816,7 @@ const ChatWindow = ({ id }) => {
                               onClick={() => handleAddReaction(message._id, reaction.name)}
                             >
                               <span className="text-lg">{reaction.emoji}</span>
-                            </Button>
+                            </div>
                           );
                         })}
                       </div>
@@ -790,11 +836,13 @@ const ChatWindow = ({ id }) => {
                 </div>
 
                 {isCurrentUser && (
-                  <Avatar
-                    src={getImageUrl(message.sender?.profile)}
-                    size={32}
-                    className="ml-3 self-start mt-1"
-                  />
+                  <div className='flex flex-col justify-end'>
+                    <Avatar
+                      src={getImageUrl(message.sender?.profile)}
+                      size={32}
+                      className="ml-3 self-end flex flex-col  mt-1"
+                    />
+                  </div>
                 )}
               </motion.div>
             );
@@ -929,13 +977,16 @@ const ChatWindow = ({ id }) => {
           <Form.Item name="message" noStyle className="flex-1">
             <Input.TextArea
               ref={inputRef}
+              disabled={users?.isBlocked}
               placeholder={replyingTo ? `Reply to ${replyingTo.sender?.userName}...` : "Type a message..."}
               autoSize={{ minRows: 1, maxRows: 4 }}
               className={`rounded-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-200'}`}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  form.submit();
+                  if (!sendingMessage && !isSending) {
+                    form.submit();
+                  }
                 }
               }}
             />
@@ -945,10 +996,13 @@ const ChatWindow = ({ id }) => {
             type="primary"
             htmlType="submit"
             icon={<IoMdSend />}
-            style={{ width: "40px" }}
+            iconPosition="end"
+
+            style={{ width: "70px" }}
             className="ml-2"
             loading={sendingMessage || isSending}
-          />
+            disabled={sendingMessage || isSending || users?.isBlocked} // Disable button during send
+          >Send</Button>
         </Form>
       </div>
     </div>

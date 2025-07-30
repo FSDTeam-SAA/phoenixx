@@ -54,6 +54,8 @@ const ChatList = ({ setIsChatActive, status }) => {
   // Get chats from Redux store
   const { chats: reduxChats, unreadCount } = useSelector((state) => state.chats);
 
+
+
   const getCurrentUserId = useCallback(() => {
     try {
       return localStorage.getItem("login_user_id") || '';

@@ -39,6 +39,7 @@ import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
 import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
+import { useUnreadIconCountMutation } from '../features/chat/chatList/chatApi';
 import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
@@ -56,6 +57,7 @@ export default function Navbar() {
   const searchRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [readCound] = useUnreadIconCountMutation();
 
   // Using ThemeContext instead of useTheme hook
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
@@ -66,8 +68,11 @@ export default function Navbar() {
 
 
   const { notifications } = useSelector((state) => state);
+
+
   const { chats } = useSelector((state) => state);
 
+  console.log(chats)
 
 
   const { data, isLoading } = useGetProfileQuery();
@@ -108,14 +113,22 @@ export default function Navbar() {
 
 
 
-  const handleChatNavigation = (path) => {
+  const handleChatNavigation = async (path) => {
     if (!isAuthenticated()) {
-      router.push('/auth/login');
+      router.push('/auth/login')
       return;
     } else {
-      router.push(path);
-      localStorage.removeItem("messageCount")
-      setDrawerVisible(false);
+      try {
+        const response = await readCound().unwrap();
+        console.log(response)
+
+        router.push(path);
+        localStorage.removeItem("messageCount")
+        setDrawerVisible(false);
+      } catch (error) {
+        console.log(error)
+      }
+
     }
   }
 
@@ -491,7 +504,7 @@ export default function Navbar() {
                     marginTop: "5px",
                     marginRight: "5px"
                   }}
-                  count={localStorage.getItem("messageCount")}
+                  count={chats.totalIconUnreadMessages || 0}
                 >
                   <Button
                     onClick={() => handleChatNavigation("/chat")}

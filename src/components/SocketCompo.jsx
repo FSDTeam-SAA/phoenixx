@@ -1,17 +1,15 @@
+// SocketComponent.js
 'use client';
 import {
-  addChats,
   deleteChatLocally,
   markChatAsRead,
   toggleBlockChat,
   toggleMuteChat,
-  updateLastMessage
+  updateLastMessage,
+  updateTotalUnreadCount
 } from '@/redux/features/chatSlice';
 import {
-  addMessage,
-  updateMessageDelete,
-  updateMessagePin,
-  updateMessageReaction
+  updateMessagePin
 } from '@/redux/features/messageSlice';
 import { addNotification } from '@/redux/features/notificationSlice';
 import { useEffect } from 'react';
@@ -42,68 +40,7 @@ const SocketComponent = () => {
       toast.error('Connection error. Trying to reconnect...');
     });
 
-    // Enhanced message handler
-    socket.on(`newMessage::${loggedInUserId}`, (message) => {
-      if (!message) return;
-
-      const enhancedMessage = {
-        ...message,
-        sender: message.sender || {
-          _id: message.senderId || 'unknown',
-          userName: 'Unknown',
-          profile: null
-        },
-        createdAt: message.createdAt || new Date().toISOString(),
-        read: message.read || false
-      };
-
-      dispatch(addMessage(enhancedMessage));
-      dispatch(updateLastMessage({
-        chatId: message.chatId,
-        message: enhancedMessage
-      }));
-    });
-
-    // Message reaction events
-    socket.on(`messageReacted::${loggedInUserId}`, (data) => {
-      if (!data?.messageId) return;
-      dispatch(updateMessageReaction({
-        messageId: data.messageId,
-        reaction: data.reactionType,
-        userId: data.userId
-      }));
-    });
-
-    // Message pin/unpin events
-    socket.on(`messagePinned::${loggedInUserId}`, (data) => {
-      if (!data?.messageId) return;
-      dispatch(updateMessagePin({
-        messageId: data.messageId,
-        isPinned: data.action === 'pin',
-        pinnedBy: data.pinnedBy
-      }));
-    });
-
-    // Message deletion events
-    socket.on(`messageDeleted::${loggedInUserId}`, (data) => {
-      if (!data?.messageId || !data?.chatId) return;
-      dispatch(updateMessageDelete({
-        messageId: data.messageId
-      }));
-      dispatch(updateLastMessage({
-        chatId: data.chatId,
-        message: {
-          _id: data.messageId,
-          text: "This message has been deleted.",
-          isDeleted: true,
-          createdAt: new Date().toISOString(),
-          read: true
-        }
-      }));
-    });
-
-    // Chat events
-    // In SocketComponent.js
+    // New chat creation - newChat::684bf353ab2c6e754f995d88
     socket.on(`newChat::${loggedInUserId}`, (chat) => {
       if (!chat?._id) return;
 
@@ -124,12 +61,38 @@ const SocketComponent = () => {
           read: chat.lastMessage.read || false
         };
       }
-
-      dispatch(addChats(chat));
+      console.log("socket compo", chat)
+      // dispatch(addChats(chat));
     });
 
-    // Enhance new message handler to ensure chat exists
+    // Chat deleted for user - chatDeletedForUser::684bf353ab2c6e754f995d88
+    socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
+      if (!data?.chatId) return;
+      dispatch(deleteChatLocally(data.chatId));
+    });
+
+    // Chat mute status - chatMuteStatus::684bf353ab2c6e754f995d88
+    socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
+      if (!data?.chatId) return;
+      dispatch(toggleMuteChat({
+        chatId: data.chatId,
+        isMuted: data.isMuted
+      }));
+    });
+
+    // User block status - userBlockStatus::684bf353ab2c6e754f995d88
+    socket.on(`userBlockStatus::${loggedInUserId}`, (data) => {
+      if (!data?.chatId) return;
+      dispatch(toggleBlockChat({
+        chatId: data.chatId,
+        isBlocked: data.isBlocked
+      }));
+    });
+
+    // New message - newMessage::684bf353ab2c6e754f995d88
     socket.on(`newMessage::${loggedInUserId}`, (message) => {
+
+      console.log(message)
       if (!message) return;
 
       const enhancedMessage = {
@@ -143,50 +106,62 @@ const SocketComponent = () => {
         read: message.read || false
       };
 
-      dispatch(addMessage(enhancedMessage));
 
-      // This will now handle both existing and new chats
-      dispatch(updateLastMessage({
-        chatId: message.chatId,
-        message: enhancedMessage,
-        participants: message.participants || [] // Pass participants for new chats
+
+
+      // dispatch(addMessage(enhancedMessage));
+      // dispatch(updateLastMessage({
+      //   chatId: message.chatId,
+      //   message: enhancedMessage,
+      //   participants: message.participants || []
+      // }));
+    });
+
+    // Unread count update - unreadCountUpdate::684bf353ab2c6e754f995d88
+    socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
+      if (!data?.chatId) return;
+      dispatch(markChatAsRead(data.chatId));
+    });
+
+    // Message pinned - messagePinned::684bf353ab2c6e754f995d88
+    socket.on(`messagePinned::${loggedInUserId}`, (data) => {
+      if (!data?.messageId) return;
+      dispatch(updateMessagePin({
+        messageId: data.messageId,
+        isPinned: true,
+        pinnedBy: data.pinnedBy
       }));
     });
 
-    socket.on(`chatDeleted::${loggedInUserId}`, (chatId) => {
-      if (!chatId) return;
-      dispatch(deleteChatLocally(chatId));
+    // Message unpinned - messageUnpinned::684bf353ab2c6e754f995d88
+    socket.on(`messageUnpinned::${loggedInUserId}`, (data) => {
+      if (!data?.messageId) return;
+      dispatch(updateMessagePin({
+        messageId: data.messageId,
+        isPinned: false
+      }));
     });
 
-    socket.on(`chatMuted::${loggedInUserId}`, ({ chatId, isMuted }) => {
-      if (!chatId) return;
-      dispatch(toggleMuteChat({ chatId, isMuted }));
-    });
+    // Chat list update - chatListUpdate::684bf353ab2c6e754f995d88
+    socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
+      if (!data) return;
 
-    socket.on(`chatBlocked::${loggedInUserId}`, ({ chatId, isBlocked }) => {
-      if (!chatId) return;
-      dispatch(toggleBlockChat({ chatId, isBlocked }));
-    });
+      // Update total unread count for navbar badge
+      if (typeof data.totalIconUnreadMessages === 'number') {
+        dispatch(updateTotalUnreadCount(data.totalIconUnreadMessages));
+      }
 
-    socket.on(`chatMarkedAsRead::${loggedInUserId}`, (data) => {
-      if (!data?.chatId) return;
-
-      // Update both the chat and the last message
-      dispatch(markChatAsRead(data.chatId));
-
-      // If the read status comes with message updates
-      if (data.message) {
+      // Update specific chat if chatId provided
+      if (data.chatId && data.lastMessage) {
         dispatch(updateLastMessage({
           chatId: data.chatId,
-          message: {
-            ...data.message,
-            read: true
-          }
+          message: data.lastMessage,
+          participants: data.participants || []
         }));
       }
     });
 
-    // Notification events
+    // Notification - notification::6865514465af5ad34a9027c2
     socket.on(`notification::${loggedInUserId}`, (notification) => {
       if (!notification) return;
       dispatch(addNotification({
@@ -204,15 +179,15 @@ const SocketComponent = () => {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
-      socket.off(`newMessage::${loggedInUserId}`);
-      socket.off(`messageReacted::${loggedInUserId}`);
-      socket.off(`messagePinned::${loggedInUserId}`);
-      socket.off(`messageDeleted::${loggedInUserId}`);
       socket.off(`newChat::${loggedInUserId}`);
-      socket.off(`chatDeleted::${loggedInUserId}`);
-      socket.off(`chatMuted::${loggedInUserId}`);
-      socket.off(`chatBlocked::${loggedInUserId}`);
-      socket.off(`chatMarkedAsRead::${loggedInUserId}`);
+      socket.off(`chatDeletedForUser::${loggedInUserId}`);
+      socket.off(`chatMuteStatus::${loggedInUserId}`);
+      socket.off(`userBlockStatus::${loggedInUserId}`);
+      socket.off(`newMessage::${loggedInUserId}`);
+      socket.off(`unreadCountUpdate::${loggedInUserId}`);
+      socket.off(`messagePinned::${loggedInUserId}`);
+      socket.off(`messageUnpinned::${loggedInUserId}`);
+      socket.off(`chatListUpdate::${loggedInUserId}`);
       socket.off(`notification::${loggedInUserId}`);
       socket.disconnect();
     };

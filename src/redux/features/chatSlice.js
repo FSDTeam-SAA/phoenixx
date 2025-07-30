@@ -1,3 +1,4 @@
+// chatSlice.js
 import { createSlice } from '@reduxjs/toolkit';
 import { chatApi } from '../../features/chat/chatList/chatApi';
 
@@ -6,6 +7,7 @@ const chatsSlice = createSlice({
   initialState: {
     chats: [],
     unreadCount: 0,
+    totalIconUnreadMessages: 0, // This will be used for navbar badge
     loading: false,
     error: null
   },
@@ -16,10 +18,6 @@ const chatsSlice = createSlice({
         state.chats.unshift(action.payload);
       } else {
         state.chats[existingIndex] = action.payload;
-      }
-
-      if (action.payload.lastMessage && !action.payload.lastMessage.read) {
-        state.unreadCount += 1;
       }
     },
 
@@ -39,56 +37,103 @@ const chatsSlice = createSlice({
               read: true
             }
           };
-          unreadReduction += 1;
         }
-
-        if (chat.unreadCount > 0) {
-          unreadReduction += chat.unreadCount;
-          state.chats[chatIndex].unreadCount = 0;
-        }
-
-        state.unreadCount = Math.max(0, state.unreadCount - unreadReduction);
       }
     },
 
     deleteChatLocally: (state, action) => {
       const chatToDelete = state.chats.find(c => c._id === action.payload);
       if (chatToDelete) {
-        state.unreadCount = Math.max(0, state.unreadCount - (chatToDelete.unreadCount || 0));
+        const unreadReduction = (chatToDelete.unreadCount || 0) +
+          ((chatToDelete.lastMessage && !chatToDelete.lastMessage.read) ? 1 : 0);
+
+        state.unreadCount = Math.max(0, state.unreadCount - unreadReduction);
+        state.totalIconUnreadMessages = Math.max(0, state.totalIconUnreadMessages - unreadReduction);
       }
       state.chats = state.chats.filter(chat => chat._id !== action.payload);
     },
 
     updateLastMessage: (state, action) => {
-      const { chatId, message } = action.payload;
+      const { chatId, message, totalIconUnreadMessages } = action.payload;
+
+      // Handle total unread count update if provided
+      if (typeof totalIconUnreadMessages === 'number') {
+        state.totalIconUnreadMessages = totalIconUnreadMessages;
+        return;
+      }
+
       const chatIndex = state.chats.findIndex(c => c._id === chatId);
 
       if (chatIndex === -1) {
+        // Create new chat if it doesn't exist
         const newChat = {
           _id: chatId,
           participants: message?.participants || [],
-          lastMessage: message,
+          lastMessage: {
+            ...message,
+            createdAt: message.createdAt || new Date().toISOString()
+          },
           unreadCount: message.read ? 0 : 1,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
         state.chats.unshift(newChat);
-        if (!message.read) state.unreadCount += 1;
       } else {
+        // Get the current chat
+        const currentChat = state.chats[chatIndex];
+
+        // Update the chat with new last message
         const updatedChat = {
-          ...state.chats[chatIndex],
-          lastMessage: message,
+          ...currentChat,
+          lastMessage: {
+            ...message,
+            createdAt: message.createdAt || new Date().toISOString()
+          },
           updatedAt: new Date().toISOString()
         };
 
-        if (!message.read) {
+        // Handle unread count logic
+        const wasLastMessageUnread = currentChat.lastMessage && !currentChat.lastMessage.read;
+        const isNewMessageUnread = !message.read;
+
+        if (isNewMessageUnread) {
+          // New unread message
           updatedChat.unreadCount = (updatedChat.unreadCount || 0) + 1;
           state.unreadCount += 1;
-        } else if (state.chats[chatIndex].lastMessage && !state.chats[chatIndex].lastMessage.read && message.read) {
+          state.totalIconUnreadMessages += 1;
+        } else if (wasLastMessageUnread && message.read) {
+          // Previous unread message is now read
           updatedChat.unreadCount = Math.max(0, (updatedChat.unreadCount || 0) - 1);
           state.unreadCount = Math.max(0, state.unreadCount - 1);
+          state.totalIconUnreadMessages = Math.max(0, state.totalIconUnreadMessages - 1);
         }
 
+        // Remove chat from current position and add to top
+        state.chats.splice(chatIndex, 1);
+        state.chats.unshift(updatedChat);
+      }
+    },
+
+    updateLastMessageOptimistic: (state, action) => {
+      const { chatId, message } = action.payload;
+      const chatIndex = state.chats.findIndex(c => c._id === chatId);
+
+      if (chatIndex !== -1) {
+        const currentChat = state.chats[chatIndex];
+
+        // Optimistically update the last message for immediate UI feedback
+        const updatedChat = {
+          ...currentChat,
+          lastMessage: {
+            ...message,
+            createdAt: message.createdAt || new Date().toISOString(),
+            // Mark as read since user is sending it
+            read: true
+          },
+          updatedAt: new Date().toISOString()
+        };
+
+        // Remove chat from current position and add to top
         state.chats.splice(chatIndex, 1);
         state.chats.unshift(updatedChat);
       }
@@ -129,6 +174,11 @@ const chatsSlice = createSlice({
           state.chats[chatIndex].blockedUsers = blockedUsers.filter(block => block.blocker !== currentUserId);
         }
       }
+    },
+
+    // New reducer specifically for updating total unread count
+    updateTotalUnreadCount: (state, action) => {
+      state.totalIconUnreadMessages = action.payload;
     }
   },
 
@@ -145,7 +195,7 @@ const chatsSlice = createSlice({
         chatApi.endpoints.getAllChat.matchFulfilled,
         (state, { payload }) => {
           state.chats = payload?.data?.chats || [];
-          state.unreadCount = payload?.data?.totalUnreadMessages || 0;
+          state.totalIconUnreadMessages = payload?.data?.totalIconUnreadMessages || 0;
           state.loading = false;
         }
       )
@@ -164,8 +214,10 @@ export const {
   markChatAsRead,
   deleteChatLocally,
   updateLastMessage,
+  updateLastMessageOptimistic,
   toggleMuteChat,
-  toggleBlockChat
+  toggleBlockChat,
+  updateTotalUnreadCount
 } = chatsSlice.actions;
 
 export default chatsSlice.reducer;

@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, PostIcon, ReplyIcon, SuccessIcon } from '../../../public/images/Notification';
+import { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, PostIcon, PublicPost, ReplyIcon, SuccessIcon } from '../../../public/images/Notification';
 import Loading from '../../components/Loading/Loading';
 import { ThemeContext } from '../ClientLayout';
 const { Content } = Layout;
@@ -73,6 +73,8 @@ export default function NotificationPage() {
     switch (type) {
       case 'comment':
         return <CommentIcon />;
+      case 'new_post_from_following':
+        return <PublicPost />;
       case 'like':
         return <LikeIcon />;
       case 'follow':

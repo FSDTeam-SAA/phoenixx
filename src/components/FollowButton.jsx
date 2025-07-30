@@ -1,5 +1,7 @@
 // FollowButton.jsx
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { HiMiniBellAlert, HiOutlineBell } from "react-icons/hi2";
 import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '../features/Follow/followApi';
 
 const FollowButton = ({ subscriberId, subscribedToId }) => {
@@ -34,6 +36,7 @@ const FollowButton = ({ subscriberId, subscribedToId }) => {
     try {
       await follow({ subscriberId, subscribedToId }).unwrap();
       setIsFollowing(true);
+      toast.success("Following Successfully")
     } catch (error) {
       console.error("Error following user:", error);
     }
@@ -43,15 +46,16 @@ const FollowButton = ({ subscriberId, subscribedToId }) => {
     try {
       await unfollow({ subscriberId, subscribedToId }).unwrap();
       setIsFollowing(false);
+      toast.success("Unfollowing Successfully")
     } catch (error) {
       console.error("Error unfollowing user:", error);
     }
   };
 
   // Handle loading and error states
-  if (subscriptionsLoading) {
-    return <button disabled>Loading...</button>;
-  }
+  // if (subscriptionsLoading) {
+  //   return <button disabled>Loading...</button>;
+  // }
 
   if (subscriptionsError) {
     return <button disabled>Error loading follow status</button>;
@@ -63,12 +67,20 @@ const FollowButton = ({ subscriberId, subscribedToId }) => {
     <button
       onClick={isFollowing ? unfollowUser : followUser}
       disabled={isLoading}
-      className={`px-4 py-2 rounded ${isFollowing
-          ? 'bg-gray-500 hover:bg-gray-600 text-white'
-          : 'bg-blue-500 hover:bg-blue-600 text-white'
-        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`px-4 py-1 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed`}
+      style={{ border: "1px solid #1530c7" }}
     >
-      {isLoading ? 'Loading...' : (isFollowing ? 'Unfollow' : 'Follow')}
+      {isLoading ?
+        <HiMiniBellAlert
+          className='text-white'
+          size={30}
+          style={{
+            animation: 'spin 1s linear infinite',
+            transformOrigin: 'center'
+          }}
+        /> :
+        (isFollowing ? <HiMiniBellAlert className='text-white' size={27} /> : <HiOutlineBell className='text-white' size={27} />)
+      }
     </button>
   );
 };

@@ -53,6 +53,15 @@ export const chatApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["chat"],
     }),
+
+    unreadIconCount: builder.mutation({
+      query: () => ({
+        url: `/chats/mark-chat-as-read-icon`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["chat"],
+    }),
+
   }),
   overrideExisting: true
 });
@@ -64,4 +73,5 @@ export const {
   useDeleteChatMutation,
   useMuteChatMutation,
   useChatBlockAndUnblockMutation,
+  useUnreadIconCountMutation
 } = chatApi;
