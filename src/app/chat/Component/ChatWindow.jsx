@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { BsEmojiSmile, BsPinAngleFill } from 'react-icons/bs';
 import { FiMoreVertical } from 'react-icons/fi';
 import { IoMdSend } from 'react-icons/io';
+import { MdClose, MdReply } from 'react-icons/md';
 import { TbPinned } from 'react-icons/tb';
 import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
@@ -61,6 +62,11 @@ const ChatWindow = ({ id }) => {
     return message.reactions?.some(reaction =>
       reaction.userId?._id === loginUserId && reaction.reactionType === reactionType
     );
+  };
+
+  // Helper function to get the original message for replies
+  const getOriginalMessage = (replyToId) => {
+    return messages.find(msg => msg._id === replyToId);
   };
 
   useEffect(() => {
@@ -182,6 +188,7 @@ const ChatWindow = ({ id }) => {
       }
 
       if (replyingTo) {
+        // FIXED: Reply message handling
         if (values?.file?.fileList?.length > 0) {
           response = await replyMessage({
             chatId: id,
@@ -195,27 +202,56 @@ const ChatWindow = ({ id }) => {
             body: { text: values.message }
           }).unwrap();
         }
+
+        // FIXED: Handle reply response properly
+        if (response.data) {
+          // If server returns both originalMessage and reply
+          if (response.data.originalMessage && response.data.reply) {
+            const replyWithReference = {
+              ...response.data.reply,
+              replyTo: replyingTo._id,
+              sender: {
+                ...response.data.reply.sender,
+                _id: loginUserId
+              }
+            };
+            dispatch(addMessage(replyWithReference));
+          } else {
+            // If server returns just the reply message
+            const replyWithReference = {
+              ...response.data,
+              replyTo: replyingTo._id,
+              sender: {
+                ...response.data.sender,
+                _id: loginUserId
+              }
+            };
+            dispatch(addMessage(replyWithReference));
+          }
+        }
       } else {
+        // Regular message
         response = await sendMessage({ chatId: id, body: formData }).unwrap();
+
+        if (response.data) {
+          const confirmedMessage = {
+            ...response.data,
+            sender: {
+              ...response.data.sender,
+              _id: loginUserId
+            }
+          };
+          dispatch(addMessage(confirmedMessage));
+        }
       }
 
-      if (response.data) {
-        const confirmedMessage = {
-          ...response.data,
-          sender: {
-            ...response.data.sender,
-            _id: loginUserId
-          },
-          ...(replyingTo && { replyTo: replyingTo })
-        };
+      // Reset form and UI state
+      form.resetFields();
+      setImagePreview(null);
+      setShowEmojiPicker(false);
+      setReplyingTo(null);
+      setTimeout(() => scrollToBottom('auto'), 100);
 
-        dispatch(addMessage(confirmedMessage));
-        form.resetFields();
-        setImagePreview(null);
-        setShowEmojiPicker(false);
-        setReplyingTo(null);
-        setTimeout(() => scrollToBottom('auto'), 100);
-      }
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to send message");
       console.error("Message send error:", error);
@@ -263,23 +299,27 @@ const ChatWindow = ({ id }) => {
       const message = messages.find(msg => msg._id === messageId);
       const hasReacted = hasUserReacted(message, reaction);
 
-      // Toggle the reaction in Redux state
+      // Optimistically update the UI
       dispatch(updateMessageReaction({
         messageId,
         reaction,
-        userId: loginUserId,
-        remove: hasReacted // Add this flag to indicate removal
+        userId: loginUserId
       }));
 
       await messageReact({ messageId, reaction }).unwrap();
 
-      // Keep the picker open so users can select multiple reactions
-      // setShowReactionPicker({ messageId: null, show: false });
+      // FIXED: Close reaction picker after successful reaction
+      setShowReactionPicker({ messageId: null, show: false });
+
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to add reaction");
+      // Reset UI state on error
+      setShowReactionPicker({ messageId: null, show: false });
       refetch();
     }
   };
+
+
 
   const handlePinMessage = async (messageId, action) => {
     try {
@@ -420,16 +460,18 @@ const ChatWindow = ({ id }) => {
             opacity: 0.7;
           }
           .reply-indicator {
-            border-left: 3px solid #3B82F6;
-            padding-left: 8px;
+            border-left: 4px solid #3B82F6;
+            padding: 8px 12px;
             margin-bottom: 8px;
-            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
-            border-radius: 4px;
+            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)'};
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
           }
           .reply-indicator:hover {
-            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)'};
-            transform: translateX(2px);
-            transition: all 0.2s ease;
+            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.15)'};
+            transform: translateX(4px);
+            border-left-width: 6px;
           }
           .message-highlight {
             transform: scale(1.05) !important;
@@ -439,6 +481,56 @@ const ChatWindow = ({ id }) => {
             transition: all 0.3s ease !important;
             z-index: 10 !important;
             position: relative !important;
+          }
+          
+          .reply-preview {
+            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
+            border: 1px solid ${isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'};
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .reply-preview::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #3B82F6, #1D4ED8);
+          }
+          
+          .reply-content {
+            margin-left: 12px;
+          }
+          
+          .reply-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'};
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          
+          .reply-close-btn:hover {
+            background: ${isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'};
+            transform: scale(1.1);
+          }
+          
+          .reaction-selected {
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important;
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
           }
         `}</style>
 
@@ -469,20 +561,16 @@ const ChatWindow = ({ id }) => {
         )}
 
         <AnimatePresence initial={false}>
-          {messages?.map((message) => {
+          {[...messages]?.reverse()?.map((message) => {
             const isCurrentUser = message.sender?._id === loginUserId;
             const isDeleted = message.isDeleted === true;
             const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
+            const originalMessage = message.replyTo ? getOriginalMessage(message.replyTo) : null;
 
             return (
               <motion.div
                 id={`msg-${message._id}`}
                 key={message._id}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={messageVariants}
-                transition={{ duration: 0.3, type: "spring", stiffness: 100 }}
                 className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-6 message-wrapper`}
               >
                 {!isCurrentUser && (
@@ -516,24 +604,26 @@ const ChatWindow = ({ id }) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {message.replyTo && !isDeleted && (
+                    {/* Enhanced Reply Indicator */}
+                    {originalMessage && !isDeleted && (
                       <div
-                        className="reply-indicator p-2 mb-2 text-xs rounded-lg cursor-pointer"
-                        onClick={() => navigateToRepliedMessage(message.replyTo)}
+                        className="reply-indicator"
+                        onClick={() => navigateToRepliedMessage(originalMessage)}
                       >
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
-                            <Avatar
-                              src={getImageUrl(message.replyTo.sender?.profile)}
-                              size={20}
-                            />
-                          </div>
+                        <div className="flex items-start space-x-3">
+                          <MdReply className="text-blue-500 mt-0.5 flex-shrink-0" size={16} />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-blue-600 truncate">
-                              {message.replyTo.sender?.userName || 'User'}
-                            </p>
-                            <p className="truncate text-gray-500">
-                              {message.replyTo.text || (message.replyTo.images?.length > 0 ? "📷 Image" : "Message")}
+                            <div className="flex items-center space-x-2 mb-1">
+                              <Avatar
+                                src={getImageUrl(originalMessage.sender?.profile)}
+                                size={20}
+                              />
+                              <span className="font-medium text-blue-600 text-sm">
+                                {originalMessage.sender?.userName || 'User'}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                              {originalMessage.text || (originalMessage.images?.length > 0 ? "📷 Photo" : "Message")}
                             </p>
                           </div>
                         </div>
@@ -618,7 +708,12 @@ const ChatWindow = ({ id }) => {
                           items: [
                             {
                               key: 'reply',
-                              label: 'Reply',
+                              label: (
+                                <div className="flex items-center space-x-2">
+                                  <MdReply size={16} />
+                                  <span>Reply</span>
+                                </div>
+                              ),
                               onClick: () => setReplyingTo(message)
                             },
                             {
@@ -645,39 +740,51 @@ const ChatWindow = ({ id }) => {
                     </div>
                   )}
 
+                  {/* Enhanced Reaction Picker */}
                   {!isDeleted && showReactionPicker.show && showReactionPicker.messageId === message._id && (
                     <motion.div
                       ref={reactionPickerRef}
                       initial={{ opacity: 0, scale: 0.8, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                      className={`absolute z-20 p-2 mt-2 rounded-full flex items-center gap-1 ${isDarkMode
+                      className={`absolute z-20 p-3 mt-2 rounded-2xl flex items-center gap-2 ${isDarkMode
                         ? 'bg-gray-700 border border-gray-600'
                         : 'bg-white border border-gray-200'
-                        } shadow-lg ${isCurrentUser ? 'right-0' : 'left-0'
-                        } -top-12`}
+                        } shadow-xl backdrop-blur-sm ${isCurrentUser ? 'right-0' : 'left-0'
+                        } -top-16`}
                     >
-                      {reactions.map((reaction) => {
-                        const isSelected = hasUserReacted(message, reaction.name);
-                        return (
-                          <Button
-                            key={reaction.name}
-                            type="text"
-                            size="small"
-                            className={`p-1 rounded-full transition-all hover:scale-110 ${isSelected
-                              ? isDarkMode
-                                ? 'bg-blue-600 hover:bg-blue-700'
-                                : 'bg-blue-500 hover:bg-blue-600'
-                              : isDarkMode
-                                ? 'hover:bg-gray-600'
-                                : 'hover:bg-gray-100'
-                              }`}
-                            onClick={() => handleAddReaction(message._id, reaction.name)}
-                          >
-                            <span className="text-lg">{reaction.emoji}</span>
-                          </Button>
-                        );
-                      })}
+                      <div className="flex items-center gap-1">
+                        {reactions.map((reaction) => {
+                          const isSelected = hasUserReacted(message, reaction.name);
+                          return (
+                            <Button
+                              key={reaction.name}
+                              type="text"
+                              size="small"
+                              className={`p-2 rounded-full transition-all duration-200 hover:scale-125 transform ${isSelected
+                                ? 'reaction-selected'
+                                : isDarkMode
+                                  ? 'hover:bg-gray-600'
+                                  : 'hover:bg-gray-100'
+                                }`}
+                              onClick={() => handleAddReaction(message._id, reaction.name)}
+                            >
+                              <span className="text-lg">{reaction.emoji}</span>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<MdClose size={16} />}
+                        className={`p-1 rounded-full transition-all ${isDarkMode
+                          ? 'text-gray-400 hover:text-white hover:bg-gray-600'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          }`}
+                        onClick={() => setShowReactionPicker({ messageId: null, show: false })}
+                      />
                     </motion.div>
                   )}
                 </div>
@@ -696,6 +803,7 @@ const ChatWindow = ({ id }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Enhanced Reply Preview */}
       <AnimatePresence>
         {replyingTo && (
           <motion.div
@@ -703,37 +811,52 @@ const ChatWindow = ({ id }) => {
             animate="visible"
             exit="hidden"
             variants={replyVariants}
-            className={`p-3 border-t ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-blue-50'}`}
+            className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3 flex-1">
-                <div className="w-1 h-8 bg-blue-500 rounded-full"></div>
-                <Avatar
-                  src={getImageUrl(replyingTo.sender?.profile)}
-                  size={24}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-blue-600">
-                    Replying to {replyingTo.sender?.userName}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {replyingTo.text || "📷 Image"}
-                  </p>
+            <div className="reply-preview mx-4 mt-3">
+              <div className="reply-content">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <MdReply className="text-blue-500" size={18} />
+                    <span className="text-sm font-medium text-blue-600">
+                      Replying to {replyingTo.sender?.userName}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <Avatar
+                    src={getImageUrl(replyingTo.sender?.profile)}
+                    size={28}
+                    className="flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    {replyingTo.images?.length > 0 && (
+                      <div className="mb-2">
+                        <img
+                          src={getImageUrl(replyingTo.images[0])}
+                          alt="Reply preview"
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      </div>
+                    )}
+                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                      {replyingTo.text || "📷 Photo"}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <Button
-                type="text"
-                size="small"
+              <div
+                className="reply-close-btn"
                 onClick={() => setReplyingTo(null)}
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full p-1"
               >
-                ✕
-              </Button>
+                <MdClose size={14} />
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Image Preview */}
       <AnimatePresence>
         {imagePreview && (
           <motion.div
@@ -762,6 +885,7 @@ const ChatWindow = ({ id }) => {
         )}
       </AnimatePresence>
 
+      {/* Message Input */}
       <div className={`p-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center`}>
         <Form form={form} onFinish={handleCreateNewMessage} className="flex-1 flex items-center">
           <Form.Item name="file" noStyle>
@@ -805,7 +929,7 @@ const ChatWindow = ({ id }) => {
           <Form.Item name="message" noStyle className="flex-1">
             <Input.TextArea
               ref={inputRef}
-              placeholder="Type a message..."
+              placeholder={replyingTo ? `Reply to ${replyingTo.sender?.userName}...` : "Type a message..."}
               autoSize={{ minRows: 1, maxRows: 4 }}
               className={`rounded-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-200'}`}
               onKeyPress={(e) => {

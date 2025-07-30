@@ -63,7 +63,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-
   // Determine which chats to display
   const chatsToShow = useMemo(() => {
     if (debouncedSearchTerm) {
@@ -74,7 +73,12 @@ const ChatList = ({ setIsChatActive, status }) => {
       }) || [];
     } else {
       // Show all chats when not searching
-      return reduxChats;
+      return [...reduxChats].sort((a, b) => {
+        // Sort by last message time, but don't modify the order when clicking
+        const timeA = a.lastMessage?.createdAt || a.createdAt;
+        const timeB = b.lastMessage?.createdAt || b.createdAt;
+        return new Date(timeB) - new Date(timeA);
+      });
     }
   }, [debouncedSearchTerm, reduxChats]);
 
@@ -97,21 +101,18 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-
   const handleSelectChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
     try {
-      // Optimistically update UI first
+      // Mark as read without changing the order
       dispatch(markChatAsRead(chatId));
       router.push(`/chat/${chatId}`);
       if (setIsChatActive) setIsChatActive(true);
-      // Then send the API request
       await markAsRead(chatId).unwrap();
     } catch (error) {
       console.error('Error marking as read:', error);
       toast.error(error?.data?.message || error?.message || 'Failed to mark as read');
-      // Re-fetch chats to sync with server state
       refetch();
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
