@@ -39,8 +39,8 @@ import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
 import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
-import { useUnreadIconCountMutation } from '../features/chat/chatList/chatApi';
-import { useGetAllChatQuery } from '../features/chat/massage';
+import { useGetAllChatQuery, useUnreadIconCountMutation } from '../features/chat/chatList/chatApi';
+
 import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
@@ -71,8 +71,6 @@ export default function Navbar() {
 
 
   const { chats } = useSelector((state) => state);
-
-  console.log(chats)
 
 
   const { data, isLoading } = useGetProfileQuery();

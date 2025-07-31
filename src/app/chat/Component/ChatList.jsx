@@ -53,7 +53,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
   // Get chats from Redux store
   const { chats: reduxChats, unreadCount } = useSelector((state) => state.chats);
-
+  console
 
 
   const getCurrentUserId = useCallback(() => {
