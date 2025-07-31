@@ -1,81 +1,106 @@
-// SocketComponent.js
 'use client';
+import {
+  addMessage,
+  addReplyMessage,
+  updateMessageDelete,
+  updateMessagePin,
+  updateMessageReaction
+} from '@/redux/features/messageSlice';
 import { addNotification } from '@/redux/features/notificationSlice';
 import { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket } from '../../utils/socket';
 
 const SocketComponent = () => {
   const dispatch = useDispatch();
+  const currentChatId = useSelector(state => state.message.currentChatId);
 
   useEffect(() => {
     const loggedInUserId = localStorage.getItem("login_user_id");
-    if (!loggedInUserId) return;
+    if (!loggedInUserId) {
+      console.error("No user ID found - socket not initialized");
+      return;
+    }
 
+    console.log("Initializing socket connection for user:", loggedInUserId);
     const socket = connectSocket(loggedInUserId);
 
-    // Connection events
+    // Connection events with better logging
     socket.on('connect', () => {
-      console.log('Socket connected');
+      console.log('Socket connected with ID:', socket.id);
+      toast.success('Real-time connection established', { position: 'top-right' });
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        toast.error('Disconnected from server - trying to reconnect...');
+      }
     });
 
     socket.on('connect_error', (err) => {
-      console.error('Socket connection error:', err);
-      toast.error('Connection error. Trying to reconnect...');
+      console.error('Socket connection error:', err.message);
+      toast.error(`Connection error: ${err.message}`);
     });
 
-    // New chat creation - newChat::684bf353ab2c6e754f995d88
-    socket.on(`newChat::${loggedInUserId}`, (chat) => {
-      console.log("all chat",chat)
-    });
-
-    // Chat deleted for user - chatDeletedForUser::684bf353ab2c6e754f995d88
-    socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
-        console.log("chat delete for user" , data)
-    });
-
-    // Chat mute status - chatMuteStatus::684bf353ab2c6e754f995d88
-    socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
-        console.log("chat mute status" ,data )
-    });
-
-    // User block status - userBlockStatus::684bf353ab2c6e754f995d88
-    socket.on(`userBlockStatus::${loggedInUserId}`, (data) => {
-          console.log("user block status" , data)
-    });
-
-    // New message - newMessage::684bf353ab2c6e754f995d88
+    // Real-time message handler
     socket.on(`newMessage::${loggedInUserId}`, (message) => {
-            console.log("new message" , message)
+      console.log('New message received:', message);
+
+      if (!message || !message._id) {
+        console.error('Invalid message format:', message);
+        return;
+      }
+
+      // Only add to state if message is for current chat or no chat is selected
+      if (!currentChatId || message.chatId === currentChatId) {
+        dispatch(addMessage(message));
+      }
     });
 
-    // Unread count update - unreadCountUpdate::684bf353ab2c6e754f995d88
-    socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
-        console.log("unread count update" , data)
+    // Message reaction updates
+    socket.on(`messageReaction::${loggedInUserId}`, (data) => {
+      if (data?.messageId && data?.reaction && data?.userId) {
+        dispatch(updateMessageReaction({
+          messageId: data.messageId,
+          reaction: data.reaction,
+          userId: data.userId
+        }));
+      }
     });
 
-    // Message pinned - messagePinned::684bf353ab2c6e754f995d88
-    socket.on(`messagePinned::${loggedInUserId}`, (data) => {
-          console.log("message pinned", data)
+    // Message pin/unpin
+    socket.on(`messagePinUpdate::${loggedInUserId}`, (data) => {
+      if (data?.messageId) {
+        dispatch(updateMessagePin({
+          messageId: data.messageId,
+          isPinned: data.isPinned,
+          pinnedBy: data.userId
+        }));
+      }
     });
 
-    // Message unpinned - messageUnpinned::684bf353ab2c6e754f995d88
-    socket.on(`messageUnpinned::${loggedInUserId}`, (data) => {
-        console.log("message Unpinned" , data)
+    // Message deletion
+    socket.on(`messageDeleted::${loggedInUserId}`, (data) => {
+      if (data?.messageId) {
+        dispatch(updateMessageDelete({
+          messageId: data.messageId
+        }));
+      }
     });
 
-    // Chat list update - chatListUpdate::684bf353ab2c6e754f995d88
-    socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
-        console.log("chat list update" ,data )
-      
+    // Reply messages
+    socket.on(`messageReply::${loggedInUserId}`, (data) => {
+      if (data?.reply && data?.originalMessageId) {
+        dispatch(addReplyMessage({
+          originalMessageId: data.originalMessageId,
+          replyMessage: data.reply
+        }));
+      }
     });
 
-    // Notification - notification::6865514465af5ad34a9027c2
+    // Notification handler
     socket.on(`notification::${loggedInUserId}`, (notification) => {
       if (!notification) return;
       dispatch(addNotification({
@@ -89,23 +114,17 @@ const SocketComponent = () => {
       }));
     });
 
+    // Debug all incoming events
+    socket.onAny((event, ...args) => {
+      console.log(`[Socket Event] ${event}`, args);
+    });
+
     return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('connect_error');
-      socket.off(`newChat::${loggedInUserId}`);
-      socket.off(`chatDeletedForUser::${loggedInUserId}`);
-      socket.off(`chatMuteStatus::${loggedInUserId}`);
-      socket.off(`userBlockStatus::${loggedInUserId}`);
-      socket.off(`newMessage::${loggedInUserId}`);
-      socket.off(`unreadCountUpdate::${loggedInUserId}`);
-      socket.off(`messagePinned::${loggedInUserId}`);
-      socket.off(`messageUnpinned::${loggedInUserId}`);
-      socket.off(`chatListUpdate::${loggedInUserId}`);
-      socket.off(`notification::${loggedInUserId}`);
+      console.log('Cleaning up socket listeners');
+      socket.offAny();
       socket.disconnect();
     };
-  }, [dispatch]);
+  }, [dispatch, currentChatId]);
 
   return null;
 };

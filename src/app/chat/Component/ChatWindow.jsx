@@ -27,7 +27,9 @@ const ChatWindow = ({ id }) => {
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
 
-  const { pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
+  const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
+
+  console.log(messages)
 
   // FIXED: Add proper dependency array and skip logic
   const { data: allMessage, refetch, isFetching } = useGetAllMessagesQuery(
@@ -38,7 +40,7 @@ const ChatWindow = ({ id }) => {
     }
   );
 
-  const messages = allMessage?.data?.messages || [];
+  // const messages = allMessage?.data?.messages || [];
 
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();

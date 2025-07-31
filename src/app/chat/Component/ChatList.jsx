@@ -93,7 +93,7 @@ const ChatList = ({ setIsChatActive, status }) => {
     // Chat deleted for user
     socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
       // console.log("Chat deleted for user:", data);
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.filter(chat => chat._id !== data.chatId)
       );
       // If currently viewing the deleted chat, redirect
@@ -105,12 +105,12 @@ const ChatList = ({ setIsChatActive, status }) => {
     // Chat mute status
     socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
       // console.log("Chat mute status:", data);
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === data.chatId) {
             return {
               ...chat,
-              mutedBy: data.action === 'mute' 
+              mutedBy: data.action === 'mute'
                 ? [...(chat.mutedBy || []), loggedInUserId]
                 : (chat.mutedBy || []).filter(userId => userId !== loggedInUserId)
             };
@@ -123,16 +123,16 @@ const ChatList = ({ setIsChatActive, status }) => {
     // User block status
     socket.on(`userBlockStatus::${loggedInUserId}`, (data) => {
       // console.log("User block status:", data);
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === data.chatId) {
             return {
               ...chat,
               blockedUsers: data.action === 'block'
                 ? [...(chat.blockedUsers || []), { blocker: loggedInUserId, blocked: data.targetUserId }]
-                : (chat.blockedUsers || []).filter(block => 
-                    !(block.blocker === loggedInUserId && block.blocked === data.targetUserId)
-                  )
+                : (chat.blockedUsers || []).filter(block =>
+                  !(block.blocker === loggedInUserId && block.blocked === data.targetUserId)
+                )
             };
           }
           return chat;
@@ -142,15 +142,17 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     // New message
     socket.on(`newMessage::${loggedInUserId}`, (messageData) => {
+      console.log(messageData)
+
       // console.log("New message received:", messageData);
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === messageData.chatId) {
             return {
               ...chat,
               lastMessage: messageData.message,
-              unreadCount: messageData.message.sender !== loggedInUserId 
-                ? (chat.unreadCount || 0) + 1 
+              unreadCount: messageData?.sender._id !== loggedInUserId
+                ? (chat.unreadCount || 0) + 1
                 : chat.unreadCount || 0
             };
           }
@@ -161,7 +163,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     // Unread count update
     socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
-      
+
     });
 
     // Chat list update (general updates)
@@ -232,9 +234,9 @@ const ChatList = ({ setIsChatActive, status }) => {
     try {
       const response = await markAsRead(chatId).unwrap();
       // console.log(response);
-      
+
       // Update local state immediately for better UX
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === chatId) {
             return {
@@ -246,7 +248,7 @@ const ChatList = ({ setIsChatActive, status }) => {
           return chat;
         })
       );
-      
+
       router.push(`/chat/${chatId}`);
       if (setIsChatActive) setIsChatActive(true);
     } catch (error) {
@@ -263,10 +265,10 @@ const ChatList = ({ setIsChatActive, status }) => {
     try {
       const response = await deleteChat(chatId).unwrap();
       // console.log("delete chat", response);
-      
+
       // Update local state immediately
       setLocalChats(prevChats => prevChats.filter(chat => chat._id !== chatId));
-      
+
       message.success('Chat deleted successfully');
       if (id === chatId) {
         router.push('/chat');
@@ -289,14 +291,14 @@ const ChatList = ({ setIsChatActive, status }) => {
       const action = isCurrentlyMuted ? 'unmute' : 'mute';
       const response = await muteChat({ id: chatId, body: { action } }).unwrap();
       // console.log("mute chat", response);
-      
+
       // Update local state immediately
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.map(c => {
           if (c._id === chatId) {
             return {
               ...c,
-              mutedBy: action === 'mute' 
+              mutedBy: action === 'mute'
                 ? [...(c.mutedBy || []), currentUserId]
                 : (c.mutedBy || []).filter(userId => userId !== currentUserId)
             };
@@ -304,7 +306,7 @@ const ChatList = ({ setIsChatActive, status }) => {
           return c;
         })
       );
-      
+
       message.success(`Chat ${action}d successfully`);
     } catch (error) {
       console.error('Error toggling mute:', error);
@@ -328,24 +330,24 @@ const ChatList = ({ setIsChatActive, status }) => {
       const action = isCurrentlyBlocked ? 'unblock' : 'block';
       const response = await blockChat({ chatId, targetId: targetUser._id, body: { action } }).unwrap();
       // console.log("block chat", response);
-      
+
       // Update local state immediately
-      setLocalChats(prevChats => 
+      setLocalChats(prevChats =>
         prevChats.map(c => {
           if (c._id === chatId) {
             return {
               ...c,
               blockedUsers: action === 'block'
                 ? [...(c.blockedUsers || []), { blocker: currentUserId, blocked: targetUser._id }]
-                : (c.blockedUsers || []).filter(block => 
-                    !(block.blocker === currentUserId && block.blocked === targetUser._id)
-                  )
+                : (c.blockedUsers || []).filter(block =>
+                  !(block.blocker === currentUserId && block.blocked === targetUser._id)
+                )
             };
           }
           return c;
         })
       );
-      
+
       toast.success(`User ${action}ed successfully`);
     } catch (error) {
       console.error('Error toggling block:', error);
