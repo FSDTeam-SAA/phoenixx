@@ -29,7 +29,6 @@ const SocketComponent = () => {
     // Connection events with better logging
     socket.on('connect', () => {
       console.log('Socket connected with ID:', socket.id);
-      toast.success('Real-time connection established', { position: 'top-right' });
     });
 
     socket.on('disconnect', (reason) => {
