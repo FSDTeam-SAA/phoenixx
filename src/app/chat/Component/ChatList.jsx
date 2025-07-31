@@ -1,10 +1,4 @@
 "use client";
-import {
-  deleteChatLocally,
-  markChatAsRead,
-  toggleBlockChat,
-  toggleMuteChat
-} from '@/redux/features/chatSlice';
 import { Avatar, Dropdown, Flex, Input, Skeleton, message } from 'antd';
 import { AnimatePresence, motion } from 'framer-motion';
 import moment from 'moment';
@@ -20,8 +14,8 @@ import {
   BsThreeDotsVertical,
   BsTrash
 } from 'react-icons/bs';
-import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
+import { connectSocket } from '../../../../utils/socket';
 import {
   useChatBlockAndUnblockMutation,
   useDeleteChatMutation,
@@ -38,23 +32,17 @@ const ChatList = ({ setIsChatActive, status }) => {
   const { id } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const dispatch = useDispatch();
   const [actionStates, setActionStates] = useState({});
+  const [localChats, setLocalChats] = useState([]); // Local state for real-time updates
   const chatListRef = useRef(null);
+  const socketRef = useRef(null);
   const [markAsRead] = useMarkAsReadMutation();
   const [deleteChat] = useDeleteChatMutation();
   const [muteChat] = useMuteChatMutation();
   const [blockChat] = useChatBlockAndUnblockMutation();
 
   // Always fetch all chats, but filter locally when searching
-  const { data: apiData, isLoading, isError, error, refetch } = useGetAllChatQuery(undefined, {
-    refetchOnMountOrArgChange: true
-  });
-
-  // Get chats from Redux store
-  const { chats: reduxChats, unreadCount } = useSelector((state) => state.chats);
-  console
-
+  const { data: apiData, isLoading, isError, error, refetch } = useGetAllChatQuery();
 
   const getCurrentUserId = useCallback(() => {
     try {
@@ -65,24 +53,161 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-  // Determine which chats to display
+  // Initialize local chats when API data changes
+  useEffect(() => {
+    if (apiData?.data?.chats) {
+      setLocalChats([...apiData.data.chats]);
+    }
+  }, [apiData?.data?.chats]);
+
+  // Socket connection and event handlers
+  useEffect(() => {
+    const loggedInUserId = getCurrentUserId();
+    if (!loggedInUserId) return;
+
+    const socket = connectSocket(loggedInUserId);
+    socketRef.current = socket;
+
+    // Connection events
+    socket.on('connect', () => {
+      // console.log('Socket connected to ChatList');
+    });
+
+    socket.on('disconnect', () => {
+      // console.log('Socket disconnected from ChatList');
+    });
+
+    // New chat creation
+    socket.on(`newChat::${loggedInUserId}`, (newChat) => {
+      // console.log("New chat received:", newChat);
+      setLocalChats(prevChats => {
+        // Check if chat already exists
+        const exists = prevChats.some(chat => chat._id === newChat._id);
+        if (!exists) {
+          return [newChat, ...prevChats];
+        }
+        return prevChats;
+      });
+    });
+
+    // Chat deleted for user
+    socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
+      // console.log("Chat deleted for user:", data);
+      setLocalChats(prevChats =>
+        prevChats.filter(chat => chat._id !== data.chatId)
+      );
+      // If currently viewing the deleted chat, redirect
+      if (id === data.chatId) {
+        router.push('/chat');
+      }
+    });
+
+    // Chat mute status
+    socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
+      // console.log("Chat mute status:", data);
+      setLocalChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat._id === data.chatId) {
+            return {
+              ...chat,
+              mutedBy: data.action === 'mute'
+                ? [...(chat.mutedBy || []), loggedInUserId]
+                : (chat.mutedBy || []).filter(userId => userId !== loggedInUserId)
+            };
+          }
+          return chat;
+        })
+      );
+    });
+
+    // User block status
+    socket.on(`userBlockStatus::${loggedInUserId}`, (data) => {
+      // console.log("User block status:", data);
+      setLocalChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat._id === data.chatId) {
+            return {
+              ...chat,
+              blockedUsers: data.action === 'block'
+                ? [...(chat.blockedUsers || []), { blocker: loggedInUserId, blocked: data.targetUserId }]
+                : (chat.blockedUsers || []).filter(block =>
+                  !(block.blocker === loggedInUserId && block.blocked === data.targetUserId)
+                )
+            };
+          }
+          return chat;
+        })
+      );
+    });
+
+    // New message
+    socket.on(`newMessage::${loggedInUserId}`, (messageData) => {
+      console.log(messageData)
+
+      // console.log("New message received:", messageData);
+      setLocalChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat._id === messageData.chatId) {
+            return {
+              ...chat,
+              lastMessage: messageData.message,
+              unreadCount: messageData?.sender._id !== loggedInUserId
+                ? (chat.unreadCount || 0) + 1
+                : chat.unreadCount || 0
+            };
+          }
+          return chat;
+        })
+      );
+    });
+
+    // Unread count update
+    socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
+
+    });
+
+    // Chat list update (general updates)
+    socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
+      // console.log("Chat list update:", data);
+      // Refetch data to ensure consistency
+      refetch();
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off(`newChat::${loggedInUserId}`);
+        socketRef.current.off(`chatDeletedForUser::${loggedInUserId}`);
+        socketRef.current.off(`chatMuteStatus::${loggedInUserId}`);
+        socketRef.current.off(`userBlockStatus::${loggedInUserId}`);
+        socketRef.current.off(`newMessage::${loggedInUserId}`);
+        socketRef.current.off(`unreadCountUpdate::${loggedInUserId}`);
+        socketRef.current.off(`chatListUpdate::${loggedInUserId}`);
+        socketRef.current.off('connect');
+        socketRef.current.off('disconnect');
+      }
+    };
+  }, [getCurrentUserId, refetch, id, router]);
+
+  // Determine which chats to display (now using localChats instead of apiData)
   const chatsToShow = useMemo(() => {
+    const chats = localChats || [];
+
     if (debouncedSearchTerm) {
       // Filter chats locally based on search term
-      return reduxChats?.filter(chat => {
+      return chats.filter(chat => {
         const participant = chat.participants?.find(p => p._id !== getCurrentUserId());
         return participant?.userName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
-      }) || [];
+      });
     } else {
-      // Show all chats when not searching
-      return [...reduxChats].sort((a, b) => {
-        // Sort by last message time, but don't modify the order when clicking
+      // Show all chats when not searching - safely spread the array
+      return [...chats].sort((a, b) => {
+        // Sort by last message time
         const timeA = a.lastMessage?.createdAt || a.createdAt;
         const timeB = b.lastMessage?.createdAt || b.createdAt;
         return new Date(timeB) - new Date(timeA);
       });
     }
-  }, [debouncedSearchTerm, reduxChats]);
+  }, [debouncedSearchTerm, localChats, getCurrentUserId]);
 
   // Memoize chats to prevent unnecessary re-renders
   const memoizedChats = useMemo(() => chatsToShow, [chatsToShow]);
@@ -107,14 +232,27 @@ const ChatList = ({ setIsChatActive, status }) => {
     if (actionStates[chatId]?.loading) return;
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
     try {
-      // Mark as read without changing the order
-      dispatch(markChatAsRead(chatId));
+      const response = await markAsRead(chatId).unwrap();
+      // console.log(response);
+
+      // Update local state immediately for better UX
+      setLocalChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat._id === chatId) {
+            return {
+              ...chat,
+              unreadCount: 0,
+              lastMessage: chat.lastMessage ? { ...chat.lastMessage, read: true } : null
+            };
+          }
+          return chat;
+        })
+      );
+
       router.push(`/chat/${chatId}`);
       if (setIsChatActive) setIsChatActive(true);
-      await markAsRead(chatId).unwrap();
     } catch (error) {
       console.error('Error marking as read:', error);
-      toast.error(error?.data?.message || error?.message || 'Failed to mark as read');
       refetch();
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
@@ -125,15 +263,18 @@ const ChatList = ({ setIsChatActive, status }) => {
     if (actionStates[chatId]?.loading) return;
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'delete' } }));
     try {
-      await deleteChat(chatId).unwrap();
-      dispatch(deleteChatLocally(chatId));
+      const response = await deleteChat(chatId).unwrap();
+      // console.log("delete chat", response);
+
+      // Update local state immediately
+      setLocalChats(prevChats => prevChats.filter(chat => chat._id !== chatId));
+
       message.success('Chat deleted successfully');
       if (id === chatId) {
         router.push('/chat');
       }
     } catch (error) {
       console.error('Error deleting chat:', error);
-      toast.error(error?.data?.message || error?.message || 'Failed to delete chat');
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
@@ -148,15 +289,27 @@ const ChatList = ({ setIsChatActive, status }) => {
       const currentUserId = getCurrentUserId();
       const isCurrentlyMuted = chat.mutedBy?.includes(currentUserId);
       const action = isCurrentlyMuted ? 'unmute' : 'mute';
-      await muteChat({
-        id: chatId,
-        body: { action }
-      }).unwrap();
-      dispatch(toggleMuteChat({ chatId, isMuted: !isCurrentlyMuted }));
+      const response = await muteChat({ id: chatId, body: { action } }).unwrap();
+      // console.log("mute chat", response);
+
+      // Update local state immediately
+      setLocalChats(prevChats =>
+        prevChats.map(c => {
+          if (c._id === chatId) {
+            return {
+              ...c,
+              mutedBy: action === 'mute'
+                ? [...(c.mutedBy || []), currentUserId]
+                : (c.mutedBy || []).filter(userId => userId !== currentUserId)
+            };
+          }
+          return c;
+        })
+      );
+
       message.success(`Chat ${action}d successfully`);
     } catch (error) {
       console.error('Error toggling mute:', error);
-      toast.error(error?.data?.message || error?.message || 'Failed to toggle mute status');
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
@@ -175,16 +328,29 @@ const ChatList = ({ setIsChatActive, status }) => {
       const targetUser = chat.participants?.find(p => p._id !== currentUserId);
       if (!targetUser) throw new Error("Target user not found");
       const action = isCurrentlyBlocked ? 'unblock' : 'block';
-      await blockChat({
-        chatId,
-        targetId: targetUser._id,
-        body: { action }
-      }).unwrap();
-      dispatch(toggleBlockChat({ chatId, isBlocked: !isCurrentlyBlocked }));
+      const response = await blockChat({ chatId, targetId: targetUser._id, body: { action } }).unwrap();
+      // console.log("block chat", response);
+
+      // Update local state immediately
+      setLocalChats(prevChats =>
+        prevChats.map(c => {
+          if (c._id === chatId) {
+            return {
+              ...c,
+              blockedUsers: action === 'block'
+                ? [...(c.blockedUsers || []), { blocker: currentUserId, blocked: targetUser._id }]
+                : (c.blockedUsers || []).filter(block =>
+                  !(block.blocker === currentUserId && block.blocked === targetUser._id)
+                )
+            };
+          }
+          return c;
+        })
+      );
+
       toast.success(`User ${action}ed successfully`);
     } catch (error) {
       console.error('Error toggling block:', error);
-      toast.error(error?.data?.message || error?.message || 'Failed to toggle block status');
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
@@ -283,7 +449,9 @@ const ChatList = ({ setIsChatActive, status }) => {
     </div>
   );
 
-  if (isLoading && !reduxChats?.length) return renderLoadingState();
+  // Show loading state when loading and no data
+  if (isLoading && !localChats?.length) return renderLoadingState();
+  // Show error state when there's an error
   if (isError) return renderErrorState();
 
   return (
@@ -422,15 +590,6 @@ const ChatList = ({ setIsChatActive, status }) => {
           </motion.div>
         )}
       </div>
-      {unreadCount > 0 && (
-        <div className="p-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-center text-sm font-medium">
-            <span className={`px-3 py-1 rounded-full ${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'}`}>
-              {unreadCount} unread {unreadCount === 1 ? 'message' : 'messages'}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
