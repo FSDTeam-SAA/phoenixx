@@ -67,19 +67,19 @@ const FollowButton = ({ subscriberId, subscribedToId }) => {
     <button
       onClick={isFollowing ? unfollowUser : followUser}
       disabled={isLoading}
-      className={`px-4 py-1 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`px-4 py-1.5 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed`}
       style={{ border: "1px solid #1530c7" }}
     >
       {isLoading ?
         <HiMiniBellAlert
           className='text-white'
-          size={30}
+          size={26}
           style={{
             animation: 'spin 1s linear infinite',
             transformOrigin: 'center'
           }}
         /> :
-        (isFollowing ? <HiMiniBellAlert className='text-white' size={27} /> : <HiOutlineBell className='text-white' size={27} />)
+        (isFollowing ? <HiMiniBellAlert className='text-white' size={25} /> : <HiOutlineBell className='text-white' size={25} />)
       }
     </button>
   );
