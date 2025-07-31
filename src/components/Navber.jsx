@@ -72,8 +72,6 @@ export default function Navbar() {
 
   const { chats } = useSelector((state) => state);
 
-  console.log(chats)
-
 
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();

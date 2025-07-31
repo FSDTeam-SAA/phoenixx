@@ -1,4 +1,4 @@
-// Fixed ChatWindow.js
+// Modified ChatWindow.js - Same Reply Design as Image
 
 'use client';
 
@@ -26,25 +26,19 @@ const ChatWindow = ({ id }) => {
   const router = useRouter();
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
-  const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
 
-  const { chats: reduxChats } = useSelector((state) => state.chats);
-
-
-  const users = reduxChats.find(item => item._id === id);
-
-
-
-
+  const { pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
 
   // FIXED: Add proper dependency array and skip logic
-  const { refetch, isFetching } = useGetAllMessagesQuery(
+  const { data: allMessage, refetch, isFetching } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
     {
       skip: !id,
       refetchOnMountOrArgChange: true // This ensures fresh data when component mounts
     }
   );
+
+  const messages = allMessage?.data?.messages || [];
 
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();
@@ -356,8 +350,6 @@ const ChatWindow = ({ id }) => {
 
   const handlePinMessage = async (messageId, action) => {
     try {
-
-
       const response = await pinMessage({ messageId, action }).unwrap();
       console.log(response)
       dispatch(updateMessagePin({
@@ -398,7 +390,6 @@ const ChatWindow = ({ id }) => {
     };
     return reactionMap[reactionType] || "👍";
   };
-
 
   const replyVariants = {
     hidden: { opacity: 0, height: 0 },
@@ -499,38 +490,50 @@ const ChatWindow = ({ id }) => {
             font-style: italic;
             opacity: 0.7;
           }
+          
+          /* UPDATED REPLY INDICATOR STYLES - Same as Image */
           .reply-indicator {
-            border-left: 4px solid #3B82F6;
-            padding: 8px 12px;
+            background: transparent;
+            padding: 0;
             margin-bottom: 8px;
-            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.08)'};
-            border-radius: 8px;
+            border: none;
             cursor: pointer;
             transition: all 0.2s ease;
           }
           .reply-indicator:hover {
-            background: ${isDarkMode ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.15)'};
-            transform: translateX(4px);
-            border-left-width: 6px;
+            background: transparent;
+            transform: none;
+            border: none;
           }
-         .message-highlight {
-  border-radius: 16px !important;
-  animation: pulse-bg 2s ease-in-out infinite !important;
-  z-index: 10 !important;
-  position: relative !important;
-}
+          
+          .reply-preview-bubble {
+            background: ${isDarkMode ? '#374151' : '#F3F4F6'};
+            border-radius: 12px;
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: ${isDarkMode ? '#9CA3AF' : '#6B7280'};
+            line-height: 1.3;
+          }
+          
+          .message-highlight {
+            border-radius: 16px !important;
+            animation: pulse-bg 2s ease-in-out infinite !important;
+            z-index: 10 !important;
+            position: relative !important;
+          }
 
-@keyframes pulse-bg {
-  0% {
-    background-color: rgba(156, 163, 175, 0.1);
-  }
-  50% {
-    background-color: rgba(156, 163, 175, 0.3);
-  }
-  100% {
-    background-color: rgba(156, 163, 175, 0.1);
-  }
-}
+          @keyframes pulse-bg {
+            0% {
+              background-color: rgba(156, 163, 175, 0.1);
+            }
+            50% {
+              background-color: rgba(156, 163, 175, 0.3);
+            }
+            100% {
+              background-color: rgba(156, 163, 175, 0.1);
+            }
+          }
           
           .reply-preview {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
@@ -631,11 +634,34 @@ const ChatWindow = ({ id }) => {
                 )}
 
                 <div className="relative group max-w-[75%]">
+                  {/* Reply Indicator - Updated to match image design */}
+                  {originalMessage && !isDeleted && (
+                    <div className="mb-2">
+                      {/* Reply indicator text */}
+                      <div className="flex items-center text-xs text-gray-400 mb-1">
+                        <svg className="w-3 h-3 mr-1 rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 12L4 6h12l-6 6z" />
+                        </svg>
+                        <span>
+                          {isCurrentUser ? 'You' : message.sender?.userName} replied to {originalMessage.sender?.userName}
+                        </span>
+                      </div>
+
+                      {/* Original message preview bubble */}
+                      <div
+                        className="reply-preview-bubble cursor-pointer"
+                        onClick={() => navigateToRepliedMessage(originalMessage)}
+                      >
+                        {originalMessage.text || (originalMessage.images?.length > 0 ? "📷 Photo" : "Message")}
+                      </div>
+                    </div>
+                  )}
+
                   {isPinned && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-5  left-1/2 transform -translate-x-1/2"
+                      className="absolute -top-5 left-1/2 transform -translate-x-1/2"
                     >
                       <BsPinAngleFill className="text-blue-500 text-sm" />
                     </motion.div>
@@ -645,39 +671,12 @@ const ChatWindow = ({ id }) => {
                     className={`relative p-4 rounded-2xl ${isDeleted
                       ? 'deleted-message'
                       : isCurrentUser
-                        ? ''
+                        ? 'bg-blue-600 text-white rounded-br-md'
                         : isDarkMode
-                          ? 'bg-gray-700 text-gray-200'
-                          : 'bg-white text-gray-800 border border-gray-200'
-                      }  ${isDarkMode ? "bg-gray-600" : "bg-gray-200"}`}
-
+                          ? 'bg-gray-700 text-gray-200 rounded-bl-md'
+                          : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
+                      }`}
                   >
-                    {/* Enhanced Reply Indicator */}
-                    {originalMessage && !isDeleted && (
-                      <div
-                        className="reply-indicator"
-                        onClick={() => navigateToRepliedMessage(originalMessage)}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <MdReply className="text-blue-500 mt-0.5 flex-shrink-0" size={16} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <Avatar
-                                src={getImageUrl(originalMessage.sender?.profile)}
-                                size={20}
-                              />
-                              <span className="font-medium text-blue-600 text-sm">
-                                {originalMessage.sender?.userName || 'User'}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                              {originalMessage.text || (originalMessage.images?.length > 0 ? "📷 Photo" : "Message")}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {message.images?.length > 0 && !isDeleted && (
                       <div className="mb-3">
                         <img
@@ -705,21 +704,25 @@ const ChatWindow = ({ id }) => {
                         ? ''
                         : isDarkMode
                           ? 'text-gray-400'
-                          : 'text-black'
-                        } t`}>
+                          : 'text-gray-500'
+                        }`}>
                         {formatDate(message.createdAt)}
                       </span>
                       {message.read && isCurrentUser && (
-                        <span className="text-xs text-blue-200 ml-2">✓✓</span>
+                        <div className="flex ml-2">
+                          <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <svg className="w-3 h-3 text-green-400 -ml-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
                       )}
                     </div>
 
                     {!isDeleted && message.reactions?.length > 0 && (
-                      <motion.div
-                        className="flex gap-1 mt-2"
-                      >
-                        <div className={`flex items-center px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'
-                          } shadow-sm`}>
+                      <motion.div className="flex gap-1 mt-2">
+                        <div className={`flex items-center px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'} shadow-sm`}>
                           {message.reactions.map((reaction, i) => (
                             <Tooltip key={i} title={reaction?.userId?.userName || 'User'}>
                               <span className="text-sm mr-1">
@@ -777,9 +780,9 @@ const ChatWindow = ({ id }) => {
                           type="text"
                           size="small"
                           icon={<FiMoreVertical />}
-                          className={`flex items-center justify-center p-2 rounded-full transition-all ${isDarkMode
-                            ? 'text-gray-300 bg-gray-700 hover:bg-gray-600'
-                            : 'text-gray-600 bg-white hover:bg-gray-100'
+                          className={`flex items-center justify-center p-2 rounded-full ${isDarkMode
+                            ? 'text-gray-300 bg-gray-700 '
+                            : 'text-gray-600 bg-white '
                             } shadow-md hover:shadow-lg`}
                         />
                       </Dropdown>
@@ -977,7 +980,7 @@ const ChatWindow = ({ id }) => {
           <Form.Item name="message" noStyle className="flex-1">
             <Input.TextArea
               ref={inputRef}
-              disabled={users?.isBlocked}
+              disabled={chatUser?.isBlocked}
               placeholder={replyingTo ? `Reply to ${replyingTo.sender?.userName}...` : "Type a message..."}
               autoSize={{ minRows: 1, maxRows: 4 }}
               className={`rounded-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-200'}`}
@@ -997,11 +1000,10 @@ const ChatWindow = ({ id }) => {
             htmlType="submit"
             icon={<IoMdSend />}
             iconPosition="end"
-
             style={{ width: "70px" }}
             className="ml-2"
             loading={sendingMessage || isSending}
-            disabled={sendingMessage || isSending || users?.isBlocked} // Disable button during send
+            disabled={sendingMessage || isSending || chatUser?.isBlocked} // Disable button during send
           >Send</Button>
         </Form>
       </div>
