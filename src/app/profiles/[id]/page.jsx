@@ -1,6 +1,5 @@
 "use client";
 import AuthorPostCard from '@/components/AuthorPostCard';
-import { useCreateChatMutation } from '@/features/chat/massage';
 import { useGetByUserIdQuery, useGetProfileByIdQuery, useLikePostMutation } from '@/features/post/postApi';
 import { Grid } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
@@ -10,6 +9,7 @@ import { isAuthenticated } from '../../../../utils/auth';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import FollowButton from '../../../components/FollowButton';
 import Loading from '../../../components/Loading/Loading';
+import { useCreateChatMutation } from '../../../features/chat/chatList/chatApi';
 import { ThemeContext } from '../../ClientLayout';
 
 const ProfileBanner = () => {
@@ -119,9 +119,9 @@ const ProfileBanner = () => {
                 <span>Send Message</span>
               </Button> */}
 
-             <div className='pr-3'>
-             <FollowButton subscriberId={localStorage.getItem("login_user_id")} subscribedToId={id} />
-             </div>
+              <div className='pr-3'>
+                <FollowButton subscriberId={localStorage.getItem("login_user_id")} subscribedToId={id} />
+              </div>
 
               <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
                 <button

@@ -14,6 +14,7 @@ const PostCardHeader = ({
   isSaving
 }) => {
 
+
   const router = useRouter();
 
   const renderAuthorAvatar = () => (
@@ -45,7 +46,7 @@ const PostCardHeader = ({
               ? 'text-gray-200 hover:text-blue-400'
               : 'text-gray-800 hover:text-blue-600'
             }`}>
-            {postData.author.name ? postData.author.name : postData.author.username}
+            {postData.author.name === "User" ? postData.author.username : postData.author.name}
           </span>
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
