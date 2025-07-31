@@ -33,7 +33,7 @@ const ChatList = ({ setIsChatActive, status }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [actionStates, setActionStates] = useState({});
-  const [localChats, setLocalChats] = useState([]); // Local state for real-time updates
+  const [localChats, setLocalChats] = useState([]);
   const chatListRef = useRef(null);
   const socketRef = useRef(null);
   const [markAsRead] = useMarkAsReadMutation();
@@ -41,7 +41,6 @@ const ChatList = ({ setIsChatActive, status }) => {
   const [muteChat] = useMuteChatMutation();
   const [blockChat] = useChatBlockAndUnblockMutation();
 
-  // Always fetch all chats, but filter locally when searching
   const { data: apiData, isLoading, isError, error, refetch } = useGetAllChatQuery();
 
   const getCurrentUserId = useCallback(() => {
@@ -70,18 +69,17 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     // Connection events
     socket.on('connect', () => {
-      // console.log('Socket connected to ChatList');
+      console.log('Socket connected to ChatList');
     });
 
     socket.on('disconnect', () => {
-      // console.log('Socket disconnected from ChatList');
+      console.log('Socket disconnected from ChatList');
     });
 
     // New chat creation
     socket.on(`newChat::${loggedInUserId}`, (newChat) => {
-      // console.log("New chat received:", newChat);
+      console.log("New chat received:", newChat);
       setLocalChats(prevChats => {
-        // Check if chat already exists
         const exists = prevChats.some(chat => chat._id === newChat._id);
         if (!exists) {
           return [newChat, ...prevChats];
@@ -92,11 +90,10 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     // Chat deleted for user
     socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
-      // console.log("Chat deleted for user:", data);
+      console.log("Chat deleted for user:", data);
       setLocalChats(prevChats =>
         prevChats.filter(chat => chat._id !== data.chatId)
       );
-      // If currently viewing the deleted chat, redirect
       if (id === data.chatId) {
         router.push('/chat');
       }
@@ -104,7 +101,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     // Chat mute status
     socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
-      // console.log("Chat mute status:", data);
+      console.log("Chat mute status:", data);
       setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === data.chatId) {
@@ -122,7 +119,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
     // User block status
     socket.on(`userBlockStatus::${loggedInUserId}`, (data) => {
-      // console.log("User block status:", data);
+      console.log("User block status:", data);
       setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === data.chatId) {
@@ -140,20 +137,32 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
     });
 
-    // New message
+    // FIXED: New message handling with proper unread count logic
     socket.on(`newMessage::${loggedInUserId}`, (messageData) => {
-      console.log(messageData)
+      console.log("New message received:", messageData);
 
-      // console.log("New message received:", messageData);
       setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === messageData.chatId) {
+            // Check if user is currently viewing this chat
+            const isCurrentlyViewingChat = id === messageData.chatId;
+            // Check if message is from current user
+            const isOwnMessage = messageData?.sender?._id === loggedInUserId || messageData?.message?.sender === loggedInUserId;
+
+            // Calculate new unread count
+            let newUnreadCount = chat.unreadCount || 0;
+
+            if (!isOwnMessage && !isCurrentlyViewingChat) {
+              // Only increment unread count if it's not user's own message and not currently viewing the chat
+              newUnreadCount = newUnreadCount + 1;
+            }
+
             return {
               ...chat,
-              lastMessage: messageData.message,
-              unreadCount: messageData?.sender._id !== loggedInUserId
-                ? (chat.unreadCount || 0) + 1
-                : chat.unreadCount || 0
+              lastMessage: messageData.message || messageData,
+              unreadCount: newUnreadCount,
+              // Move chat to top by updating timestamp
+              updatedAt: new Date().toISOString()
             };
           }
           return chat;
@@ -161,15 +170,52 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
     });
 
-    // Unread count update
-    socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
+    // FIXED: Handle message read status updates
+    socket.on(`messageRead::${loggedInUserId}`, (data) => {
+      console.log("Message read event:", data);
+      setLocalChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat._id === data.chatId) {
+            return {
+              ...chat,
+              unreadCount: data.unreadCount || 0,
+              lastMessage: chat.lastMessage ? {
+                ...chat.lastMessage,
+                read: true
+              } : null
+            };
+          }
+          return chat;
+        })
+      );
+    });
 
+    // FIXED: Unread count update with immediate local state update
+    socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
+      console.log("Unread count update:", data);
+
+      if (data.chatId && typeof data.unreadCount !== 'undefined') {
+        // Update specific chat's unread count
+        setLocalChats(prevChats =>
+          prevChats.map(chat => {
+            if (chat._id === data.chatId) {
+              return {
+                ...chat,
+                unreadCount: data.unreadCount
+              };
+            }
+            return chat;
+          })
+        );
+      } else {
+        // Fallback to refetch if no specific data provided
+        refetch();
+      }
     });
 
     // Chat list update (general updates)
     socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
-      // console.log("Chat list update:", data);
-      // Refetch data to ensure consistency
+      console.log("Chat list update:", data);
       refetch();
     });
 
@@ -180,6 +226,7 @@ const ChatList = ({ setIsChatActive, status }) => {
         socketRef.current.off(`chatMuteStatus::${loggedInUserId}`);
         socketRef.current.off(`userBlockStatus::${loggedInUserId}`);
         socketRef.current.off(`newMessage::${loggedInUserId}`);
+        socketRef.current.off(`messageRead::${loggedInUserId}`);
         socketRef.current.off(`unreadCountUpdate::${loggedInUserId}`);
         socketRef.current.off(`chatListUpdate::${loggedInUserId}`);
         socketRef.current.off('connect');
@@ -188,28 +235,25 @@ const ChatList = ({ setIsChatActive, status }) => {
     };
   }, [getCurrentUserId, refetch, id, router]);
 
-  // Determine which chats to display (now using localChats instead of apiData)
+  // Determine which chats to display with proper sorting
   const chatsToShow = useMemo(() => {
     const chats = localChats || [];
 
     if (debouncedSearchTerm) {
-      // Filter chats locally based on search term
       return chats.filter(chat => {
         const participant = chat.participants?.find(p => p._id !== getCurrentUserId());
         return participant?.userName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
       });
     } else {
-      // Show all chats when not searching - safely spread the array
       return [...chats].sort((a, b) => {
-        // Sort by last message time
-        const timeA = a.lastMessage?.createdAt || a.createdAt;
-        const timeB = b.lastMessage?.createdAt || b.createdAt;
+        // Sort by last message time or updated time
+        const timeA = a.lastMessage?.createdAt || a.updatedAt || a.createdAt;
+        const timeB = b.lastMessage?.createdAt || b.updatedAt || b.createdAt;
         return new Date(timeB) - new Date(timeA);
       });
     }
   }, [debouncedSearchTerm, localChats, getCurrentUserId]);
 
-  // Memoize chats to prevent unnecessary re-renders
   const memoizedChats = useMemo(() => chatsToShow, [chatsToShow]);
 
   // Preserve scroll position
@@ -228,13 +272,12 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
+  // FIXED: Enhanced handleSelectChat with better unread count handling
   const handleSelectChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
-    try {
-      const response = await markAsRead(chatId).unwrap();
-      // console.log(response);
 
+    try {
       // Update local state immediately for better UX
       setLocalChats(prevChats =>
         prevChats.map(chat => {
@@ -249,10 +292,24 @@ const ChatList = ({ setIsChatActive, status }) => {
         })
       );
 
+      // Navigate first for immediate feedback
       router.push(`/chat/${chatId}`);
       if (setIsChatActive) setIsChatActive(true);
+
+      // Then make the API call
+      const response = await markAsRead(chatId).unwrap();
+      refetch()
+      if (response.success) {
+        refetch()
+      }
+      console.log("mark as read response:", response);
+
+      // Optionally refetch to ensure consistency (but local state should already be updated)
+      // refetch();
+
     } catch (error) {
       console.error('Error marking as read:', error);
+      // Revert local state on error
       refetch();
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
@@ -264,9 +321,8 @@ const ChatList = ({ setIsChatActive, status }) => {
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'delete' } }));
     try {
       const response = await deleteChat(chatId).unwrap();
-      // console.log("delete chat", response);
+      console.log("delete chat", response);
 
-      // Update local state immediately
       setLocalChats(prevChats => prevChats.filter(chat => chat._id !== chatId));
 
       message.success('Chat deleted successfully');
@@ -290,9 +346,8 @@ const ChatList = ({ setIsChatActive, status }) => {
       const isCurrentlyMuted = chat.mutedBy?.includes(currentUserId);
       const action = isCurrentlyMuted ? 'unmute' : 'mute';
       const response = await muteChat({ id: chatId, body: { action } }).unwrap();
-      // console.log("mute chat", response);
+      console.log("mute chat", response);
 
-      // Update local state immediately
       setLocalChats(prevChats =>
         prevChats.map(c => {
           if (c._id === chatId) {
@@ -329,9 +384,8 @@ const ChatList = ({ setIsChatActive, status }) => {
       if (!targetUser) throw new Error("Target user not found");
       const action = isCurrentlyBlocked ? 'unblock' : 'block';
       const response = await blockChat({ chatId, targetId: targetUser._id, body: { action } }).unwrap();
-      // console.log("block chat", response);
+      console.log("block chat", response);
 
-      // Update local state immediately
       setLocalChats(prevChats =>
         prevChats.map(c => {
           if (c._id === chatId) {
@@ -449,9 +503,7 @@ const ChatList = ({ setIsChatActive, status }) => {
     </div>
   );
 
-  // Show loading state when loading and no data
   if (isLoading && !localChats?.length) return renderLoadingState();
-  // Show error state when there's an error
   if (isError) return renderErrorState();
 
   return (
@@ -496,6 +548,7 @@ const ChatList = ({ setIsChatActive, status }) => {
               const isBlocked = chat.blockedUsers?.some(block => block.blocker === currentUserId);
               const isRead = chat.lastMessage?.read || chat.unreadCount === 0;
               const isActiveChat = chat._id === id;
+
               return (
                 <motion.div
                   key={chat._id}

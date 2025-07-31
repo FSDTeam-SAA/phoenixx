@@ -29,8 +29,6 @@ const ChatWindow = ({ id }) => {
 
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
 
-  console.log(messages)
-
   // FIXED: Add proper dependency array and skip logic
   const { data: allMessage, refetch, isFetching } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
@@ -206,10 +204,7 @@ const ChatWindow = ({ id }) => {
   };
 
   const handleCreateNewMessage = async (values) => {
-    if (sendingMessage || isSending) return; // Prevent multiple submissions
-    if (!values.message && (!values?.file?.fileList || values?.file?.fileList.length === 0)) {
-      return;
-    }
+    if (sendingMessage || isSending) return;
 
     try {
       setSendingMessage(true);
@@ -225,21 +220,14 @@ const ChatWindow = ({ id }) => {
       }
 
       if (replyingTo) {
-        if (values?.file?.fileList?.length > 0) {
-          response = await replyMessage({
-            chatId: id,
-            messageId: replyingTo._id,
-            body: formData
-          }).unwrap();
-        } else {
-          response = await replyMessage({
-            chatId: id,
-            messageId: replyingTo._id,
-            body: { text: values.message }
-          }).unwrap();
-        }
+        response = await replyMessage({
+          chatId: id,
+          messageId: replyingTo._id,
+          body: formData
+        }).unwrap();
 
         if (response.data) {
+          // Handle both possible response structures
           if (response.data.originalMessage && response.data.reply) {
             const replyWithReference = {
               ...response.data.reply,
@@ -247,7 +235,8 @@ const ChatWindow = ({ id }) => {
               sender: {
                 ...response.data.reply.sender,
                 _id: loginUserId
-              }
+              },
+              chatId: id // Ensure chatId is included
             };
             dispatch(addMessage(replyWithReference));
           } else {
@@ -257,7 +246,8 @@ const ChatWindow = ({ id }) => {
               sender: {
                 ...response.data.sender,
                 _id: loginUserId
-              }
+              },
+              chatId: id // Ensure chatId is included
             };
             dispatch(addMessage(replyWithReference));
           }
@@ -621,6 +611,11 @@ const ChatWindow = ({ id }) => {
             const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
             const originalMessage = message.replyTo ? getOriginalMessage(message.replyTo) : null;
 
+            console.log("message", message?.replyTo)
+
+
+            console.log("reply ", originalMessage?.text)
+
             return (
               <motion.div
                 id={`msg-${message._id}`}
@@ -637,7 +632,7 @@ const ChatWindow = ({ id }) => {
 
                 <div className="relative group max-w-[75%]">
                   {/* Reply Indicator - Updated to match image design */}
-                  {originalMessage && !isDeleted && (
+                  {originalMessage?.text && (
                     <div className="mb-2">
                       {/* Reply indicator text */}
                       <div className="flex items-center text-xs text-gray-400 mb-1">
@@ -654,7 +649,7 @@ const ChatWindow = ({ id }) => {
                         className="reply-preview-bubble cursor-pointer"
                         onClick={() => navigateToRepliedMessage(originalMessage)}
                       >
-                        {originalMessage.text || (originalMessage.images?.length > 0 ? "📷 Photo" : "Message")}
+                        {originalMessage?.text}
                       </div>
                     </div>
                   )}

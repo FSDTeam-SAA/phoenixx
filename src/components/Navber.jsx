@@ -30,7 +30,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { IoNotificationsSharp } from "react-icons/io5";
 import { useSelector } from 'react-redux';
 
@@ -44,6 +44,7 @@ import { useGetAllChatQuery, useUnreadIconCountMutation } from '../features/chat
 import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
+import { connectSocket } from '../../utils/socket';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -58,19 +59,67 @@ export default function Navbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [readCound] = useUnreadIconCountMutation();
+  const socketRef = useRef(null);
 
   // Using ThemeContext instead of useTheme hook
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
   const [readNotification] = useMarkAllAsReadMutation();
-  const { isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
+  const { data: pronab, isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
+
+  const getCurrentUserId = useCallback(() => {
+    try {
+      return localStorage.getItem("login_user_id") || '';
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      return '';
+    }
+  }, []);
+
+
+  useEffect(() => {
+    const loggedInUserId = getCurrentUserId();
+    if (!loggedInUserId) return;
+
+    const socket = connectSocket(loggedInUserId);
+    socketRef.current = socket;
+
+    // Connection events
+    socket.on('connect', () => {
+      // console.log('Socket connected to ChatList');
+    });
+
+    socket.on('disconnect', () => {
+      // console.log('Socket disconnected from ChatList');
+    });
+
+    // Unread count update
+    socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
+
+    });
+
+    // Chat list update (general updates)
+    socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
+      // console.log("Chat list update:", data);
+      // Refetch data to ensure consistency
+      refetchChat();
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off(`chatListUpdate::${loggedInUserId}`);
+        socketRef.current.off('connect');
+        socketRef.current.off('disconnect');
+      }
+    };
+  }, [refetch, router]);
+
+
 
 
   const { notifications } = useSelector((state) => state);
 
-
-  const { chats } = useSelector((state) => state);
 
 
   const { data, isLoading } = useGetProfileQuery();
@@ -92,9 +141,6 @@ export default function Navbar() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    localStorage.setItem("messageCount", chats?.unreadCount)
-  }, [chats])
 
 
 
@@ -502,7 +548,7 @@ export default function Navbar() {
                     marginTop: "5px",
                     marginRight: "5px"
                   }}
-                  count={chats.totalIconUnreadMessages || 0}
+                  count={pronab?.data?.totalIconUnreadMessages || 0}
                 >
                   <Button
                     onClick={() => handleChatNavigation("/chat")}
