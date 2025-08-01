@@ -9,7 +9,7 @@ export const messageApi = baseApi.injectEndpoints({
         method: "GET",
         params: { page, limit },
       }),
-      providesTags: ['message'],
+      providesTags: ['message', "chat"],
     }),
 
     reactMessage: builder.mutation({
@@ -20,7 +20,7 @@ export const messageApi = baseApi.injectEndpoints({
           reactionType: reaction, // 'like' | 'love' | 'thumbs_up' | 'laugh' | 'angry' | 'sad'
         },
       }),
-      invalidatesTags: ['message'],
+      invalidatesTags: ['message', "chat"],
     }),
 
     messageSend: builder.mutation({
@@ -29,7 +29,7 @@ export const messageApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ['message'],
+      invalidatesTags: ['message', "chat"],
     }),
 
     pinMessage: builder.mutation({
@@ -38,7 +38,7 @@ export const messageApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: { action }, // { action: 'pin' } or 'unpin'
       }),
-      invalidatesTags: ['message'],
+      invalidatesTags: ['message', "chat"],
     }),
 
     replyMessage: builder.mutation({
@@ -47,7 +47,7 @@ export const messageApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ['message'],
+      invalidatesTags: ['message', "chat"],
     }),
   }),
   overrideExisting: true,

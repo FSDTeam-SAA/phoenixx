@@ -106,7 +106,23 @@ const PublicPost = () => {
   )
 }
 
-export { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, PostIcon, PublicPost, ReplyIcon, SuccessIcon  }
+const NewFollow = () => {
+  return (
+    <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="64" cy="64" r="60" fill="#0001FB" />
+      <path d="M64 40C55.16 40 48 47.16 48 56C48 64.84 55.16 72 64 72C72.84 72 80 64.84 80 56C80 47.16 72.84 40 64 40Z" fill="#0001FB" />
+      <path d="M52 76C41 76 32 85 32 96V98C32 100.2 33.8 102 36 102H92C94.2 102 96 100.2 96 98V96C96 85 87 76 76 76H52Z" fill="#0001FB" />
+
+      <path d="M100 36C97.8 36 96 37.8 96 40C96 42.2 97.8 44 100 44C102.2 44 104 42.2 104 40C104 37.8 102.2 36 100 36Z" fill="#0001FB" />
+      <path d="M104 48H96C93.8 48 92 49.8 92 52V56C92 58.2 93.8 60 96 60H104C106.2 60 108 58.2 108 56V52C108 49.8 106.2 48 104 48Z" fill="#0001FB" />
+
+      <path d="M80 60L92 48" stroke="white" stroke-width="4" stroke-linecap="round" />
+    </svg>
+  )
+}
+
+
+export { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, NewFollow, PostIcon, PublicPost, ReplyIcon, SuccessIcon }
 
 
 

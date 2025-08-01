@@ -24,6 +24,7 @@ import {
   useMuteChatMutation
 } from '../../../features/chat/chatList/chatApi';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { useMessageRefetch } from '../../../redux/features/useMessageRefetch';
 import { ThemeContext } from '../../ClientLayout';
 
 const ChatList = ({ setIsChatActive, status }) => {
@@ -41,7 +42,10 @@ const ChatList = ({ setIsChatActive, status }) => {
   const [muteChat] = useMuteChatMutation();
   const [blockChat] = useChatBlockAndUnblockMutation();
 
-  const { data: apiData, isLoading, isError, error, refetch } = useGetAllChatQuery();
+  const { data: apiData, isLoading, isError, error, refetch: chatRefetch } = useGetAllChatQuery();
+
+  const { refetch } = useMessageRefetch();
+
 
   const getCurrentUserId = useCallback(() => {
     try {
@@ -209,14 +213,14 @@ const ChatList = ({ setIsChatActive, status }) => {
         );
       } else {
         // Fallback to refetch if no specific data provided
-        refetch();
+        chatRefetch();
       }
     });
 
     // Chat list update (general updates)
     socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
       console.log("Chat list update:", data);
-      refetch();
+      chatRefetch();
     });
 
     return () => {
@@ -298,9 +302,9 @@ const ChatList = ({ setIsChatActive, status }) => {
 
       // Then make the API call
       const response = await markAsRead(chatId).unwrap();
-      refetch()
       if (response.success) {
-        refetch()
+        refetch();
+        chatRefetch()
       }
       console.log("mark as read response:", response);
 
@@ -310,7 +314,7 @@ const ChatList = ({ setIsChatActive, status }) => {
     } catch (error) {
       console.error('Error marking as read:', error);
       // Revert local state on error
-      refetch();
+      chatRefetch();
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }

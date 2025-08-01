@@ -17,6 +17,9 @@ const ProfileBanner = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const isTablet = screens.md && !screens.lg;
+  const isLaptop = screens.lg && !screens.xl;
+  const isDesktop = screens.xl;
+  
   const router = useRouter();
   const { id } = useParams();
   const [createChat] = useCreateChatMutation();
@@ -53,11 +56,10 @@ const ProfileBanner = () => {
     }
   }
 
-  // Show loading state while profile is loading
   if (profileLoading) {
     return (
       <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-[#F2F4F7]'} min-h-screen flex items-center justify-center`}>
-        <Loading size={isMobile ? 'medium' : 'large'} />
+        <Loading size={isMobile ? 'small' : isTablet ? 'medium' : 'large'} />
       </div>
     );
   }
@@ -66,13 +68,13 @@ const ProfileBanner = () => {
     <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-[#F2F4F7]'} min-h-screen transition-colors duration-200`}>
       {/* Profile Header Section */}
       <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'} pt-16 sm:pt-20 pb-8 sm:pb-10 transition-colors duration-200`}>
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className={`${isDarkMode ? 'bg-gray-700 shadow-xl border border-gray-600' : 'bg-white shadow-lg'} rounded-lg mx-auto w-full container transition-all duration-200`}>
-            <div className="flex justify-between items-center px-4 sm:px-6 py-4 relative">
-              {/* Profile Image */}
-              <div className="absolute left-1/2 -translate-x-1/2 -top-12 sm:-top-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className={`${isDarkMode ? 'bg-gray-700 shadow-xl border border-gray-600' : 'bg-white shadow-lg'} rounded-lg mx-auto w-full max-w-6xl transition-all duration-200`}>
+            <div className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 py-4 relative">
+              {/* Profile Image - Positioned differently based on screen size */}
+              <div className={`${isMobile ? 'mx-auto -top-12' : 'absolute left-1/2 -translate-x-1/2 -top-16'} relative`}>
                 <div className="relative">
-                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 shadow-lg ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
+                  <div className={`${isMobile ? 'w-20 h-20' : 'w-24 h-24'} rounded-full overflow-hidden border-4 shadow-lg ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
                     <img
                       src={getImageUrl(profile?.data?.profile)}
                       alt={`${profile?.data?.name || 'User'}'s profile`}
@@ -82,113 +84,71 @@ const ProfileBanner = () => {
                       }}
                     />
                   </div>
-                  {/* Online status indicator - optional */}
-
                 </div>
               </div>
 
-              {/* Message Button - Right Aligned */}
-              <div className="flex-1"></div>
-              {/* <Button
-                loading={loading.toString()}
-                onClick={() => handleChat(id)}
-                className={`
-                  ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2 text-base'} 
-                  rounded-lg bg-[#1C37E0] hover:bg-[#1530C7] transition-all duration-200 cursor-pointer
-                  text-white font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5
-                  flex items-center justify-center gap-2 border-none
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
-                  ${isDarkMode ? 'focus:ring-offset-gray-700' : 'focus:ring-offset-white'}
-                `}
-                style={{ padding: "20px" }}
-                aria-label="Send message"
-                disabled={!profile?.data}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width={isMobile ? 16 : 18}
-                  height={isMobile ? 16 : 18}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" />
-                </svg>
-                <span>Send Message</span>
-              </Button> */}
-
-              <div className='pr-3'>
-                <FollowButton subscriberId={localStorage.getItem("login_user_id")} subscribedToId={id} />
+              {/* Follow and Message Buttons - Responsive layout */}
+              <div className={`${isMobile ? 'w-full flex justify-between gap-2' : 'ml-auto flex items-center gap-4'}`}>
+                <div className={`${isMobile ? 'flex-1' : ''}`}>
+                  <FollowButton 
+                    subscriberId={localStorage.getItem("login_user_id")} 
+                    subscribedToId={id}
+                    className={isMobile ? "w-full" : ""}
+                  />
+                </div>
+                <div className={`${isMobile ? 'flex-1' : ''}`}>
+                  <button
+                    loading={loading.toString()}
+                    onClick={() => handleChat(id)}
+                    className={`
+                      ${isMobile ? 'w-full px-3 py-2 text-sm' : 'px-4 py-2'} 
+                      bg-[#1530c7] hover:bg-[#102499] transition-colors cursor-pointer
+                      text-white flex items-center justify-center gap-2
+                      rounded-md shadow-sm border-none
+                    `}
+                    aria-label="Send message"
+                  >
+                    <LuMessageCircle size={isMobile ? 16 : 20} />
+                    <span className="font-medium">{isMobile ? 'Message' : 'Send Message'}</span>
+                  </button>
+                </div>
               </div>
-
-              <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
-                <button
-                  loading={loading.toString()}
-                  onClick={() => handleChat(id)}
-                  className={`
-                  ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'} 
-                  bg-[#1530c7] transition-colors cursor-pointer
-                  text-white flex items-center justify-center gap-2
-                  rounded-md shadow-sm border-none
-                `}
-                  aria-label="Edit profile"
-                >
-                  <LuMessageCircle size={20} />
-                  <span className="font-medium">Send Message</span>
-                </button>
-              </div>
-
-
             </div>
 
             {/* Profile Info */}
             <div className="text-center pb-6 sm:pb-10 px-4">
-              <h1 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2 transition-colors duration-200`}>
-                {profile?.data?.name || 'Anonymous User'}
-              </h1>
-              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm sm:text-base lg:text-lg transition-colors duration-200`}>
+              {profile?.data?.name &&
+                <h1 className={`${isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'} font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2 transition-colors duration-200`}>
+                  {profile?.data?.name}
+                </h1>
+              }
+              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} ${isMobile ? 'text-sm' : 'text-base'} transition-colors duration-200`}>
                 @{profile?.data?.userName || 'username'}
               </p>
 
-              {/* Optional: Additional profile info */}
               {profile?.data?.bio && (
-                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} text-sm sm:text-base mt-3 max-w-2xl mx-auto transition-colors duration-200`}>
+                <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'} mt-3 max-w-2xl mx-auto transition-colors duration-200`}>
                   {profile.data.bio}
                 </p>
               )}
-
-              {/* Optional: Stats */}
-              {/* <div className="flex justify-center gap-6 mt-4">
-                <div className="text-center">
-                  <div className={`text-lg sm:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {data?.data?.length || 0}
-                  </div>
-                  <div className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Posts
-                  </div>
-                </div>
-              </div> */}
             </div>
           </div>
         </div>
       </div>
 
       {/* Posts Section */}
-      <div className='max-w-5xl mx-auto px-4 sm:px-6 py-5'>
+      <div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5'>
         {getbuyUserLoading ? (
           <div className='flex justify-center py-10 sm:py-20'>
             <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-8 shadow-sm`}>
-              <Loading size={isMobile ? 'medium' : 'large'} />
+              <Loading size={isMobile ? 'small' : isTablet ? 'medium' : 'large'} />
             </div>
           </div>
         ) : data?.data?.length > 0 ? (
           <div className="space-y-4 sm:space-y-6">
             {/* Posts Header */}
             <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-4 shadow-sm transition-colors duration-200`}>
-              <h2 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <h2 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Recent Posts
               </h2>
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
@@ -197,7 +157,7 @@ const ProfileBanner = () => {
             </div>
 
             {/* Posts Grid */}
-            <div className="grid gap-4 sm:gap-6">
+            <div className={`grid ${isMobile ? 'grid-cols-1' : isTablet ? 'grid-cols-1' : 'grid-cols-1'} gap-4 sm:gap-6`}>
               {[...(data?.data || [])].reverse().map((post, index) => (
                 <div
                   key={post._id || index}
@@ -236,10 +196,10 @@ const ProfileBanner = () => {
                   <polyline points="10,9 9,9 8,9" />
                 </svg>
               </div>
-              <h3 className={`text-lg sm:text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+              <h3 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
                 No posts yet
               </h3>
-              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} text-sm sm:text-base`}>
+              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} ${isMobile ? 'text-sm' : 'text-base'}`}>
                 {profile?.data?.name || 'This user'} hasn't shared any posts yet.
               </p>
             </div>

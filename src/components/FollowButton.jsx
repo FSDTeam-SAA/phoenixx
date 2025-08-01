@@ -1,33 +1,27 @@
-// FollowButton.jsx
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { HiMiniBellAlert, HiOutlineBell } from "react-icons/hi2";
 import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '../features/Follow/followApi';
 
-const FollowButton = ({ subscriberId, subscribedToId }) => {
+const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
   const [isFollowing, setIsFollowing] = useState(false);
 
-  // Use RTK Query hook properly with parameters
   const {
     data: subscriptionsData,
     isLoading: subscriptionsLoading,
     error: subscriptionsError
   } = useSubscriptionsQuery({ subscriberId });
 
-
   const [follow, { isLoading: followLoading }] = useFollowMutation();
   const [unfollow, { isLoading: unfollowLoading }] = useUnFollowMutation();
 
-  // Update follow status when subscriptions data changes
   useEffect(() => {
     if (subscriptionsData?.data) {
-      // Check if subscribedToId exists in the subscriptions array
       const isSubscribed = subscriptionsData.data.some(
         subscription => subscription.subscribedTo._id === subscribedToId
       );
       setIsFollowing(isSubscribed);
     } else {
-      // Set to false when no data or data is undefined
       setIsFollowing(false);
     }
   }, [subscriptionsData, subscribedToId]);
@@ -52,11 +46,6 @@ const FollowButton = ({ subscriberId, subscribedToId }) => {
     }
   };
 
-  // Handle loading and error states
-  // if (subscriptionsLoading) {
-  //   return <button disabled>Loading...</button>;
-  // }
-
   if (subscriptionsError) {
     return <button disabled>Error loading follow status</button>;
   }
@@ -67,19 +56,19 @@ const FollowButton = ({ subscriberId, subscribedToId }) => {
     <button
       onClick={isFollowing ? unfollowUser : followUser}
       disabled={isLoading}
-      className={`px-4 py-1.5 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`${className} w-full px-4 py-2 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
       style={{ border: "1px solid #1530c7" }}
     >
       {isLoading ?
         <HiMiniBellAlert
           className='text-white'
-          size={26}
+          size={20}
           style={{
             animation: 'spin 1s linear infinite',
             transformOrigin: 'center'
           }}
         /> :
-        (isFollowing ? <HiMiniBellAlert className='text-white' size={25} /> : <HiOutlineBell className='text-white' size={25} />)
+        (isFollowing ? <HiMiniBellAlert className='text-white' size={20} /> : <HiOutlineBell className='text-white' size={20} />)
       }
     </button>
   );

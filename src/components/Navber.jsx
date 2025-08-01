@@ -41,10 +41,10 @@ import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '
 import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery, useUnreadIconCountMutation } from '../features/chat/chatList/chatApi';
 
+import { connectSocket } from '../../utils/socket';
 import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
-import { connectSocket } from '../../utils/socket';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -77,7 +77,6 @@ export default function Navbar() {
     }
   }, []);
 
-
   useEffect(() => {
     const loggedInUserId = getCurrentUserId();
     if (!loggedInUserId) return;
@@ -96,18 +95,17 @@ export default function Navbar() {
 
     // Unread count update
     socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
-
+      refetchChat();
     });
 
     // Chat list update (general updates)
     socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
-      // console.log("Chat list update:", data);
-      // Refetch data to ensure consistency
       refetchChat();
     });
 
     return () => {
       if (socketRef.current) {
+        socketRef.current.off(`unreadCountUpdate::${loggedInUserId}`);
         socketRef.current.off(`chatListUpdate::${loggedInUserId}`);
         socketRef.current.off('connect');
         socketRef.current.off('disconnect');
@@ -115,12 +113,7 @@ export default function Navbar() {
     };
   }, [refetch, router]);
 
-
-
-
   const { notifications } = useSelector((state) => state);
-
-
 
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
@@ -141,9 +134,6 @@ export default function Navbar() {
     }
   }, [searchParams]);
 
-
-
-
   const handleNavigation = async (path) => {
     if (!isAuthenticated()) {
       router.push('/auth/login');
@@ -154,8 +144,6 @@ export default function Navbar() {
       setDrawerVisible(false);
     }
   };
-
-
 
   const handleChatNavigation = async (path) => {
     if (!isAuthenticated()) {
@@ -172,7 +160,6 @@ export default function Navbar() {
       } catch (error) {
         console.log(error)
       }
-
     }
   }
 
@@ -186,8 +173,6 @@ export default function Navbar() {
       setDrawerVisible(false);
     }
   }
-
-
 
   const items = [
     {
@@ -348,8 +333,10 @@ export default function Navbar() {
     <div style={{
       width: screens.lg ? '35%' : '30%',
       minWidth: '200px',
-      marginLeft: screens.lg ? '200px' : '50px',
-      paddingLeft: screens.xl ? '100px' : '0'
+      marginLeft: screens.lg ? '160px' : '40px', // Reduced margin to give more space to logo
+      paddingLeft: screens.xl ? '60px' : '0', // Reduced padding
+      flex: '1 1 auto', // Allow flexible growth
+      maxWidth: '500px' // Set max width
     }}>
       <Flex
         align="center"
@@ -465,19 +452,24 @@ export default function Navbar() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: screens.xs ? '0 12px' : '0 24px',
+          padding: screens.xs ? '0 8px' : '0 16px', // Reduced padding to give more space
           height: '75px',
           boxShadow: isDarkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.15)' : '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
           color: isDarkMode ? 'var(--text-color)' : 'inherit',
-          borderBottom: `1px solid ${isDarkMode ? '#333' : 'transparent'}`
+          borderBottom: `1px solid ${isDarkMode ? '#333' : 'transparent'}`,
+          overflow: 'visible' // Ensure content isn't clipped
         }}
       >
         {/* Left Side - Logo and Menu Button */}
         {!showMobileSearch && (
-          <Flex align="center" style={{ height: '100%' }}>
+          <Flex align="center" style={{ 
+            height: '100%',
+            minWidth: 'fit-content', // Ensure minimum width for logo
+            flex: '0 0 auto' // Prevent shrinking
+          }}>
             {!screens.md && (
               <Button
                 type="text"
@@ -488,8 +480,9 @@ export default function Navbar() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
-                  padding: '0 12px',
-                  color: isDarkMode ? 'var(--text-color)' : 'inherit'
+                  padding: '0 8px', // Reduced padding
+                  color: isDarkMode ? 'var(--text-color)' : 'inherit',
+                  minWidth: '40px'
                 }}
               />
             )}
@@ -499,21 +492,26 @@ export default function Navbar() {
                 display: 'flex',
                 alignItems: 'center',
                 height: '100%',
-                lineHeight: 0
+                lineHeight: 0,
+                minWidth: 'fit-content', // Ensure logo doesn't shrink
+                paddingLeft: screens.xs ? '4px' : '8px', // Add some padding
+                paddingRight: screens.xs ? '8px' : '12px'
               }}
             >
               <Image
                 src={filteredLogo?.logo ? `${baseURL}${filteredLogo.logo}` : "/images/logo.png"}
-                width={screens.xs ? 70 : screens.sm ? 90 : 120}
-                height={screens.xs ? 30 : screens.sm ? 40 : 50}
+                width={screens.xs ? 90 : screens.sm ? 110 : 150} // Increased width significantly
+                height={screens.xs ? 40 : screens.sm ? 50 : 60} // Increased height
                 alt='logo'
                 style={{
                   objectFit: 'contain',
                   width: 'auto',
                   height: 'auto',
-                  maxHeight: '100%',
+                  maxHeight: '65px', // Increased max height
+                  minWidth: screens.xs ? '90px' : screens.sm ? '110px' : '150px', // Set minimum width to prevent cutting
                   filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
                 }}
+                priority // Add priority for faster loading
               />
             </Link>
           </Flex>
@@ -524,7 +522,10 @@ export default function Navbar() {
 
         {/* Right Side Actions */}
         {!showMobileSearch && (
-          <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{ height: '100%' }}>
+          <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{ 
+            height: '100%',
+            flex: '0 0 auto' // Prevent shrinking
+          }}>
             {screens.md ? (
               <>
                 <Button

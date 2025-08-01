@@ -72,14 +72,14 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
         <Image
           src={`${baseURL}${imageUrl}`}
           alt={category?.name || "Category image"}
-          width={23}
-          height={23}
+          width={30}
+          height={30}
           className="object-contain"
         />
       </div>
     ) : (
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${getCategoryIconContainerStyle(isSelected)} ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-        <UnorderedListOutlined size={18} />
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${getCategoryIconContainerStyle(isSelected)} ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+        <UnorderedListOutlined size={18} className='text-xl' />
       </div>
     );
   };

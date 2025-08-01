@@ -9,7 +9,12 @@ const initialState = {
   hasMore: true,
   page: 1,
   limit: 10,
-  currentChatId: null
+  currentChatId: null,
+  isRefetching: false,     // Manual refresh loading
+  lastRefetch: null,       // Track last refetch time
+  autoUpdateEnabled: true, // Auto update toggle
+  isAutoUpdating: false,   // Auto update loading state
+  updateInterval: 30000    // Auto update interval (30 seconds)
 };
 
 const messageSlice = createSlice({
@@ -38,6 +43,7 @@ const messageSlice = createSlice({
       state.hasMore = true;
       state.isLoading = false;
       state.error = null;
+      state.isRefetching = false;
     },
 
     // Set current chat ID and reset state
@@ -49,6 +55,7 @@ const messageSlice = createSlice({
         state.hasMore = true;
         state.isLoading = false;
         state.error = null;
+        state.isRefetching = false;
         state.currentChatId = action.payload;
       }
     },
@@ -56,6 +63,42 @@ const messageSlice = createSlice({
     // Set current page for pagination
     setPage: (state, action) => {
       state.page = action.payload;
+    },
+
+    // NEW: Trigger refetch state
+    startRefetch: (state) => {
+      state.isRefetching = true;
+      state.error = null;
+    },
+
+    // NEW: Complete refetch state
+    completeRefetch: (state) => {
+      state.isRefetching = false;
+      state.lastRefetch = new Date().toISOString();
+    },
+
+    // NEW: Reset to first page for refetch
+    resetForRefetch: (state) => {
+      state.page = 1;
+      state.hasMore = true;
+      state.error = null;
+    },
+
+    // NEW: Auto update actions
+    setAutoUpdateEnabled: (state, action) => {
+      state.autoUpdateEnabled = action.payload;
+    },
+
+    startAutoUpdate: (state) => {
+      state.isAutoUpdating = true;
+    },
+
+    completeAutoUpdate: (state) => {
+      state.isAutoUpdating = false;
+    },
+
+    setUpdateInterval: (state, action) => {
+      state.updateInterval = action.payload;
     },
 
     // Update message reaction
@@ -236,7 +279,14 @@ const messageSlice = createSlice({
       .addMatcher(messageApi.endpoints.getAllMessages.matchPending, (state, { meta }) => {
         const { chatId } = meta.arg.originalArgs;
         if (chatId === state.currentChatId || !state.currentChatId) {
-          state.isLoading = true;
+          // Set appropriate loading state based on type of fetch
+          if (state.isRefetching) {
+            // Keep isRefetching true for manual refetch
+          } else if (state.isAutoUpdating) {
+            // Keep isAutoUpdating true for auto updates
+          } else {
+            state.isLoading = true;
+          }
           state.error = null;
         }
       })
@@ -252,11 +302,22 @@ const messageSlice = createSlice({
           const newMessages = payload.data.messages || [];
           const pinnedMessages = payload.data.pinnedMessages || [];
 
-          if (page === 1) {
-            // First page load - replace all messages
+          if (page === 1 || state.isRefetching || state.isAutoUpdating) {
+            // First page load, manual refetch, or auto update - replace all messages
             state.messages = newMessages;
             state.pinnedMessages = pinnedMessages;
             state.currentChatId = chatId;
+
+            // Complete refetch if it was a manual refetch
+            if (state.isRefetching) {
+              state.isRefetching = false;
+              state.lastRefetch = new Date().toISOString();
+            }
+
+            // Complete auto update if it was an auto update
+            if (state.isAutoUpdating) {
+              state.isAutoUpdating = false;
+            }
           } else {
             // Pagination - append older messages
             const existingIds = new Set(state.messages.map(msg => msg._id));
@@ -278,12 +339,14 @@ const messageSlice = createSlice({
         }
       })
 
-      // Handle error state for getAllMessages
-      .addMatcher(messageApi.endpoints.getAllMessages.matchRejected, (state, { error, meta }) => {
+      // Handle fetch errors
+      .addMatcher(messageApi.endpoints.getAllMessages.matchRejected, (state, { meta }) => {
         const { chatId } = meta.arg.originalArgs;
         if (chatId === state.currentChatId || !state.currentChatId) {
           state.isLoading = false;
-          state.error = error.message || 'Failed to load messages';
+          state.isRefetching = false;
+          state.isAutoUpdating = false;
+          state.error = 'Failed to fetch messages';
         }
       })
 
@@ -347,6 +410,13 @@ export const {
   resetMessages,
   setCurrentChatId,
   setPage,
+  startRefetch,
+  completeRefetch,
+  resetForRefetch,
+  setAutoUpdateEnabled,
+  startAutoUpdate,
+  completeAutoUpdate,
+  setUpdateInterval,
   updateMessageReaction,
   updateMessagePin,
   updateMessageDelete,

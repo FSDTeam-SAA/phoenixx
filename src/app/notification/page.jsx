@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, PostIcon, PublicPost, ReplyIcon, SuccessIcon } from '../../../public/images/Notification';
+import { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, NewFollow, PostIcon, ReplyIcon, SuccessIcon } from '../../../public/images/Notification';
 import Loading from '../../components/Loading/Loading';
 import { ThemeContext } from '../ClientLayout';
 const { Content } = Layout;
@@ -73,8 +73,8 @@ export default function NotificationPage() {
     switch (type) {
       case 'comment':
         return <CommentIcon />;
-      case 'new_post_from_following':
-        return <PublicPost />;
+      case 'new_follower':
+        return <NewFollow />;
       case 'like':
         return <LikeIcon />;
       case 'follow':
@@ -94,7 +94,11 @@ export default function NotificationPage() {
     }
   };
   const handleItemClick = async (notification) => {
-    router.push(`/posts/${notification.postId}`)
+    if (notification.type === "new_follower") {
+      router.push(`/profiles/${notification.recipient}`)
+    } else {
+      router.push(`/posts/${notification.postId}`)
+    }
     if (!notification.read) {
       try {
         const response = await markSingleAsRead(notification.id).unwrap();
@@ -145,6 +149,7 @@ export default function NotificationPage() {
   const apiNotifications = notifications?.notification || [];
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
+    recipient: notification.recipient,
     postId: notification.postId,
     commentId: notification.commentId,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),

@@ -19,6 +19,7 @@ import { ImageUplaod } from '../../../../utils/svgImage';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
 import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
 import { addMessage, resetMessages, setPage, updateMessagePin, updateMessageReaction } from '../../../redux/features/messageSlice';
+import { useMessageRefetch } from '../../../redux/features/useMessageRefetch';
 import { ThemeContext } from '../../ClientLayout';
 
 const ChatWindow = ({ id }) => {
@@ -29,8 +30,12 @@ const ChatWindow = ({ id }) => {
 
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
 
+  const { refetch, isRefetching, isAutoUpdating, autoUpdateEnabled, toggleAutoUpdate, isUpdating } = useMessageRefetch();
+
+
+
   // FIXED: Add proper dependency array and skip logic
-  const { data: allMessage, refetch, isFetching } = useGetAllMessagesQuery(
+  const { data: allMessage, isFetching } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
     {
       skip: !id,
@@ -102,10 +107,10 @@ const ChatWindow = ({ id }) => {
 
       // Force refetch for new chat
       if (refetch) {
-        refetch();
+        refetch()
       }
     }
-  }, [id, dispatch, refetch, currentChatId, form]);
+  }, [id, dispatch, refetch, currentChatId, form, isRefetching, isUpdating, isAutoUpdating]);
 
   // FIXED: Scroll to bottom logic
   useEffect(() => {
@@ -417,27 +422,43 @@ const ChatWindow = ({ id }) => {
       ))}
 
       {/* Pinned Messages */}
-      {pinnedMessages?.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-3 border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'}`}
-        >
-          <div className="flex items-center text-sm font-medium text-blue-600">
-            <TbPinned className="mr-2" />
-            Pinned Messages
-          </div>
-          <div className="mt-1 space-y-2">
-            {pinnedMessages.map(msg => (
-              <div key={msg._id} className="flex items-start text-sm">
-                <span className="truncate text-gray-600">
-                  {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
-                </span>
+
+
+
+      {[...messages]?.reverse()?.map((message) => {
+        const isCurrentUser = message.sender?._id === loginUserId;
+        const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
+
+        return (
+          (isPinned && isCurrentUser) && <>
+            <motion.div
+              key={message._id}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`p-3 border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'}`}
+            >
+              {isPinned && (
+                <div className="flex items-center text-sm font-medium text-blue-600">
+                  <TbPinned className="mr-2" />
+                  Pinned Messages
+                </div>
+              )}
+              <div className="mt-1 space-y-2">
+                {isPinned && pinnedMessages.map(msg => (
+                  <div key={msg._id} className="flex items-start text-sm">
+                    <span className="truncate text-gray-600">
+                      {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+            </motion.div>
+          </>
+
+
+        );
+      })}
+
 
       {/* Messages Container */}
       <div
@@ -531,7 +552,6 @@ const ChatWindow = ({ id }) => {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
             border: 1px solid ${isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'};
             border-radius: 12px;
-            padding: 12px 16px;
             margin-bottom: 8px;
             position: relative;
             overflow: hidden;
@@ -611,16 +631,11 @@ const ChatWindow = ({ id }) => {
             const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
             const originalMessage = message.replyTo ? getOriginalMessage(message.replyTo) : null;
 
-            console.log("message", message?.replyTo)
-
-
-            console.log("reply ", originalMessage?.text)
-
             return (
               <motion.div
                 id={`msg-${message._id}`}
                 key={message._id}
-                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-6 message-wrapper`}
+                className={`relative flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-6 message-wrapper`}
               >
                 {!isCurrentUser && (
                   <Avatar
@@ -631,7 +646,8 @@ const ChatWindow = ({ id }) => {
                 )}
 
                 <div className="relative group max-w-[75%]">
-                  {/* Reply Indicator - Updated to match image design */}
+                <span className={`text-xs flex  ${isCurrentUser ? "justify-end pr-3 pb-2" : "justify-start pl-3 pb-2"}`}>{formatDate(message.createdAt)}</span>
+                  {/* Reply Indicator - Same for both sender and receiver */}
                   {originalMessage?.text && (
                     <div className="mb-2">
                       {/* Reply indicator text */}
@@ -644,7 +660,7 @@ const ChatWindow = ({ id }) => {
                         </span>
                       </div>
 
-                      {/* Original message preview bubble */}
+                      {/* Original message preview bubble - Same styling for both */}
                       <div
                         className="reply-preview-bubble cursor-pointer"
                         onClick={() => navigateToRepliedMessage(originalMessage)}
@@ -654,26 +670,28 @@ const ChatWindow = ({ id }) => {
                     </div>
                   )}
 
-                  {isPinned && (
+                  {/* Pin indicator - Same for both */}
+                  {(isPinned && isCurrentUser) && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-5 left-1/2 transform -translate-x-1/2"
+                      className="absolute -top-0 left-0 transform -translate-x-1/2"
                     >
                       <BsPinAngleFill className="text-blue-500 text-sm" />
                     </motion.div>
                   )}
 
+                  {/* Message Bubble - UNIFORM STYLING FOR BOTH SENDER AND RECEIVER */}
+                  
                   <motion.div
-                    className={`relative p-4 rounded-2xl ${isDeleted
+                    className={`relative pl-4 pt-1 pr-4 rounded-xl ${isDeleted
                       ? 'deleted-message'
-                      : isCurrentUser
-                        ? 'bg-blue-600 text-white rounded-br-md'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-gray-200 rounded-bl-md'
-                          : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
-                      }`}
+                      : isDarkMode
+                        ? 'bg-gray-700 text-gray-200 border border-gray-600'
+                        : 'bg-white text-gray-800 border border-gray-200'
+                      } shadow-sm`}
                   >
+                    {/* Message Images - Same for both */}
                     {message.images?.length > 0 && !isDeleted && (
                       <div className="mb-3">
                         <img
@@ -685,26 +703,17 @@ const ChatWindow = ({ id }) => {
                       </div>
                     )}
 
-                    {!isDeleted && message.text && (
-                      <p className="whitespace-pre-wrap break-words">{message.text}</p>
-                    )}
 
-                    {isDeleted && (
-                      <p className="text-gray-500 italic flex items-center">
-                        <span className="mr-2">🗑️</span>
-                        This message has been deleted
-                      </p>
-                    )}
 
-                    <div className="flex items-center justify-between mt-2">
-                      <span className={`text-xs ${isCurrentUser
-                        ? ''
-                        : isDarkMode
-                          ? 'text-gray-400'
-                          : 'text-gray-500'
-                        }`}>
-                        {formatDate(message.createdAt)}
-                      </span>
+                    {/* Message Text - Same for both */}
+
+
+
+                    <div className='flex items-end justify-center'>
+                      {!isDeleted && message.text && (
+                        <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                      )}
+
                       {message.read && isCurrentUser && (
                         <div className="flex ml-2">
                           <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
@@ -717,24 +726,37 @@ const ChatWindow = ({ id }) => {
                       )}
                     </div>
 
-                    {!isDeleted && message.reactions?.length > 0 && (
-                      <motion.div className="flex gap-1 mt-2">
-                        <div className={`flex items-center px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'} shadow-sm`}>
-                          {message.reactions.map((reaction, i) => (
-                            <Tooltip key={i} title={reaction?.userId?.userName || 'User'}>
-                              <span className="text-sm mr-1">
-                                {getReactionEmoji(reaction.reactionType)}
-                              </span>
-                            </Tooltip>
-                          ))}
-                          <span className="text-xs text-gray-500 ml-1">
-                            {message.reactions.length}
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
+                    {/* Message Footer - Same styling for both */}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+
+                      </span>
+                      {/* Read receipts only show for sender */}
+
+                    </div>
+
+                    {/* Reactions - Same for both */}
+                    <div className={`absolute ${isCurrentUser ? "-left-5 -bottom-5":"-right-5 -bottom-5"}`}>
+                      {message.reactions?.length > 0 && (
+                        <motion.div className="flex gap-1 mt-2">
+                          <div className={`flex items-center px-2 py-1 rounded-full backdrop-blur-lg border border-gray-200`}>
+                            {message.reactions.map((reaction, i) => (
+                              <Tooltip key={i} title={reaction?.userId?.userName || 'User'}>
+                                <span className="text-sm mr-1">
+                                  {getReactionEmoji(reaction.reactionType)}
+                                </span>
+                              </Tooltip>
+                            ))}
+                            <span className="text-xs text-gray-500">
+                              {/* {message.reactions.length} */}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
                   </motion.div>
 
+                  {/* Message Options - Same for both */}
                   {!isDeleted && (
                     <div className={`message-options absolute ${isCurrentUser ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'
                       } top-1/2 -translate-y-1/2 flex space-x-1`}>
@@ -778,15 +800,15 @@ const ChatWindow = ({ id }) => {
                           size="small"
                           icon={<FiMoreVertical />}
                           className={`flex items-center justify-center p-2 rounded-full ${isDarkMode
-                            ? 'text-gray-300 bg-gray-700 '
-                            : 'text-gray-600 bg-white '
+                            ? 'text-gray-300 bg-gray-700'
+                            : 'text-gray-600 bg-white'
                             } shadow-md hover:shadow-lg`}
                         />
                       </Dropdown>
                     </div>
                   )}
 
-                  {/* Enhanced Reaction Picker */}
+                  {/* Enhanced Reaction Picker - Same for both */}
                   {!isDeleted && showReactionPicker.show && showReactionPicker.messageId === message._id && (
                     <motion.div
                       ref={reactionPickerRef}
@@ -805,9 +827,7 @@ const ChatWindow = ({ id }) => {
                           return (
                             <div
                               key={reaction.name}
-                              type="text"
-                              size="small"
-                              className={`p-2 rounded cursor-pointer  transition-all duration-200 transform ${isSelected
+                              className={`p-2 rounded cursor-pointer transition-all duration-200 transform ${isSelected
                                 ? 'bg-gray-300'
                                 : isDarkMode
                                   ? 'hover:bg-gray-600'
@@ -835,12 +855,13 @@ const ChatWindow = ({ id }) => {
                   )}
                 </div>
 
+                {/* Avatar for current user - Same as receiver */}
                 {isCurrentUser && (
-                  <div className='flex flex-col justify-end'>
+                  <div className="flex flex-col justify-end">
                     <Avatar
                       src={getImageUrl(message.sender?.profile)}
                       size={32}
-                      className="ml-3 self-end flex flex-col  mt-1"
+                      className="ml-3 self-end mt-1"
                     />
                   </div>
                 )}

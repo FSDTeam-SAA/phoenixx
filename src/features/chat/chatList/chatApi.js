@@ -8,7 +8,7 @@ export const chatApi = baseApi.injectEndpoints({
         url: `/chats/?searchTerm=${searchTerm}`,
         method: "GET",
       }),
-      providesTags: ["chat"],
+      providesTags: ["chat" , "message"],
     }),
 
     createChat: builder.mutation({
@@ -17,7 +17,7 @@ export const chatApi = baseApi.injectEndpoints({
         method: "POST",
         body: data,   // {"participant": "682df69bcf663fd1911b6d87" }
       }),
-      invalidatesTags: ["chat"],
+      invalidatesTags: ["chat" , "message"],
     }),
 
     markAsRead: builder.mutation({
@@ -25,7 +25,7 @@ export const chatApi = baseApi.injectEndpoints({
         url: `/chats/mark-chat-as-read/${id}`, // need chatId
         method: "PATCH",
       }),
-      invalidatesTags: ["chat"],
+      invalidatesTags: ["chat" , "message"],
     }),
 
     deleteChat: builder.mutation({
@@ -33,7 +33,7 @@ export const chatApi = baseApi.injectEndpoints({
         url: `/chats/delete/${id}`, // need chatId
         method: "DELETE",
       }),
-      invalidatesTags: ["chat"],
+      invalidatesTags: ["chat" , "message"],
     }),
 
     muteChat: builder.mutation({
@@ -42,7 +42,7 @@ export const chatApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: body // { "action": "mute" } //'unmute'
       }),
-      invalidatesTags: ["chat"],
+      invalidatesTags: ["chat", "message"],
     }),
 
     chatBlockAndUnblock: builder.mutation({
@@ -51,7 +51,7 @@ export const chatApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: body
       }),
-      invalidatesTags: ["chat"],
+      invalidatesTags: ["chat" , "message"],
     }),
 
     unreadIconCount: builder.mutation({
@@ -59,7 +59,7 @@ export const chatApi = baseApi.injectEndpoints({
         url: `/chats/mark-chat-as-read-icon`,
         method: "PATCH",
       }),
-      invalidatesTags: ["chat"],
+      invalidatesTags: ["chat" , "message"],
     }),
 
   }),
