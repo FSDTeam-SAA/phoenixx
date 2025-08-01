@@ -1,5 +1,3 @@
-// Modified ChatWindow.js - Same Reply Design as Image
-
 'use client';
 
 import { Avatar, Button, Dropdown, Form, Input, Tooltip, Upload, message as antMessage } from 'antd';
@@ -29,21 +27,15 @@ const ChatWindow = ({ id }) => {
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
 
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
+  const { refetch } = useMessageRefetch();
 
-  const { refetch, isRefetching, isAutoUpdating, autoUpdateEnabled, toggleAutoUpdate, isUpdating } = useMessageRefetch();
-
-
-
-  // FIXED: Add proper dependency array and skip logic
   const { data: allMessage, isFetching } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
     {
       skip: !id,
-      refetchOnMountOrArgChange: true // This ensures fresh data when component mounts
+      refetchOnMountOrArgChange: true
     }
   );
-
-  // const messages = allMessage?.data?.messages || [];
 
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();
@@ -66,8 +58,6 @@ const ChatWindow = ({ id }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
-
-  // FIXED: Track current chat ID to detect changes
   const [currentChatId, setCurrentChatId] = useState(null);
 
   const reactions = [
@@ -78,24 +68,18 @@ const ChatWindow = ({ id }) => {
     { emoji: '😢', name: 'sad' }
   ];
 
-  // Helper function to check if current user has reacted with a specific reaction
   const hasUserReacted = (message, reactionType) => {
     return message.reactions?.some(reaction =>
       reaction.userId?._id === loginUserId && reaction.reactionType === reactionType
     );
   };
 
-  // Helper function to get the original message for replies
   const getOriginalMessage = (replyToId) => {
     return messages.find(msg => msg._id === replyToId);
   };
 
-  // FIXED: Better chat switching logic
   useEffect(() => {
     if (id && id !== currentChatId) {
-      console.log('Switching to new chat:', id);
-
-      // Reset all state when switching chats
       dispatch(resetMessages());
       setCurrentChatId(id);
       setInitialLoad(true);
@@ -104,15 +88,10 @@ const ChatWindow = ({ id }) => {
       setShowEmojiPicker(false);
       setShowReactionPicker({ messageId: null, show: false });
       form.resetFields();
-
-      // Force refetch for new chat
-      if (refetch) {
-        refetch()
-      }
+      refetch();
     }
-  }, [id, dispatch, refetch, currentChatId, form, isRefetching, isUpdating, isAutoUpdating]);
+  }, [id, dispatch, refetch, currentChatId, form]);
 
-  // FIXED: Scroll to bottom logic
   useEffect(() => {
     if (initialLoad && messages.length > 0) {
       setTimeout(() => {
@@ -182,6 +161,21 @@ const ChatWindow = ({ id }) => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  const scrollToPinnedMessage = (messageId) => {
+    const messageElement = document.getElementById(`msg-${messageId}`);
+    if (messageElement) {
+      messageElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+
+      messageElement.classList.add('message-highlight');
+      setTimeout(() => {
+        messageElement.classList.remove('message-highlight');
+      }, 2000);
+    }
+  };
+
   const navigateToRepliedMessage = (replyToMessage) => {
     const originalMessageId = replyToMessage._id;
     const originalMsg = document.getElementById(`msg-${originalMessageId}`);
@@ -193,13 +187,11 @@ const ChatWindow = ({ id }) => {
       });
 
       originalMsg.classList.add('message-highlight');
-
       setTimeout(() => {
         originalMsg.classList.remove('message-highlight');
       }, 2000);
     } else {
       const messageExists = messages.find(msg => msg._id === originalMessageId);
-
       if (messageExists) {
         antMessage.info('Message found but not visible. Loading more messages...');
       } else {
@@ -211,9 +203,14 @@ const ChatWindow = ({ id }) => {
   const handleCreateNewMessage = async (values) => {
     if (sendingMessage || isSending) return;
 
+    // Input validation: prevent empty messages unless image is attached
+    if (!values.message?.trim() && !values?.file?.fileList?.length) {
+      antMessage.warning('Message cannot be empty');
+      return;
+    }
+
     try {
       setSendingMessage(true);
-
       let response;
       const formData = new FormData();
 
@@ -232,34 +229,20 @@ const ChatWindow = ({ id }) => {
         }).unwrap();
 
         if (response.data) {
-          // Handle both possible response structures
-          if (response.data.originalMessage && response.data.reply) {
-            const replyWithReference = {
-              ...response.data.reply,
-              replyTo: replyingTo._id,
-              sender: {
-                ...response.data.reply.sender,
-                _id: loginUserId
-              },
-              chatId: id // Ensure chatId is included
-            };
-            dispatch(addMessage(replyWithReference));
-          } else {
-            const replyWithReference = {
-              ...response.data,
-              replyTo: replyingTo._id,
-              sender: {
-                ...response.data.sender,
-                _id: loginUserId
-              },
-              chatId: id // Ensure chatId is included
-            };
-            dispatch(addMessage(replyWithReference));
-          }
+          const replyWithReference = {
+            ...(response.data.originalMessage && response.data.reply ? response.data.reply : response.data),
+            replyTo: replyingTo._id,
+            sender: {
+              ...(response.data.originalMessage && response.data.reply ?
+                response.data.reply.sender : response.data.sender),
+              _id: loginUserId
+            },
+            chatId: id
+          };
+          dispatch(addMessage(replyWithReference));
         }
       } else {
         response = await sendMessage({ chatId: id, body: formData }).unwrap();
-
         if (response.data) {
           const confirmedMessage = {
             ...response.data,
@@ -325,7 +308,6 @@ const ChatWindow = ({ id }) => {
       const message = messages.find(msg => msg._id === messageId);
       const hasReacted = hasUserReacted(message, reaction);
 
-      // Optimistically update the UI
       dispatch(updateMessageReaction({
         messageId,
         reaction,
@@ -333,13 +315,10 @@ const ChatWindow = ({ id }) => {
       }));
 
       await messageReact({ messageId, reaction }).unwrap();
-
-      // FIXED: Close reaction picker after successful reaction
       setShowReactionPicker({ messageId: null, show: false });
 
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to add reaction");
-      // Reset UI state on error
       setShowReactionPicker({ messageId: null, show: false });
       refetch();
     }
@@ -348,13 +327,11 @@ const ChatWindow = ({ id }) => {
   const handlePinMessage = async (messageId, action) => {
     try {
       const response = await pinMessage({ messageId, action }).unwrap();
-      console.log(response)
       dispatch(updateMessagePin({
         messageId,
         isPinned: action === 'pin',
         pinnedBy: loginUserId
       }));
-
       toast.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
     } catch (error) {
       antMessage.error(error?.data?.message || `Failed to ${action} message`);
@@ -393,7 +370,6 @@ const ChatWindow = ({ id }) => {
     visible: { opacity: 1, height: 'auto' }
   };
 
-  // FIXED: Show loading state when switching chats
   if (!id) {
     return (
       <div className="flex justify-center items-center h-[80vh]">
@@ -421,44 +397,32 @@ const ChatWindow = ({ id }) => {
         </div>
       ))}
 
-      {/* Pinned Messages */}
-
-
-
-      {[...messages]?.reverse()?.map((message) => {
-        const isCurrentUser = message.sender?._id === loginUserId;
-        const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
-
-        return (
-          (isPinned && isCurrentUser) && <>
-            <motion.div
-              key={message._id}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-3 border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'}`}
-            >
-              {isPinned && (
-                <div className="flex items-center text-sm font-medium text-blue-600">
-                  <TbPinned className="mr-2" />
-                  Pinned Messages
-                </div>
-              )}
-              <div className="mt-1 space-y-2">
-                {isPinned && pinnedMessages.map(msg => (
-                  <div key={msg._id} className="flex items-start text-sm">
-                    <span className="truncate text-gray-600">
-                      {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
-                    </span>
-                  </div>
-                ))}
+      {/* Pinned Messages Section */}
+      {pinnedMessages.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-3 border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'}`}
+        >
+          <div className="flex items-center text-sm font-medium text-blue-600">
+            <TbPinned className="mr-2" />
+            Pinned Messages
+          </div>
+          <div className="mt-1 space-y-2">
+            {pinnedMessages.map(msg => (
+              <div
+                key={msg._id}
+                className="flex items-start text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
+                onClick={() => scrollToPinnedMessage(msg._id)}
+              >
+                <span className="truncate text-gray-600">
+                  {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
+                </span>
               </div>
-            </motion.div>
-          </>
-
-
-        );
-      })}
-
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Messages Container */}
       <div
@@ -503,8 +467,6 @@ const ChatWindow = ({ id }) => {
             font-style: italic;
             opacity: 0.7;
           }
-          
-          /* UPDATED REPLY INDICATOR STYLES - Same as Image */
           .reply-indicator {
             background: transparent;
             padding: 0;
@@ -518,7 +480,6 @@ const ChatWindow = ({ id }) => {
             transform: none;
             border: none;
           }
-          
           .reply-preview-bubble {
             background: ${isDarkMode ? '#374151' : '#F3F4F6'};
             border-radius: 12px;
@@ -528,14 +489,12 @@ const ChatWindow = ({ id }) => {
             color: ${isDarkMode ? '#9CA3AF' : '#6B7280'};
             line-height: 1.3;
           }
-          
           .message-highlight {
             border-radius: 16px !important;
             animation: pulse-bg 2s ease-in-out infinite !important;
             z-index: 10 !important;
             position: relative !important;
           }
-
           @keyframes pulse-bg {
             0% {
               background-color: rgba(156, 163, 175, 0.1);
@@ -547,7 +506,6 @@ const ChatWindow = ({ id }) => {
               background-color: rgba(156, 163, 175, 0.1);
             }
           }
-          
           .reply-preview {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
             border: 1px solid ${isDarkMode ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)'};
@@ -556,7 +514,6 @@ const ChatWindow = ({ id }) => {
             position: relative;
             overflow: hidden;
           }
-          
           .reply-preview::before {
             content: '';
             position: absolute;
@@ -566,11 +523,9 @@ const ChatWindow = ({ id }) => {
             width: 4px;
             background: linear-gradient(to bottom, #3B82F6, #1D4ED8);
           }
-          
           .reply-content {
             margin-left: 12px;
           }
-          
           .reply-close-btn {
             position: absolute;
             top: 8px;
@@ -585,12 +540,10 @@ const ChatWindow = ({ id }) => {
             cursor: pointer;
             transition: all 0.2s ease;
           }
-          
           .reply-close-btn:hover {
             background: ${isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'};
             transform: scale(1.1);
           }
-          
           .reaction-selected {
             background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important;
             transform: scale(1.1);
@@ -646,11 +599,11 @@ const ChatWindow = ({ id }) => {
                 )}
 
                 <div className="relative group max-w-[75%]">
-                <span className={`text-xs flex  ${isCurrentUser ? "justify-end pr-3 pb-2" : "justify-start pl-3 pb-2"}`}>{formatDate(message.createdAt)}</span>
-                  {/* Reply Indicator - Same for both sender and receiver */}
+                  <span className={`text-xs flex  ${isCurrentUser ? "justify-end pr-3 pb-2" : "justify-start pl-3 pb-2"}`}>{formatDate(message.createdAt)}</span>
+
+                  {/* Reply Indicator */}
                   {originalMessage?.text && (
                     <div className="mb-2">
-                      {/* Reply indicator text */}
                       <div className="flex items-center text-xs text-gray-400 mb-1">
                         <svg className="w-3 h-3 mr-1 rotate-180" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M10 12L4 6h12l-6 6z" />
@@ -660,7 +613,6 @@ const ChatWindow = ({ id }) => {
                         </span>
                       </div>
 
-                      {/* Original message preview bubble - Same styling for both */}
                       <div
                         className="reply-preview-bubble cursor-pointer"
                         onClick={() => navigateToRepliedMessage(originalMessage)}
@@ -670,8 +622,8 @@ const ChatWindow = ({ id }) => {
                     </div>
                   )}
 
-                  {/* Pin indicator - Same for both */}
-                  {(isPinned && isCurrentUser) && (
+                  {/* Pin indicator */}
+                  {isPinned && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -681,8 +633,7 @@ const ChatWindow = ({ id }) => {
                     </motion.div>
                   )}
 
-                  {/* Message Bubble - UNIFORM STYLING FOR BOTH SENDER AND RECEIVER */}
-                  
+                  {/* Message Bubble */}
                   <motion.div
                     className={`relative pl-4 pt-1 pr-4 rounded-xl ${isDeleted
                       ? 'deleted-message'
@@ -691,7 +642,7 @@ const ChatWindow = ({ id }) => {
                         : 'bg-white text-gray-800 border border-gray-200'
                       } shadow-sm`}
                   >
-                    {/* Message Images - Same for both */}
+                    {/* Message Images */}
                     {message.images?.length > 0 && !isDeleted && (
                       <div className="mb-3">
                         <img
@@ -703,12 +654,7 @@ const ChatWindow = ({ id }) => {
                       </div>
                     )}
 
-
-
-                    {/* Message Text - Same for both */}
-
-
-
+                    {/* Message Text */}
                     <div className='flex items-end justify-center'>
                       {!isDeleted && message.text && (
                         <p className="whitespace-pre-wrap break-words">{message.text}</p>
@@ -726,17 +672,14 @@ const ChatWindow = ({ id }) => {
                       )}
                     </div>
 
-                    {/* Message Footer - Same styling for both */}
+                    {/* Message Footer */}
                     <div className="flex items-center justify-between mt-2">
                       <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-
                       </span>
-                      {/* Read receipts only show for sender */}
-
                     </div>
 
-                    {/* Reactions - Same for both */}
-                    <div className={`absolute ${isCurrentUser ? "-left-5 -bottom-5":"-right-5 -bottom-5"}`}>
+                    {/* Reactions */}
+                    <div className={`absolute ${isCurrentUser ? "-left-5 -bottom-5" : "-right-5 -bottom-5"}`}>
                       {message.reactions?.length > 0 && (
                         <motion.div className="flex gap-1 mt-2">
                           <div className={`flex items-center px-2 py-1 rounded-full backdrop-blur-lg border border-gray-200`}>
@@ -748,7 +691,6 @@ const ChatWindow = ({ id }) => {
                               </Tooltip>
                             ))}
                             <span className="text-xs text-gray-500">
-                              {/* {message.reactions.length} */}
                             </span>
                           </div>
                         </motion.div>
@@ -756,7 +698,7 @@ const ChatWindow = ({ id }) => {
                     </div>
                   </motion.div>
 
-                  {/* Message Options - Same for both */}
+                  {/* Message Options */}
                   {!isDeleted && (
                     <div className={`message-options absolute ${isCurrentUser ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'
                       } top-1/2 -translate-y-1/2 flex space-x-1`}>
@@ -808,7 +750,7 @@ const ChatWindow = ({ id }) => {
                     </div>
                   )}
 
-                  {/* Enhanced Reaction Picker - Same for both */}
+                  {/* Enhanced Reaction Picker */}
                   {!isDeleted && showReactionPicker.show && showReactionPicker.messageId === message._id && (
                     <motion.div
                       ref={reactionPickerRef}
@@ -855,7 +797,7 @@ const ChatWindow = ({ id }) => {
                   )}
                 </div>
 
-                {/* Avatar for current user - Same as receiver */}
+                {/* Avatar for current user */}
                 {isCurrentUser && (
                   <div className="flex flex-col justify-end">
                     <Avatar
@@ -1021,7 +963,7 @@ const ChatWindow = ({ id }) => {
             style={{ width: "70px" }}
             className="ml-2"
             loading={sendingMessage || isSending}
-            disabled={sendingMessage || isSending || chatUser?.isBlocked} // Disable button during send
+            disabled={sendingMessage || isSending || chatUser?.isBlocked}
           >Send</Button>
         </Form>
       </div>
