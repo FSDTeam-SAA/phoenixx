@@ -134,38 +134,37 @@ const messageSlice = createSlice({
     updateMessagePin: (state, action) => {
       const { messageId, isPinned, pinnedBy } = action.payload;
       const loginUserId = localStorage.getItem("login_user_id");
-
-      const userPinnedMessage = state.pinnedMessages.find(msg =>
-        msg.pinnedBy?._id === loginUserId || msg.pinnedBy === loginUserId
-      );
-
-      if (isPinned && userPinnedMessage && userPinnedMessage._id !== messageId) {
-        return;
-      }
-
+    
       state.messages = state.messages.map(msg => {
         if (msg._id === messageId) {
+          const updatedPinnedByUsers = isPinned
+            ? [...(msg.pinnedByUsers || []), { userId: loginUserId, pinnedAt: new Date().toISOString() }]
+            : (msg.pinnedByUsers || []).filter(user => user.userId !== loginUserId);
+    
           return {
             ...msg,
-            isPinned: isPinned,
-            pinnedAt: isPinned ? new Date().toISOString() : undefined,
-            pinnedBy: isPinned ? pinnedBy : undefined
+            isPinned: updatedPinnedByUsers.length > 0,
+            pinnedByUsers: updatedPinnedByUsers,
+            pinnedAt: isPinned ? new Date().toISOString() : (updatedPinnedByUsers.length > 0 ? msg.pinnedAt : undefined),
+            pinnedBy: isPinned ? pinnedBy : (updatedPinnedByUsers.length > 0 ? msg.pinnedBy : undefined),
+            isPinnedByCurrentUser: isPinned
           };
         }
         return msg;
       });
-
+    
       if (isPinned) {
         const message = state.messages.find(msg => msg._id === messageId);
         if (message) {
+          // Remove any existing pinned message by this user
           state.pinnedMessages = state.pinnedMessages.filter(msg =>
-            !(msg.pinnedBy?._id === loginUserId || msg.pinnedBy === loginUserId)
+            !msg.pinnedByUsers?.some(user => user.userId === loginUserId)
           );
           state.pinnedMessages = [message, ...state.pinnedMessages];
         }
       } else {
         state.pinnedMessages = state.pinnedMessages.filter(msg =>
-          !(msg._id === messageId && (msg.pinnedBy?._id === loginUserId || msg.pinnedBy === loginUserId))
+          !(msg._id === messageId && msg.pinnedByUsers?.some(user => user.userId === loginUserId))
         );
       }
     },

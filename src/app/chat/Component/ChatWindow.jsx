@@ -203,7 +203,6 @@ const ChatWindow = ({ id }) => {
   const handleCreateNewMessage = async (values) => {
     if (sendingMessage || isSending) return;
 
-    // Input validation: prevent empty messages unless image is attached
     if (!values.message?.trim() && !values?.file?.fileList?.length) {
       antMessage.warning('Message cannot be empty');
       return;
@@ -259,7 +258,10 @@ const ChatWindow = ({ id }) => {
       setImagePreview(null);
       setShowEmojiPicker(false);
       setReplyingTo(null);
-      setTimeout(() => scrollToBottom('auto'), 100);
+      setTimeout(() => {
+        scrollToBottom('auto');
+        inputRef.current?.focus();
+      }, 100);
 
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to send message");
@@ -324,24 +326,12 @@ const ChatWindow = ({ id }) => {
     }
   };
 
-
-  const currentUserPinnedMessages = pinnedMessages.filter(msg => {
-    const loginUserId = localStorage.getItem("login_user_id");
-    return msg.pinnedBy?._id === loginUserId || msg.pinnedBy === loginUserId;
-  });
+  const currentUserPinnedMessages = pinnedMessages.filter(msg =>
+    msg.pinnedByUsers?.some(user => user.userId === loginUserId)
+  );
 
   const handlePinMessage = async (messageId, action) => {
-    const loginUserId = localStorage.getItem("login_user_id");
     try {
-      if (action === 'pin') {
-        const userPinnedMessage = currentUserPinnedMessages.find(msg => msg._id === messageId);
-
-        if (currentUserPinnedMessages.length > 0 && !userPinnedMessage) {
-          toast.error('You can only pin one message at a time. Unpin the current one first.');
-          return;
-        }
-      }
-
       const response = await pinMessage({ messageId, action }).unwrap();
       dispatch(updateMessagePin({
         messageId,
@@ -354,6 +344,10 @@ const ChatWindow = ({ id }) => {
       antMessage.error(error?.data?.message || `Failed to ${action} message`);
       refetch();
     }
+  };
+
+  const isMessagePinnedByCurrentUser = (message) => {
+    return message.pinnedByUsers?.some(user => user.userId === loginUserId);
   };
 
   const toggleReactionPicker = (messageId) => {
@@ -608,7 +602,7 @@ const ChatWindow = ({ id }) => {
           {[...messages]?.reverse()?.map((message) => {
             const isCurrentUser = message.sender?._id === loginUserId;
             const isDeleted = message.isDeleted === true;
-            const isPinned = pinnedMessages?.some(pinned => pinned._id === message._id);
+            const isPinnedByCurrentUser = isMessagePinnedByCurrentUser(message);
             const originalMessage = message.replyTo ? getOriginalMessage(message.replyTo) : null;
 
             return (
@@ -650,11 +644,11 @@ const ChatWindow = ({ id }) => {
                   )}
 
                   {/* Pin indicator */}
-                  {isPinned && (
+                  {isPinnedByCurrentUser && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className={`absolute -top-0 left-0 transform -translate-x-1/2`}
+                      className={`absolute ${isCurrentUser ? "-top-0 left-0" : "-top-0 -right-6"} transform -translate-x-1/2`}
                     >
                       <BsPinAngleFill className="text-blue-500 text-sm" />
                     </motion.div>
@@ -676,7 +670,6 @@ const ChatWindow = ({ id }) => {
                           src={getImageUrl(message.images[0])}
                           alt="Message attachment"
                           className="rounded-lg max-w-full h-auto max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => window.open(getImageUrl(message.images[0]), '_blank')}
                         />
                       </div>
                     )}
@@ -706,13 +699,13 @@ const ChatWindow = ({ id }) => {
                     </div>
 
                     {/* Reactions */}
-                    <div className={`absolute ${isCurrentUser ? "-left-5 -bottom-5" : "-right-5 -bottom-5"}`}>
+                    <div className={`absolute ${isCurrentUser ? "-left-3 -bottom-4" : "-right-3 -bottom-4"}`}>
                       {message.reactions?.length > 0 && (
                         <motion.div className="flex gap-1 mt-2">
-                          <div className={`flex items-center px-2 py-1 rounded-full backdrop-blur-lg border border-gray-200`}>
+                          <div className={`flex items-center px-1 py-1 rounded-full backdrop-blur-lg border border-gray-200`}>
                             {message.reactions.map((reaction, i) => (
                               <Tooltip key={i} title={reaction?.userId?.userName || 'User'}>
-                                <span className="text-sm mr-1">
+                                <span className="text-sm">
                                   {getReactionEmoji(reaction.reactionType)}
                                 </span>
                               </Tooltip>
@@ -755,9 +748,9 @@ const ChatWindow = ({ id }) => {
                             },
                             {
                               key: 'pin',
-                              label: isPinned ? 'Unpin Message' : 'Pin Message',
+                              label: isPinnedByCurrentUser ? 'Unpin Message' : 'Pin Message',
                               icon: <TbPinned size={14} />,
-                              onClick: () => handlePinMessage(message._id, isPinned ? 'unpin' : 'pin')
+                              onClick: () => handlePinMessage(message._id, isPinnedByCurrentUser ? 'unpin' : 'pin')
                             }
                           ]
                         }}
@@ -828,7 +821,7 @@ const ChatWindow = ({ id }) => {
                 {isCurrentUser && (
                   <div className="flex flex-col justify-end">
                     <Avatar
-                      src={getImageUrl(message.sender?.profile)}
+                      src={getImageUrl(localStorage.getItem("user_profile") || message.sender?.profile)}
                       size={32}
                       className="ml-3 self-end mt-1"
                     />
@@ -903,21 +896,22 @@ const ChatWindow = ({ id }) => {
             exit={{ opacity: 0, height: 0 }}
             className={`p-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
           >
-            <div className="relative inline-block">
+            <div className="relative inline-block right-0">
+              <Button
+                type="text"
+                className={`absolute top-3 -right-24 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'
+                  } hover:bg-red-500 hover:text-white transition-all`}
+                onClick={removeImage}
+              >
+                ✕
+              </Button>
               <img
                 src={imagePreview}
                 alt="Preview"
                 className={`h-20 w-auto rounded-lg object-cover border-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'
                   }`}
               />
-              <Button
-                type="text"
-                className={`absolute -top-2 -right-2 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'
-                  } hover:bg-red-500 hover:text-white transition-all`}
-                onClick={removeImage}
-              >
-                ✕
-              </Button>
+
             </div>
           </motion.div>
         )}

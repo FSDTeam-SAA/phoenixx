@@ -66,7 +66,7 @@ const SocketComponent = () => {
     });
 
     socket.on(`messagePinUpdate::${loggedInUserId}`, (data) => {
-      if (data?.messageId && data?.userId === loggedInUserId) {
+      if (data?.messageId) {
         dispatch(updateMessagePin({
           messageId: data.messageId,
           isPinned: data.isPinned,

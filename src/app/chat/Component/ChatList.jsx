@@ -46,7 +46,6 @@ const ChatList = ({ setIsChatActive, status }) => {
 
   const { refetch } = useMessageRefetch();
 
-
   const getCurrentUserId = useCallback(() => {
     try {
       return localStorage.getItem("login_user_id") || '';
@@ -56,14 +55,12 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-  // Initialize local chats when API data changes
   useEffect(() => {
     if (apiData?.data?.chats) {
       setLocalChats([...apiData.data.chats]);
     }
   }, [apiData?.data?.chats]);
 
-  // Socket connection and event handlers
   useEffect(() => {
     const loggedInUserId = getCurrentUserId();
     if (!loggedInUserId) return;
@@ -71,7 +68,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     const socket = connectSocket(loggedInUserId);
     socketRef.current = socket;
 
-    // Connection events
     socket.on('connect', () => {
       console.log('Socket connected to ChatList');
     });
@@ -80,7 +76,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       console.log('Socket disconnected from ChatList');
     });
 
-    // New chat creation
     socket.on(`newChat::${loggedInUserId}`, (newChat) => {
       console.log("New chat received:", newChat);
       setLocalChats(prevChats => {
@@ -92,7 +87,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       });
     });
 
-    // Chat deleted for user
     socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
       console.log("Chat deleted for user:", data);
       setLocalChats(prevChats =>
@@ -103,7 +97,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       }
     });
 
-    // Chat mute status
     socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
       console.log("Chat mute status:", data);
       setLocalChats(prevChats =>
@@ -121,7 +114,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
     });
 
-    // User block status
     socket.on(`userBlockStatus::${loggedInUserId}`, (data) => {
       console.log("User block status:", data);
       setLocalChats(prevChats =>
@@ -141,23 +133,18 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
     });
 
-    // FIXED: New message handling with proper unread count logic
     socket.on(`newMessage::${loggedInUserId}`, (messageData) => {
       console.log("New message received:", messageData);
 
       setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === messageData.chatId) {
-            // Check if user is currently viewing this chat
             const isCurrentlyViewingChat = id === messageData.chatId;
-            // Check if message is from current user
             const isOwnMessage = messageData?.sender?._id === loggedInUserId || messageData?.message?.sender === loggedInUserId;
 
-            // Calculate new unread count
             let newUnreadCount = chat.unreadCount || 0;
 
             if (!isOwnMessage && !isCurrentlyViewingChat) {
-              // Only increment unread count if it's not user's own message and not currently viewing the chat
               newUnreadCount = newUnreadCount + 1;
             }
 
@@ -165,7 +152,6 @@ const ChatList = ({ setIsChatActive, status }) => {
               ...chat,
               lastMessage: messageData.message || messageData,
               unreadCount: newUnreadCount,
-              // Move chat to top by updating timestamp
               updatedAt: new Date().toISOString()
             };
           }
@@ -174,7 +160,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
     });
 
-    // FIXED: Handle message read status updates
     socket.on(`messageRead::${loggedInUserId}`, (data) => {
       console.log("Message read event:", data);
       setLocalChats(prevChats =>
@@ -194,12 +179,10 @@ const ChatList = ({ setIsChatActive, status }) => {
       );
     });
 
-    // FIXED: Unread count update with immediate local state update
     socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
       console.log("Unread count update:", data);
 
       if (data.chatId && typeof data.unreadCount !== 'undefined') {
-        // Update specific chat's unread count
         setLocalChats(prevChats =>
           prevChats.map(chat => {
             if (chat._id === data.chatId) {
@@ -212,12 +195,10 @@ const ChatList = ({ setIsChatActive, status }) => {
           })
         );
       } else {
-        // Fallback to refetch if no specific data provided
         chatRefetch();
       }
     });
 
-    // Chat list update (general updates)
     socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
       console.log("Chat list update:", data);
       chatRefetch();
@@ -239,7 +220,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     };
   }, [getCurrentUserId, refetch, id, router]);
 
-  // Determine which chats to display with proper sorting
   const chatsToShow = useMemo(() => {
     const chats = localChats || [];
 
@@ -250,7 +230,6 @@ const ChatList = ({ setIsChatActive, status }) => {
       });
     } else {
       return [...chats].sort((a, b) => {
-        // Sort by last message time or updated time
         const timeA = a.lastMessage?.createdAt || a.updatedAt || a.createdAt;
         const timeB = b.lastMessage?.createdAt || b.updatedAt || b.createdAt;
         return new Date(timeB) - new Date(timeA);
@@ -260,7 +239,6 @@ const ChatList = ({ setIsChatActive, status }) => {
 
   const memoizedChats = useMemo(() => chatsToShow, [chatsToShow]);
 
-  // Preserve scroll position
   useEffect(() => {
     if (chatListRef.current) {
       const savedPosition = sessionStorage.getItem('chatListScrollPosition');
@@ -276,13 +254,11 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, []);
 
-  // FIXED: Enhanced handleSelectChat with better unread count handling
   const handleSelectChat = async (chatId) => {
     if (actionStates[chatId]?.loading) return;
     setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
 
     try {
-      // Update local state immediately for better UX
       setLocalChats(prevChats =>
         prevChats.map(chat => {
           if (chat._id === chatId) {
@@ -296,11 +272,9 @@ const ChatList = ({ setIsChatActive, status }) => {
         })
       );
 
-      // Navigate first for immediate feedback
       router.push(`/chat/${chatId}`);
       if (setIsChatActive) setIsChatActive(true);
 
-      // Then make the API call
       const response = await markAsRead(chatId).unwrap();
       if (response.success) {
         refetch();
@@ -308,12 +282,8 @@ const ChatList = ({ setIsChatActive, status }) => {
       }
       console.log("mark as read response:", response);
 
-      // Optionally refetch to ensure consistency (but local state should already be updated)
-      // refetch();
-
     } catch (error) {
       console.error('Error marking as read:', error);
-      // Revert local state on error
       chatRefetch();
     } finally {
       setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
@@ -592,15 +562,16 @@ const ChatList = ({ setIsChatActive, status }) => {
                           {isMuted && <BsBellSlash className="text-gray-400" size={14} />}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center justify-between gap-2 mt-1">
+
+                        <p className={`text-sm truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} ${isRead ? '' : 'font-bold'}`}>
+                          {chat?.lastMessage?.text?.slice(0, 30) || ''}
+                          {chat?.lastMessage?.type === "image" && '📷 Send to Image'}
+                          {chat?.lastMessage?.type === "both" && '📷 Send to Image'}
+                        </p>
                         {isRead && chat.lastMessage?.sender === currentUserId && (
                           <BsCheckAll className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} size={14} />
                         )}
-                        <p className={`text-sm truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} ${isRead ? '' : 'font-medium'}`}>
-                          {chat?.lastMessage?.text?.slice(0, 30) || ''}
-                          {!chat?.lastMessage?.text && chat?.lastMessage?.image && '📷 Photo'}
-                          {!chat?.lastMessage?.text && !chat?.lastMessage?.image && 'No messages yet'}
-                        </p>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">

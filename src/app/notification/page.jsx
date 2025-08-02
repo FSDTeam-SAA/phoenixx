@@ -47,11 +47,13 @@ export default function NotificationPage() {
   // Track which notification is being processed
   const [processingNotificationId, setProcessingNotificationId] = useState(null);
 
-  const handleDeleteNotification = async (id) => {
+  const handleDeleteNotification = async (id, e) => {
+    e.stopPropagation(); // Stop event propagation
     try {
       setProcessingNotificationId(id);
       await deleteSingle(id).unwrap();
       toast.success("Deleted notification");
+      refetch(); // Refresh the notifications list
     } catch (error) {
       console.error('Failed to delete notification:', error);
       toast.error("Failed to delete notification");
@@ -64,6 +66,7 @@ export default function NotificationPage() {
     try {
       await deleteAll().unwrap();
       toast.success("Deleted all notifications");
+      refetch(); // Refresh the notifications list
     } catch (error) {
       console.error('Failed to clear all notifications:', error);
       toast.error("Failed to clear all notifications");
@@ -95,7 +98,7 @@ export default function NotificationPage() {
   };
   const handleItemClick = async (notification) => {
     if (notification.type === "new_follower") {
-      router.push(`/profiles/${notification.recipient}`)
+      router.push(`/profiles/${notification?.followerId}`)
     } else {
       router.push(`/posts/${notification.postId}`)
     }
@@ -111,7 +114,6 @@ export default function NotificationPage() {
         toast.error("Failed to mark notification as read");
       }
     }
-
   };
   const formatNotificationTime = (dateString) => {
     const date = new Date(dateString);
@@ -137,7 +139,10 @@ export default function NotificationPage() {
       <Menu.Item
         key="delete"
         icon={<DeleteOutlined />}
-        onClick={() => handleDeleteNotification(id)}
+        onClick={(e) => {
+          e.domEvent.stopPropagation(); // Stop event propagation
+          handleDeleteNotification(id, e.domEvent);
+        }}
         danger
         disabled={processingNotificationId === id}
         className={isDarkMode ? "hover:bg-gray-700 text-red-400" : ""}>
@@ -149,7 +154,7 @@ export default function NotificationPage() {
   const apiNotifications = notifications?.notification || [];
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
-    recipient: notification.recipient,
+    followerId: notification.followerId,
     postId: notification.postId,
     commentId: notification.commentId,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
@@ -201,8 +206,6 @@ export default function NotificationPage() {
             {/* Loading state */}
             {allNotificationLoading && (
               <div className="p-8 text-center">
-                {/* <Spin indicator={antIcon} />
-                <p className={`mt-2 ${textMutedClass}`}>Loading notifications...</p> */}
                 <Loading />
               </div>
             )}
@@ -234,7 +237,9 @@ export default function NotificationPage() {
                           size="small"
                           className={`opacity-70 hover:opacity-100 ${isDarkMode ? "text-gray-300" : ""}`}
                           disabled={processingNotificationId === item.id}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
                         />
                       </Dropdown>
                     ]}

@@ -54,8 +54,6 @@ const ForgotPasswordPage = () => {
 
         // Set frontend form error too, if needed
         setError(errorMessage);
-
-        toast.error(errorMessage);
         notification.error({
           message: 'Error',
           description: errorMessage,
