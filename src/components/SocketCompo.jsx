@@ -26,7 +26,6 @@ const SocketComponent = () => {
     console.log("Initializing socket connection for user:", loggedInUserId);
     const socket = connectSocket(loggedInUserId);
 
-    // Connection events with better logging
     socket.on('connect', () => {
       console.log('Socket connected with ID:', socket.id);
     });
@@ -43,7 +42,6 @@ const SocketComponent = () => {
       toast.error(`Connection error: ${err.message}`);
     });
 
-    // Real-time message handler
     socket.on(`newMessage::${loggedInUserId}`, (message) => {
       console.log('New message received:', message);
 
@@ -52,13 +50,11 @@ const SocketComponent = () => {
         return;
       }
 
-      // Only add to state if message is for current chat or no chat is selected
       if (!currentChatId || message.chatId === currentChatId) {
         dispatch(addMessage(message));
       }
     });
 
-    // Message reaction updates
     socket.on(`messageReaction::${loggedInUserId}`, (data) => {
       if (data?.messageId && data?.reaction && data?.userId) {
         dispatch(updateMessageReaction({
@@ -69,9 +65,8 @@ const SocketComponent = () => {
       }
     });
 
-    // Message pin/unpin
     socket.on(`messagePinUpdate::${loggedInUserId}`, (data) => {
-      if (data?.messageId) {
+      if (data?.messageId && data?.userId === loggedInUserId) {
         dispatch(updateMessagePin({
           messageId: data.messageId,
           isPinned: data.isPinned,
@@ -80,7 +75,6 @@ const SocketComponent = () => {
       }
     });
 
-    // Message deletion
     socket.on(`messageDeleted::${loggedInUserId}`, (data) => {
       if (data?.messageId) {
         dispatch(updateMessageDelete({
@@ -89,7 +83,6 @@ const SocketComponent = () => {
       }
     });
 
-    // Reply messages
     socket.on(`messageReply::${loggedInUserId}`, (data) => {
       if (data?.reply && data?.originalMessageId) {
         dispatch(addReplyMessage({
@@ -99,7 +92,6 @@ const SocketComponent = () => {
       }
     });
 
-    // Notification handler
     socket.on(`notification::${loggedInUserId}`, (notification) => {
       if (!notification) return;
       dispatch(addNotification({
@@ -113,7 +105,6 @@ const SocketComponent = () => {
       }));
     });
 
-    // Debug all incoming events
     socket.onAny((event, ...args) => {
       console.log(`[Socket Event] ${event}`, args);
     });

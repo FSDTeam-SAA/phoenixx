@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BsEmojiSmile, BsPinAngleFill } from 'react-icons/bs';
-import { FiMoreVertical } from 'react-icons/fi';
+import { FaEllipsisVertical } from "react-icons/fa6";
 import { IoMdSend } from 'react-icons/io';
 import { MdClose, MdReply } from 'react-icons/md';
 import { TbPinned } from 'react-icons/tb';
@@ -324,14 +324,31 @@ const ChatWindow = ({ id }) => {
     }
   };
 
+
+  const currentUserPinnedMessages = pinnedMessages.filter(msg => {
+    const loginUserId = localStorage.getItem("login_user_id");
+    return msg.pinnedBy?._id === loginUserId || msg.pinnedBy === loginUserId;
+  });
+
   const handlePinMessage = async (messageId, action) => {
+    const loginUserId = localStorage.getItem("login_user_id");
     try {
+      if (action === 'pin') {
+        const userPinnedMessage = currentUserPinnedMessages.find(msg => msg._id === messageId);
+
+        if (currentUserPinnedMessages.length > 0 && !userPinnedMessage) {
+          toast.error('You can only pin one message at a time. Unpin the current one first.');
+          return;
+        }
+      }
+
       const response = await pinMessage({ messageId, action }).unwrap();
       dispatch(updateMessagePin({
         messageId,
         isPinned: action === 'pin',
         pinnedBy: loginUserId
       }));
+
       toast.success(`Message ${action === 'pin' ? 'pinned' : 'unpinned'}`);
     } catch (error) {
       antMessage.error(error?.data?.message || `Failed to ${action} message`);
@@ -398,7 +415,7 @@ const ChatWindow = ({ id }) => {
       ))}
 
       {/* Pinned Messages Section */}
-      {pinnedMessages.length > 0 && (
+      {currentUserPinnedMessages.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -406,18 +423,28 @@ const ChatWindow = ({ id }) => {
         >
           <div className="flex items-center text-sm font-medium text-blue-600">
             <TbPinned className="mr-2" />
-            Pinned Messages
+            Your Pinned Message
           </div>
           <div className="mt-1 space-y-2">
-            {pinnedMessages.map(msg => (
+            {currentUserPinnedMessages.map(msg => (
               <div
                 key={msg._id}
-                className="flex items-start text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
+                className="flex items-start justify-between text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
                 onClick={() => scrollToPinnedMessage(msg._id)}
               >
                 <span className="truncate text-gray-600">
                   {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
                 </span>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<TbPinned />}
+                  className="text-gray-500 hover:text-blue-500"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePinMessage(msg._id, 'unpin');
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -627,7 +654,7 @@ const ChatWindow = ({ id }) => {
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-0 left-0 transform -translate-x-1/2"
+                      className={`absolute -top-0 left-0 transform -translate-x-1/2`}
                     >
                       <BsPinAngleFill className="text-blue-500 text-sm" />
                     </motion.div>
@@ -655,7 +682,7 @@ const ChatWindow = ({ id }) => {
                     )}
 
                     {/* Message Text */}
-                    <div className='flex items-end justify-center'>
+                    <div className='flex items-end justify-between'>
                       {!isDeleted && message.text && (
                         <p className="whitespace-pre-wrap break-words">{message.text}</p>
                       )}
@@ -740,7 +767,7 @@ const ChatWindow = ({ id }) => {
                         <Button
                           type="text"
                           size="small"
-                          icon={<FiMoreVertical />}
+                          icon={<FaEllipsisVertical />}
                           className={`flex items-center justify-center p-2 rounded-full ${isDarkMode
                             ? 'text-gray-300 bg-gray-700'
                             : 'text-gray-600 bg-white'
