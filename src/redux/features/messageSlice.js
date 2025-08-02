@@ -23,7 +23,7 @@ const messageSlice = createSlice({
   reducers: {
     addMessage: (state, action) => {
       const message = action.payload;
-      if (!state.currentChatId || message.chatId === state.currentChatId) {
+      if (state.currentChatId && message.chatId === state.currentChatId) {
         const existingIndex = state.messages.findIndex(msg => msg._id === message._id);
         if (existingIndex >= 0) {
           state.messages[existingIndex] = message;
@@ -45,6 +45,7 @@ const messageSlice = createSlice({
 
     setCurrentChatId: (state, action) => {
       if (state.currentChatId !== action.payload) {
+        state.currentChatId = action.payload;
         state.messages = [];
         state.pinnedMessages = [];
         state.page = 1;
@@ -52,7 +53,6 @@ const messageSlice = createSlice({
         state.isLoading = false;
         state.error = null;
         state.isRefetching = false;
-        state.currentChatId = action.payload;
       }
     },
 
@@ -134,13 +134,13 @@ const messageSlice = createSlice({
     updateMessagePin: (state, action) => {
       const { messageId, isPinned, pinnedBy } = action.payload;
       const loginUserId = localStorage.getItem("login_user_id");
-    
+
       state.messages = state.messages.map(msg => {
         if (msg._id === messageId) {
           const updatedPinnedByUsers = isPinned
             ? [...(msg.pinnedByUsers || []), { userId: loginUserId, pinnedAt: new Date().toISOString() }]
             : (msg.pinnedByUsers || []).filter(user => user.userId !== loginUserId);
-    
+
           return {
             ...msg,
             isPinned: updatedPinnedByUsers.length > 0,
@@ -152,11 +152,10 @@ const messageSlice = createSlice({
         }
         return msg;
       });
-    
+
       if (isPinned) {
         const message = state.messages.find(msg => msg._id === messageId);
         if (message) {
-          // Remove any existing pinned message by this user
           state.pinnedMessages = state.pinnedMessages.filter(msg =>
             !msg.pinnedByUsers?.some(user => user.userId === loginUserId)
           );
@@ -270,9 +269,9 @@ const messageSlice = createSlice({
     builder
       .addMatcher(messageApi.endpoints.getAllMessages.matchPending, (state, { meta }) => {
         const { chatId } = meta.arg.originalArgs;
-        if (chatId === state.currentChatId || !state.currentChatId) {
-          if (state.isRefetching) {
-          } else if (state.isAutoUpdating) {
+        if (chatId === state.currentChatId) {
+          if (state.isRefetching || state.isAutoUpdating) {
+            // No state changes needed for refetch/auto-update
           } else {
             state.isLoading = true;
           }
@@ -281,7 +280,7 @@ const messageSlice = createSlice({
       })
       .addMatcher(messageApi.endpoints.getAllMessages.matchFulfilled, (state, { payload, meta }) => {
         const { chatId, page } = meta.arg.originalArgs;
-        if (chatId !== state.currentChatId && state.currentChatId !== null) return;
+        if (chatId !== state.currentChatId) return;
 
         if (payload?.data) {
           const newMessages = payload.data.messages || [];
@@ -290,36 +289,29 @@ const messageSlice = createSlice({
           if (page === 1 || state.isRefetching || state.isAutoUpdating) {
             state.messages = newMessages;
             state.pinnedMessages = pinnedMessages;
-            state.currentChatId = chatId;
-
-            if (state.isRefetching) {
-              state.isRefetching = false;
-              state.lastRefetch = new Date().toISOString();
-            }
-
-            if (state.isAutoUpdating) {
-              state.isAutoUpdating = false;
-            }
           } else {
             const existingIds = new Set(state.messages.map(msg => msg._id));
             const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg._id));
             state.messages = [...uniqueNewMessages, ...state.messages];
-
-            if (pinnedMessages.length > 0) {
-              const existingPinnedIds = new Set(state.pinnedMessages.map(msg => msg._id));
-              const uniquePinnedMessages = pinnedMessages.filter(msg => !existingPinnedIds.has(msg._id));
-              state.pinnedMessages = [...uniquePinnedMessages, ...state.pinnedMessages];
-            }
           }
 
           state.hasMore = newMessages.length >= state.limit;
           state.isLoading = false;
           state.error = null;
+
+          if (state.isRefetching) {
+            state.isRefetching = false;
+            state.lastRefetch = new Date().toISOString();
+          }
+
+          if (state.isAutoUpdating) {
+            state.isAutoUpdating = false;
+          }
         }
       })
       .addMatcher(messageApi.endpoints.getAllMessages.matchRejected, (state, { meta }) => {
         const { chatId } = meta.arg.originalArgs;
-        if (chatId === state.currentChatId || !state.currentChatId) {
+        if (chatId === state.currentChatId) {
           state.isLoading = false;
           state.isRefetching = false;
           state.isAutoUpdating = false;
@@ -327,7 +319,7 @@ const messageSlice = createSlice({
         }
       })
       .addMatcher(messageApi.endpoints.messageSend.matchFulfilled, (state, { payload }) => {
-        if (payload?.data) {
+        if (payload?.data && state.currentChatId === payload.data.chatId) {
           const existingIndex = state.messages.findIndex(msg => msg._id === payload.data._id);
           if (existingIndex === -1) {
             state.messages.unshift(payload.data);
@@ -337,7 +329,7 @@ const messageSlice = createSlice({
         }
       })
       .addMatcher(messageApi.endpoints.replyMessage.matchFulfilled, (state, { payload }) => {
-        if (payload?.data) {
+        if (payload?.data && state.currentChatId === payload.data.reply?.chatId) {
           if (payload.data.originalMessage && payload.data.reply) {
             const { originalMessage, reply } = payload.data;
 

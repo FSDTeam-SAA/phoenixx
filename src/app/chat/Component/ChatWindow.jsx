@@ -16,7 +16,7 @@ import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ImageUplaod } from '../../../../utils/svgImage';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
 import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
-import { addMessage, resetMessages, setPage, updateMessagePin, updateMessageReaction } from '../../../redux/features/messageSlice';
+import { addMessage, resetMessages, setCurrentChatId, setPage, updateMessagePin, updateMessageReaction } from '../../../redux/features/messageSlice';
 import { useMessageRefetch } from '../../../redux/features/useMessageRefetch';
 import { ThemeContext } from '../../ClientLayout';
 
@@ -26,7 +26,7 @@ const ChatWindow = ({ id }) => {
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
 
-  const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
+  const { messages, pinnedMessages, isLoading, hasMore, page, currentChatId } = useSelector((state) => state.message);
   const { refetch } = useMessageRefetch();
 
   const { data: allMessage, isFetching } = useGetAllMessagesQuery(
@@ -58,7 +58,6 @@ const ChatWindow = ({ id }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [currentChatId, setCurrentChatId] = useState(null);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -78,19 +77,20 @@ const ChatWindow = ({ id }) => {
     return messages.find(msg => msg._id === replyToId);
   };
 
+  refetch();
+
   useEffect(() => {
     if (id && id !== currentChatId) {
+      dispatch(setCurrentChatId(id));
       dispatch(resetMessages());
-      setCurrentChatId(id);
       setInitialLoad(true);
       setReplyingTo(null);
       setImagePreview(null);
       setShowEmojiPicker(false);
       setShowReactionPicker({ messageId: null, show: false });
       form.resetFields();
-      refetch();
     }
-  }, [id, dispatch, refetch, currentChatId, form]);
+  }, [id, dispatch, form, currentChatId]);
 
   useEffect(() => {
     if (initialLoad && messages.length > 0) {
@@ -390,10 +390,10 @@ const ChatWindow = ({ id }) => {
   }
 
   return (
-    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+    <div className={`w-full h-[80vh]  rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
       {/* Header */}
       {chatUser?.participants?.map(item => (
-        <div onClick={() => router.push(`/profiles/${item._id}`)} key={item._id} className={`flex items-center cursor-pointer space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div onClick={() => router.push(`/profiles/${item._id}`)} key={item._id} className={`flex z-10 items-center cursor-pointer space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="relative">
             <Avatar
               src={getImageUrl(item?.profile)}
@@ -699,7 +699,7 @@ const ChatWindow = ({ id }) => {
                     </div>
 
                     {/* Reactions */}
-                    <div className={`absolute ${isCurrentUser ? "-left-3 -bottom-4" : "-right-3 -bottom-4"}`}>
+                    <div className={`absolute z-50 ${isCurrentUser ? "-left-3 -bottom-4" : "-right-3 -bottom-4"}`}>
                       {message.reactions?.length > 0 && (
                         <motion.div className="flex gap-1 mt-2">
                           <div className={`flex items-center px-1 py-1 rounded-full backdrop-blur-lg border border-gray-200`}>
@@ -777,7 +777,7 @@ const ChatWindow = ({ id }) => {
                       initial={{ opacity: 0, scale: 0.8, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                      className={`absolute z-20 p-3 mt-2 rounded-2xl flex items-center gap-2 ${isDarkMode
+                      className={`absolute z-50 p-3 mt-2 rounded-2xl flex items-center gap-2 ${isDarkMode
                         ? 'bg-gray-700 border border-gray-600'
                         : 'bg-white border border-gray-200'
                         } shadow-xl backdrop-blur-sm ${isCurrentUser ? 'right-0' : 'left-0'
@@ -815,6 +815,7 @@ const ChatWindow = ({ id }) => {
                       />
                     </motion.div>
                   )}
+
                 </div>
 
                 {/* Avatar for current user */}
@@ -911,7 +912,6 @@ const ChatWindow = ({ id }) => {
                 className={`h-20 w-auto rounded-lg object-cover border-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'
                   }`}
               />
-
             </div>
           </motion.div>
         )}

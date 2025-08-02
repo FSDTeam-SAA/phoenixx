@@ -50,13 +50,14 @@ const SocketComponent = () => {
         return;
       }
 
-      if (!currentChatId || message.chatId === currentChatId) {
+      // Only add message if it belongs to the current chat
+      if (message.chatId === currentChatId) {
         dispatch(addMessage(message));
       }
     });
 
     socket.on(`messageReaction::${loggedInUserId}`, (data) => {
-      if (data?.messageId && data?.reaction && data?.userId) {
+      if (data?.messageId && data?.reaction && data?.userId && data.chatId === currentChatId) {
         dispatch(updateMessageReaction({
           messageId: data.messageId,
           reaction: data.reaction,
@@ -66,7 +67,7 @@ const SocketComponent = () => {
     });
 
     socket.on(`messagePinUpdate::${loggedInUserId}`, (data) => {
-      if (data?.messageId) {
+      if (data?.messageId && data.chatId === currentChatId) {
         dispatch(updateMessagePin({
           messageId: data.messageId,
           isPinned: data.isPinned,
@@ -76,7 +77,7 @@ const SocketComponent = () => {
     });
 
     socket.on(`messageDeleted::${loggedInUserId}`, (data) => {
-      if (data?.messageId) {
+      if (data?.messageId && data.chatId === currentChatId) {
         dispatch(updateMessageDelete({
           messageId: data.messageId
         }));
@@ -84,7 +85,7 @@ const SocketComponent = () => {
     });
 
     socket.on(`messageReply::${loggedInUserId}`, (data) => {
-      if (data?.reply && data?.originalMessageId) {
+      if (data?.reply && data?.originalMessageId && data.chatId === currentChatId) {
         dispatch(addReplyMessage({
           originalMessageId: data.originalMessageId,
           replyMessage: data.reply
