@@ -726,7 +726,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 >
                   {editorInitialized && (
                     <FroalaEditor
-                      key={`editor-${editorInitialized}`} // Add key to force re-render
+                      key={`editor-${isDarkMode ? 'dark' : 'light'}`} // Force re-render on theme change
                       ref={editorRef}
                       tag="textarea"
                       config={config}

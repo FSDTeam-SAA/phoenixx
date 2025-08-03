@@ -88,12 +88,12 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     const imageUrl = isDarkMode && subcategory.darkImage ? subcategory.darkImage : subcategory.image;
 
     return imageUrl ? (
-      <div className={`w-8 h-8 rounded-md flex items-center justify-center ${getSubcategoryIconContainerStyle(isSelected)}`}>
+      <div className={`w-9 h-9 rounded-md flex items-center justify-center ${getSubcategoryIconContainerStyle(isSelected)}`}>
         <Image
           src={`${baseURL}${imageUrl}`}
           alt={subcategory?.name || "Subcategory image"}
-          width={16}
-          height={16}
+          width={18}
+          height={18}
           className="object-contain"
         />
       </div>
