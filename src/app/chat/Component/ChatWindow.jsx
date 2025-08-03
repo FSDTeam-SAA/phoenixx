@@ -5,6 +5,7 @@ import EmojiPicker from 'emoji-picker-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { BsEmojiSmile, BsPinAngleFill } from 'react-icons/bs';
 import { FaEllipsisVertical } from "react-icons/fa6";
@@ -48,7 +49,7 @@ const ChatWindow = ({ id }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const { isDarkMode } = useContext(ThemeContext);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showReactionPicker, setShowReactionPicker] = useState({ messageId: null, show: false });
+  const [showReactionPicker, setShowReactionPicker] = useState({ messageId: null, show: false, position: null });
   const [replyingTo, setReplyingTo] = useState(null);
   const inputRef = useRef(null);
   const emojiPickerRef = useRef(null);
@@ -87,7 +88,7 @@ const ChatWindow = ({ id }) => {
       setReplyingTo(null);
       setImagePreview(null);
       setShowEmojiPicker(false);
-      setShowReactionPicker({ messageId: null, show: false });
+      setShowReactionPicker({ messageId: null, show: false, position: null });
       form.resetFields();
     }
   }, [id, dispatch, form, currentChatId]);
@@ -111,7 +112,7 @@ const ChatWindow = ({ id }) => {
       }
 
       if (showReactionPicker.show && reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
-        setShowReactionPicker({ messageId: null, show: false });
+        setShowReactionPicker({ messageId: null, show: false, position: null });
       }
     };
 
@@ -317,11 +318,11 @@ const ChatWindow = ({ id }) => {
       }));
 
       await messageReact({ messageId, reaction }).unwrap();
-      setShowReactionPicker({ messageId: null, show: false });
+      setShowReactionPicker({ messageId: null, show: false, position: null });
 
     } catch (error) {
       antMessage.error(error?.data?.message || "Failed to add reaction");
-      setShowReactionPicker({ messageId: null, show: false });
+      setShowReactionPicker({ messageId: null, show: false, position: null });
       refetch();
     }
   };
@@ -350,18 +351,24 @@ const ChatWindow = ({ id }) => {
     return message.pinnedByUsers?.some(user => user.userId === loginUserId);
   };
 
-  const toggleReactionPicker = (messageId) => {
+  const toggleReactionPicker = (messageId, event) => {
+    const buttonRect = event.currentTarget.getBoundingClientRect();
+    const position = {
+      top: buttonRect.top - 60,
+      left: buttonRect.left - 100
+    };
+
     setShowReactionPicker(prev =>
       prev.messageId === messageId && prev.show
-        ? { messageId: null, show: false }
-        : { messageId, show: true }
+        ? { messageId: null, show: false, position: null }
+        : { messageId, show: true, position }
     );
   };
 
   const toggleEmojiPicker = () => {
     setShowEmojiPicker(!showEmojiPicker);
     if (showReactionPicker.show) {
-      setShowReactionPicker({ messageId: null, show: false });
+      setShowReactionPicker({ messageId: null, show: false, position: null });
     }
   };
 
@@ -390,7 +397,7 @@ const ChatWindow = ({ id }) => {
   }
 
   return (
-    <div className={`w-full h-[80vh]  rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
       {/* Header */}
       {chatUser?.participants?.map(item => (
         <div onClick={() => router.push(`/profiles/${item._id}`)} key={item._id} className={`flex z-10 items-center cursor-pointer space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
@@ -730,7 +737,7 @@ const ChatWindow = ({ id }) => {
                           ? 'text-gray-300 bg-gray-700 hover:bg-gray-600'
                           : 'text-gray-600 bg-white hover:bg-gray-100'
                           } shadow-md hover:shadow-lg`}
-                        onClick={() => toggleReactionPicker(message._id)}
+                        onClick={(e) => toggleReactionPicker(message._id, e)}
                       />
 
                       <Dropdown
@@ -769,53 +776,6 @@ const ChatWindow = ({ id }) => {
                       </Dropdown>
                     </div>
                   )}
-
-                  {/* Enhanced Reaction Picker */}
-                  {!isDeleted && showReactionPicker.show && showReactionPicker.messageId === message._id && (
-                    <motion.div
-                      ref={reactionPickerRef}
-                      initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                      className={`absolute z-50 p-3 mt-2 rounded-2xl flex items-center gap-2 ${isDarkMode
-                        ? 'bg-gray-700 border border-gray-600'
-                        : 'bg-white border border-gray-200'
-                        } shadow-xl backdrop-blur-sm ${isCurrentUser ? 'right-0' : 'left-0'
-                        } -top-16`}
-                    >
-                      <div className="flex items-center gap-1">
-                        {reactions.map((reaction) => {
-                          const isSelected = hasUserReacted(message, reaction.name);
-                          return (
-                            <div
-                              key={reaction.name}
-                              className={`p-2 rounded cursor-pointer transition-all duration-200 transform ${isSelected
-                                ? 'bg-gray-300'
-                                : isDarkMode
-                                  ? 'hover:bg-gray-600'
-                                  : 'hover:bg-gray-100'
-                                }`}
-                              onClick={() => handleAddReaction(message._id, reaction.name)}
-                            >
-                              <span className="text-lg">{reaction.emoji}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<MdClose size={16} />}
-                        className={`p-1 rounded-full transition-all ${isDarkMode
-                          ? 'text-gray-400 hover:text-white hover:bg-gray-600'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                          }`}
-                        onClick={() => setShowReactionPicker({ messageId: null, show: false })}
-                      />
-                    </motion.div>
-                  )}
-
                 </div>
 
                 {/* Avatar for current user */}
@@ -834,6 +794,59 @@ const ChatWindow = ({ id }) => {
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Reaction Picker Portal */}
+      {showReactionPicker.show && createPortal(
+        <motion.div
+          ref={reactionPickerRef}
+          initial={{ opacity: 0, scale: 0.8, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 10 }}
+          style={{
+            position: 'fixed',
+            top: `${showReactionPicker.position?.top}px`,
+            left: `${showReactionPicker.position?.left}px`,
+            zIndex: 1000
+          }}
+          className={`p-3 rounded-2xl flex items-center gap-2 ${isDarkMode
+            ? 'bg-gray-700 border border-gray-600'
+            : 'bg-white border border-gray-200'
+            } shadow-xl backdrop-blur-sm`}
+        >
+          <div className="flex items-center gap-1">
+            {reactions.map((reaction) => {
+              const message = messages.find(msg => msg._id === showReactionPicker.messageId);
+              const isSelected = message ? hasUserReacted(message, reaction.name) : false;
+              return (
+                <div
+                  key={reaction.name}
+                  className={`p-2 rounded cursor-pointer transition-all duration-200 transform ${isSelected
+                    ? 'bg-gray-300'
+                    : isDarkMode
+                      ? 'hover:bg-gray-600'
+                      : 'hover:bg-gray-100'
+                    }`}
+                  onClick={() => handleAddReaction(showReactionPicker.messageId, reaction.name)}
+                >
+                  <span className="text-lg">{reaction.emoji}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <Button
+            type="text"
+            size="small"
+            icon={<MdClose size={16} />}
+            className={`p-1 rounded-full transition-all ${isDarkMode
+              ? 'text-gray-400 hover:text-white hover:bg-gray-600'
+              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
+            onClick={() => setShowReactionPicker({ messageId: null, show: false, position: null })}
+          />
+        </motion.div>,
+        document.body
+      )}
 
       {/* Enhanced Reply Preview */}
       <AnimatePresence>
