@@ -32,10 +32,10 @@ const ChatWindow = ({ id }) => {
 
   const { data: allMessage, isFetching } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
-    {
-      skip: !id,
-      refetchOnMountOrArgChange: true
-    }
+    // {
+    //   skip: !id,
+    //   refetchOnMountOrArgChange: true
+    // }
   );
 
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
@@ -78,7 +78,7 @@ const ChatWindow = ({ id }) => {
     return messages.find(msg => msg._id === replyToId);
   };
 
-  refetch();
+
 
   useEffect(() => {
     if (id && id !== currentChatId) {
