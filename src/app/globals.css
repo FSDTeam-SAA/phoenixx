@@ -402,4 +402,12 @@ a[href*="froala.com"] {
   color: #9ca3af !important;
 }
 
+.fr-box {
+  position: relative !important;
+  z-index: 1 !important;
+  min-height: 300px !important;
+}
 
+.fr-wrapper {
+  min-height: 300px !important;
+}

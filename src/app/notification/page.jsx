@@ -1,7 +1,6 @@
 "use client";
 import { useDeleteAllMutation, useDeleteSingleMutation, useGetAllNotificationQuery, useMarkAllAsReadMutation, useMarkSingleReadMutation } from '@/features/notification/noticationApi';
 import {
-  BellOutlined,
   DeleteOutlined,
   LoadingOutlined,
   MoreOutlined
@@ -12,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, NewFollow, PostIcon, ReplyIcon, SuccessIcon } from '../../../public/images/Notification';
+import { CommentIcon, DefaultIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, NewFollow, PostIcon, ReplyIcon, SuccessIcon } from '../../../public/images/Notification';
 import Loading from '../../components/Loading/Loading';
 import { ThemeContext } from '../ClientLayout';
 const { Content } = Layout;
@@ -93,7 +92,7 @@ export default function NotificationPage() {
       case 'reply':
         return <ReplyIcon />;
       default:
-        return <BellOutlined />;
+        return <DefaultIcon />;
     }
   };
   const handleItemClick = async (notification) => {
@@ -174,6 +173,7 @@ export default function NotificationPage() {
   const unreadBgClass = isDarkMode ? "bg-gray-700" : "bg-blue-50";
   return (
     <>
+
       <Layout
         style={{ backgroundColor: isDarkMode ? '#101828' : 'white' }}
         className="md:p-6 p-0"

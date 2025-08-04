@@ -16,7 +16,7 @@ import {
 } from 'antd';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { baseURL } from '../../../utils/BaseURL';
 import { ThemeContext } from '../ClientLayout';
@@ -74,6 +74,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }));
   }, [category, subcategoryData]);
 
+
+
+
   // Initialize Froala Editor when component mounts
   useEffect(() => {
     let mounted = true;
@@ -104,7 +107,26 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     };
   }, []);
 
-  // Froala Editor Configuration
+  // Debounced description change handler to prevent frequent re-renders
+  const debouncedDescriptionChange = useCallback(
+    (newContent) => {
+      // Clear any existing timeout
+      if (window.descriptionTimeout) {
+        clearTimeout(window.descriptionTimeout);
+      }
+
+      // Set new timeout
+      window.descriptionTimeout = setTimeout(() => {
+        setDescription(newContent);
+        if (formErrors.description) {
+          setFormErrors(prev => ({ ...prev, description: null }));
+        }
+      }, 100);
+    },
+    [formErrors.description] // Only depend on formErrors.description
+  );
+
+  // Froala Editor Configuration - Memoize to prevent unnecessary re-renders
   const config = useMemo(() => ({
     placeholderText: 'Write your post description here...',
     heightMin: 300,
@@ -118,7 +140,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     events: {
       'initialized': function () {
         console.log('Editor initialized');
-        // Force show list buttons
         setTimeout(() => {
           const editor = this;
           if (editor.$tb) {
@@ -128,14 +149,20 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
             editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
           }
         }, 100);
-      },
-      'contentChanged': function () {
-        // Save content periodically
-        const content = this.html.get();
-        setDescription(content);
       }
+      // Remove contentChanged event from here - we'll handle it via onModelChange
     }
   }), [isDarkMode]);
+
+  const handleModelChange = useCallback((newContent) => {
+    // Update description immediately for controlled component
+    setDescription(newContent);
+
+    // Clear form errors if they exist
+    if (formErrors.description) {
+      setFormErrors(prev => ({ ...prev, description: null }));
+    }
+  }, [formErrors.description]);
 
   // CSS to hide dropdown elements and make buttons simple
   useEffect(() => {
@@ -286,12 +313,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }
   };
 
-  const handleDescriptionChange = (newContent) => {
-    setDescription(newContent);
-    if (formErrors.description) {
-      setFormErrors(prev => ({ ...prev, description: null }));
-    }
-  };
+  // Remove the separate handleDescriptionChange function since we're using debounced version
 
   const handleFileChange = ({ fileList: newFileList }) => {
     const validFiles = newFileList.filter(file => {
@@ -341,6 +363,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     setSubcategory(null);
     setDescription('');
     setFileList([]);
+    // Clear the editor content as well
+    if (editorRef.current && editorRef.current.getEditor) {
+      editorRef.current.getEditor().html.set('');
+    }
     toast.success('Draft cleared successfully');
   };
 
@@ -433,6 +459,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         setSubcategory(null);
         setDescription('');
         setFileList([]);
+        // Clear the editor content as well
+        if (editorRef.current && editorRef.current.getEditor) {
+          editorRef.current.getEditor().html.set('');
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -444,6 +474,15 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       setLoading(false);
     }
   };
+
+
+  useEffect(() => {
+    return () => {
+      if (window.descriptionTimeout) {
+        clearTimeout(window.descriptionTimeout);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -726,12 +765,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 >
                   {editorInitialized && (
                     <FroalaEditor
-                      key={`editor-${isDarkMode ? 'dark' : 'light'}`} // Force re-render on theme change
                       ref={editorRef}
-                      tag="textarea"
                       config={config}
                       model={description}
-                      onModelChange={handleDescriptionChange}
+                      onModelChange={handleModelChange} // Use the stable callback
                     />
                   )}
                 </div>

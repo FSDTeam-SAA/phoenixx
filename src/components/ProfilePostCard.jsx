@@ -27,6 +27,9 @@ const ProfilePostCard = ({
   myCommentPostRefetch,
   isGridView = false // Add this prop to determine if it's in grid view
 }) => {
+
+  // console.log("save post", postData?.author.userName)
+
   const router = useRouter();
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
@@ -116,6 +119,8 @@ const ProfilePostCard = ({
 
   const renderAuthorAvatar = () => {
     const author = postData?.author || {};
+    console.log(author)
+
     return (
       author.profile ? (
         <img
@@ -298,6 +303,8 @@ const ProfilePostCard = ({
   const likesCount = postData.likes?.length || 0;
   const readsCount = postData.reads || 0;
 
+
+
   return (
     <>
       <div className={`rounded-lg shadow mb-4 h-fit ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
@@ -306,7 +313,7 @@ const ProfilePostCard = ({
             {renderAuthorAvatar()}
             <div className="flex flex-col items-start">
               <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                {author.name ? author.name : author.username}
+                {author.name ? author.name : author.username || author.userName}
               </span>
               <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {postData.isSavedPost

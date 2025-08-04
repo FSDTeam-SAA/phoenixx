@@ -121,8 +121,21 @@ const NewFollow = () => {
   )
 }
 
+const DefaultIcon = () => {
+  return (
+    <svg
+      viewBox="0 0 1024 1024"
+      fill="#0001FB"
+      width="1em"
+      height="1em"
+    >
+      <path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h216c0 52.9 43.1 96 96 96s96-43.1 96-96h216c17.7 0 32-14.3 32-32s-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-114.9 93.1-208 208-208s208 93.1 208 208v340H304z" />
+    </svg>
+  )
+}
 
-export { CommentIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, NewFollow, PostIcon, PublicPost, ReplyIcon, SuccessIcon }
+
+export { CommentIcon, DefaultIcon, ErrorIcon, FollowIcon, InfoIcon, LikeIcon, NewFollow, PostIcon, PublicPost, ReplyIcon, SuccessIcon }
 
 
 
