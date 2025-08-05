@@ -33,6 +33,36 @@ const messageSlice = createSlice({
       }
     },
 
+    addOptimisticMessage: (state, action) => {
+      const tempMessage = {
+        ...action.payload,
+        _id: `temp-${Date.now()}`,
+        isOptimistic: true,
+        createdAt: new Date().toISOString()
+      };
+      if (state.currentChatId && tempMessage.chatId === state.currentChatId) {
+        state.messages.unshift(tempMessage);
+      }
+    },
+
+    confirmOptimisticMessage: (state, action) => {
+      const { tempId, confirmedMessage } = action.payload;
+      if (state.currentChatId && confirmedMessage.chatId === state.currentChatId) {
+        const messageIndex = state.messages.findIndex(msg => msg._id === tempId);
+        if (messageIndex >= 0) {
+          state.messages[messageIndex] = {
+            ...confirmedMessage,
+            isOptimistic: false
+          };
+        }
+      }
+    },
+
+    removeMessage: (state, action) => {
+      const messageId = action.payload;
+      state.messages = state.messages.filter(msg => msg._id !== messageId);
+    },
+
     resetMessages: (state) => {
       state.messages = [];
       state.pinnedMessages = [];
@@ -287,7 +317,9 @@ const messageSlice = createSlice({
           const pinnedMessages = payload.data.pinnedMessages || [];
 
           if (page === 1 || state.isRefetching || state.isAutoUpdating) {
-            state.messages = newMessages;
+            // Keep optimistic messages when refreshing
+            const optimisticMessages = state.messages.filter(msg => msg.isOptimistic);
+            state.messages = [...newMessages, ...optimisticMessages];
             state.pinnedMessages = pinnedMessages;
           } else {
             const existingIds = new Set(state.messages.map(msg => msg._id));
@@ -318,18 +350,30 @@ const messageSlice = createSlice({
           state.error = 'Failed to fetch messages';
         }
       })
-      .addMatcher(messageApi.endpoints.messageSend.matchFulfilled, (state, { payload }) => {
+      .addMatcher(messageApi.endpoints.messageSend.matchFulfilled, (state, { payload, meta }) => {
         if (payload?.data && state.currentChatId === payload.data.chatId) {
-          const existingIndex = state.messages.findIndex(msg => msg._id === payload.data._id);
-          if (existingIndex === -1) {
-            state.messages.unshift(payload.data);
+          const tempId = meta?.arg?.originalArgs?.tempId;
+          if (tempId) {
+            // Replace optimistic message with confirmed one
+            const messageIndex = state.messages.findIndex(msg => msg._id === tempId);
+            if (messageIndex >= 0) {
+              state.messages[messageIndex] = payload.data;
+            }
           } else {
-            state.messages[existingIndex] = payload.data;
+            // Fallback to regular add if no tempId
+            const existingIndex = state.messages.findIndex(msg => msg._id === payload.data._id);
+            if (existingIndex === -1) {
+              state.messages.unshift(payload.data);
+            } else {
+              state.messages[existingIndex] = payload.data;
+            }
           }
         }
       })
-      .addMatcher(messageApi.endpoints.replyMessage.matchFulfilled, (state, { payload }) => {
+      .addMatcher(messageApi.endpoints.replyMessage.matchFulfilled, (state, { payload, meta }) => {
         if (payload?.data && state.currentChatId === payload.data.reply?.chatId) {
+          const tempId = meta?.arg?.originalArgs?.tempId;
+
           if (payload.data.originalMessage && payload.data.reply) {
             const { originalMessage, reply } = payload.data;
 
@@ -348,11 +392,26 @@ const messageSlice = createSlice({
               replyTo: originalMessage._id
             };
 
-            const existingIndex = state.messages.findIndex(msg => msg._id === reply._id);
-            if (existingIndex === -1) {
-              state.messages.unshift(replyWithReference);
+            if (tempId) {
+              // Replace optimistic reply
+              const messageIndex = state.messages.findIndex(msg => msg._id === tempId);
+              if (messageIndex >= 0) {
+                state.messages[messageIndex] = replyWithReference;
+              }
             } else {
-              state.messages[existingIndex] = replyWithReference;
+              // Fallback to regular add
+              const existingIndex = state.messages.findIndex(msg => msg._id === reply._id);
+              if (existingIndex === -1) {
+                state.messages.unshift(replyWithReference);
+              } else {
+                state.messages[existingIndex] = replyWithReference;
+              }
+            }
+          } else if (tempId) {
+            // Handle case where reply doesn't have original message
+            const messageIndex = state.messages.findIndex(msg => msg._id === tempId);
+            if (messageIndex >= 0) {
+              state.messages[messageIndex] = payload.data;
             }
           } else {
             const existingIndex = state.messages.findIndex(msg => msg._id === payload.data._id);
@@ -369,6 +428,9 @@ const messageSlice = createSlice({
 
 export const {
   addMessage,
+  addOptimisticMessage,
+  confirmOptimisticMessage,
+  removeMessage,
   resetMessages,
   setCurrentChatId,
   setPage,

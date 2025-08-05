@@ -1,4 +1,3 @@
-// utils/postUtils.js
 import moment from 'moment';
 
 // Extract URL parameters with defaults
@@ -25,44 +24,28 @@ export const createQueryParams = (urlParams) => ({
 export const sortPosts = (posts, sortType) => {
   if (!posts || posts.length === 0) return [];
 
-  const sortedPosts = [...posts]; // Create a copy to avoid mutating original array
+  const sortedPosts = [...posts]; // Create a copy
 
   switch (sortType) {
     case 'newest':
       return sortedPosts.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.timePosted);
-        const dateB = new Date(b.createdAt || b.timePosted);
+        const dateA = convertToDate(a.createdAt || a.timePosted);
+        const dateB = convertToDate(b.createdAt || b.timePosted);
         return dateB - dateA; // Newest first
       });
 
     case 'oldest':
       return sortedPosts.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.timePosted);
-        const dateB = new Date(b.createdAt || b.timePosted);
+        const dateA = convertToDate(a.createdAt || a.timePosted);
+        const dateB = convertToDate(b.createdAt || b.timePosted);
         return dateA - dateB; // Oldest first
       });
 
     case 'popular':
       return sortedPosts.sort((a, b) => {
-        // Sort by likes first, then by comments, then by views
-        const likesA = a.likes?.length || a.stats?.likes || 0;
-        const likesB = b.likes?.length || b.stats?.likes || 0;
-
-        if (likesA !== likesB) {
-          return likesB - likesA; // More likes first
-        }
-
-        const commentsA = a.comments?.length || a.stats?.comments || 0;
-        const commentsB = b.comments?.length || b.stats?.comments || 0;
-
-        if (commentsA !== commentsB) {
-          return commentsB - commentsA; // More comments first
-        }
-
-        const viewsA = a.views || a.stats?.reads || 0;
-        const viewsB = b.views || b.stats?.reads || 0;
-
-        return viewsB - viewsA; // More views first
+        const readsA = a.stats?.reads || a.views || 0;
+        const readsB = b.stats?.reads || b.views || 0;
+        return readsB - readsA; // Most reads first
       });
 
     default:
@@ -70,35 +53,69 @@ export const sortPosts = (posts, sortType) => {
   }
 };
 
+// Helper function to convert time strings to Date objects
+const convertToDate = (timeString) => {
+  // If it's already a Date object
+  if (timeString instanceof Date) return timeString;
+
+  // If it's a valid ISO string
+  if (typeof timeString === 'string' && !isNaN(Date.parse(timeString))) {
+    return new Date(timeString);
+  }
+
+  // Handle "X hours/days ago" format
+  if (typeof timeString === 'string') {
+    const number = parseInt(timeString);
+    if (!isNaN(number)) {
+      if (timeString.includes('hour')) {
+        return new Date(Date.now() - number * 60 * 60 * 1000);
+      }
+      if (timeString.includes('day')) {
+        return new Date(Date.now() - number * 24 * 60 * 60 * 1000);
+      }
+      if (timeString.includes('minute')) {
+        return new Date(Date.now() - number * 60 * 1000);
+      }
+      if (timeString.includes('second')) {
+        return new Date(Date.now() - number * 1000);
+      }
+    }
+  }
+
+  // Fallback to current date if we can't parse
+  return new Date();
+};
+
 // Format timestamp
 export const formatTime = (timestamp) => (
-  timestamp ? moment.utc(timestamp).utcOffset(6).fromNow() : "Just now"
+  timestamp ? moment(timestamp).fromNow() : "Just now"
 );
 
 // Format post data for consistent structure
 export const formatPostData = (post, currentUserId) => ({
-  id: post._id,
+  id: post._id || post.id,
   author: {
-    id: post?.author?._id,
-    username: post?.author?.userName || "Anonymous",
-    avatar: post?.author?.profile,
+    id: post?.author?._id || post?.author?.id,
+    username: post?.author?.userName || post?.author?.username || "Anonymous",
+    avatar: post?.author?.profile || post?.author?.avatar,
     name: post?.author?.name || "User"
   },
-  timePosted: formatTime(post.createdAt),
+  timePosted: post.timePosted || formatTime(post.createdAt),
   title: post.title,
   content: post.content,
   images: post.images,
-  tags: [{
+  tags: post.tags || [{
     category: post.category?.name,
     subcategory: post.subCategory?.name
   }],
   stats: {
-    likes: post.likes?.length || 0,
-    comments: post.comments?.length || 0,
-    reads: post.views || 0,
-    likedBy: post.likes || []
+    likes: post.stats?.likes || post.likes?.length || 0,
+    comments: post.stats?.comments || post.comments?.length || 0,
+    reads: post.stats?.reads || post.views || 0,
+    likedBy: post.stats?.likedBy || post.likes || []
   },
-  isLiked: post.likes?.includes(currentUserId) || false
+  isLiked: post.isLiked || post.likes?.includes(currentUserId) || false,
+  createdAt: post.createdAt || new Date() // Ensure createdAt exists
 });
 
 // Get category display name
@@ -120,17 +137,4 @@ export const distributePostsIntoColumns = (posts, columnCount) => {
   const columns = Array(columnCount).fill().map(() => []);
   posts.forEach((post, index) => columns[index % columnCount].push(post));
   return columns;
-};
-
-// Debounce function for performance optimization
-export const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
 };

@@ -17,6 +17,7 @@ const MobileLayout = ({
   onClearFilters,
   isLoading
 }) => (
+
   <div className="flex flex-col">
     <CategoriesSidebar
       onSelectCategory={onCategorySelect}

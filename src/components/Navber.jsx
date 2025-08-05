@@ -116,11 +116,12 @@ export default function Navbar() {
   const { notifications } = useSelector((state) => state);
 
   const { data, isLoading } = useGetProfileQuery();
-  const { data: logo } = useLogoQuery();
+  const { data: logo, isLoading:logoLoading } = useLogoQuery();
 
   const filteredLogo = logo?.data?.find(item =>
     (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
   );
+
 
   // Initialize search query from URL
   useEffect(() => {
@@ -465,7 +466,7 @@ export default function Navbar() {
       >
         {/* Left Side - Logo and Menu Button */}
         {!showMobileSearch && (
-          <Flex align="center" style={{ 
+          <Flex align="center" style={{
             height: '100%',
             minWidth: 'fit-content', // Ensure minimum width for logo
             flex: '0 0 auto' // Prevent shrinking
@@ -498,8 +499,9 @@ export default function Navbar() {
                 paddingRight: screens.xs ? '8px' : '12px'
               }}
             >
-              <Image
-                src={filteredLogo?.logo ? `${baseURL}${filteredLogo.logo}` : "/images/logo.png"}
+              {!logoLoading && filteredLogo && (
+               <Image
+                src={filteredLogo?.logo && `${baseURL}${filteredLogo.logo}`}
                 width={screens.xs ? 90 : screens.sm ? 110 : 150} // Increased width significantly
                 height={screens.xs ? 40 : screens.sm ? 50 : 60} // Increased height
                 alt='logo'
@@ -512,7 +514,7 @@ export default function Navbar() {
                   filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
                 }}
                 priority // Add priority for faster loading
-              />
+              />)}
             </Link>
           </Flex>
         )}
@@ -522,7 +524,7 @@ export default function Navbar() {
 
         {/* Right Side Actions */}
         {!showMobileSearch && (
-          <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{ 
+          <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{
             height: '100%',
             flex: '0 0 auto' // Prevent shrinking
           }}>

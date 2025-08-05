@@ -7,6 +7,15 @@ const PostCardContent = ({
   isTablet
 }) => {
 
+  // Function to decode HTML entities
+  const decodeHtmlEntities = (text) => {
+    if (!text) return '';
+
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+  };
+
   // Function to clean content by removing HTML tags and Froala footer
   const cleanContent = (content) => {
     if (!content) return '';
@@ -18,9 +27,11 @@ const PostCardContent = ({
     );
 
     // Remove all HTML tags
-    return withoutFroala.replace(/<[^>]+>/g, '').trim();
-  };
+    const withoutTags = withoutFroala.replace(/<[^>]+>/g, '').trim();
 
+    // Decode HTML entities
+    return decodeHtmlEntities(withoutTags);
+  };
 
   const renderTitle = () => (
     postData.title && (

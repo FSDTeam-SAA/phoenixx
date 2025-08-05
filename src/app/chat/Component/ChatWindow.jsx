@@ -15,6 +15,7 @@ import { TbPinned } from 'react-icons/tb';
 import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ImageUplaod } from '../../../../utils/svgImage';
+import useOnlineStatus from '../../../../utils/useOnlineStatus';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
 import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
 import { addMessage, resetMessages, setCurrentChatId, setPage, updateMessagePin, updateMessageReaction } from '../../../redux/features/messageSlice';
@@ -26,16 +27,13 @@ const ChatWindow = ({ id }) => {
   const router = useRouter();
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
+  const isOnline = useOnlineStatus();
 
   const { messages, pinnedMessages, isLoading, hasMore, page, currentChatId } = useSelector((state) => state.message);
   const { refetch } = useMessageRefetch();
 
   const { data: allMessage, isFetching } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
-    // {
-    //   skip: !id,
-    //   refetchOnMountOrArgChange: true
-    // }
   );
 
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
@@ -59,6 +57,7 @@ const ChatWindow = ({ id }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showAllPinnedMessages, setShowAllPinnedMessages] = useState(false);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -78,8 +77,6 @@ const ChatWindow = ({ id }) => {
     return messages.find(msg => msg._id === replyToId);
   };
 
-
-
   useEffect(() => {
     if (id && id !== currentChatId) {
       dispatch(setCurrentChatId(id));
@@ -90,6 +87,7 @@ const ChatWindow = ({ id }) => {
       setShowEmojiPicker(false);
       setShowReactionPicker({ messageId: null, show: false, position: null });
       form.resetFields();
+      setShowAllPinnedMessages(false);
     }
   }, [id, dispatch, form, currentChatId]);
 
@@ -406,11 +404,11 @@ const ChatWindow = ({ id }) => {
               src={getImageUrl(item?.profile)}
               size={48}
             />
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+            <div className={`absolute bottom-0 right-0 w-3 h-3 ${isOnline ? "bg-green-500" : "bg-gray-500"} rounded-full border-2 border-white`}></div>
           </div>
           <div>
             <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{item?.userName}</h2>
-            <p className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-500'}`}>Online</p>
+            <p className={`text-sm ${isOnline ? 'text-green-500' : 'text-gray-500'} `}>{isOnline ? ' Online' : ' Offline'}</p>
           </div>
         </div>
       ))}
@@ -426,15 +424,39 @@ const ChatWindow = ({ id }) => {
             <TbPinned className="mr-2" />
             Your Pinned Message
           </div>
-          <div className="mt-1 space-y-2">
-            {currentUserPinnedMessages.map(msg => (
+          <div
+            className={`mt-1 space-y-2 overflow-y-auto ${showAllPinnedMessages ? 'max-h-[200px]' : ''}`}
+            style={{ maxHeight: showAllPinnedMessages ? '200px' : 'none' }}
+          >
+            {showAllPinnedMessages ? (
+              currentUserPinnedMessages.map(msg => (
+                <div
+                  key={msg._id}
+                  className="flex items-start justify-between text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
+                  onClick={() => scrollToPinnedMessage(msg._id)}
+                >
+                  <span className="truncate text-gray-600">
+                    {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
+                  </span>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<TbPinned />}
+                    className="text-gray-500 hover:text-blue-500"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePinMessage(msg._id, 'unpin');
+                    }}
+                  />
+                </div>
+              ))
+            ) : (
               <div
-                key={msg._id}
                 className="flex items-start justify-between text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
-                onClick={() => scrollToPinnedMessage(msg._id)}
+                onClick={() => scrollToPinnedMessage(currentUserPinnedMessages[0]._id)}
               >
                 <span className="truncate text-gray-600">
-                  {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
+                  {currentUserPinnedMessages[0].text || (currentUserPinnedMessages[0].images?.length > 0 ? "📷 Image" : "Message")}
                 </span>
                 <Button
                   type="text"
@@ -443,12 +465,24 @@ const ChatWindow = ({ id }) => {
                   className="text-gray-500 hover:text-blue-500"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handlePinMessage(msg._id, 'unpin');
+                    handlePinMessage(currentUserPinnedMessages[0]._id, 'unpin');
                   }}
                 />
               </div>
-            ))}
+            )}
           </div>
+          {currentUserPinnedMessages.length > 1 && (
+            <div className="mt-2 text-center">
+              <Button
+                type="link"
+                size="small"
+                onClick={() => setShowAllPinnedMessages(!showAllPinnedMessages)}
+                className="text-blue-500 hover:text-blue-700"
+              >
+                {showAllPinnedMessages ? 'See less' : 'See more'}
+              </Button>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -930,77 +964,83 @@ const ChatWindow = ({ id }) => {
         )}
       </AnimatePresence>
 
-      {/* Message Input */}
-      <div className={`p-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center`}>
-        <Form form={form} onFinish={handleCreateNewMessage} className="flex-1 flex items-center">
-          <Form.Item name="file" noStyle>
-            <div className='flex'>
-              <div className="relative">
-                <Button
-                  ref={emojiButtonRef}
-                  type="text"
-                  icon={<BsEmojiSmile size={20} />}
-                  className={`absolute top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
-                  onClick={toggleEmojiPicker}
-                />
-                {showEmojiPicker && (
-                  <div ref={emojiPickerRef} className="absolute bottom-12 right-0 z-10">
-                    <EmojiPicker
-                      onEmojiClick={onEmojiClick}
-                      width={300}
-                      height={350}
-                      theme={isDarkMode ? 'dark' : 'light'}
-                    />
-                  </div>
-                )}
+      {/* Message Input - Hidden if blocked */}
+      {chatUser?.isBlocked ? (
+        <div className={`p-4 text-center ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-600'}`}>
+          You can no longer access this conversation.
+        </div>
+      ) : (
+        <div className={`p-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} flex items-center`}>
+          <Form form={form} onFinish={handleCreateNewMessage} className="flex-1 flex items-center">
+            <Form.Item name="file" noStyle>
+              <div className='flex'>
+                <div className="relative">
+                  <Button
+                    ref={emojiButtonRef}
+                    type="text"
+                    icon={<BsEmojiSmile size={20} />}
+                    className={`absolute top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
+                    onClick={toggleEmojiPicker}
+                  />
+                  {showEmojiPicker && (
+                    <div ref={emojiPickerRef} className="absolute bottom-12 right-0 z-10">
+                      <EmojiPicker
+                        onEmojiClick={onEmojiClick}
+                        width={300}
+                        height={350}
+                        theme={isDarkMode ? 'dark' : 'light'}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Upload
+                  accept="image/*"
+                  showUploadList={false}
+                  beforeUpload={() => false}
+                  onChange={handleFileChange}
+                  maxCount={1}
+                >
+                  <Button
+                    type="text"
+                    icon={<ImageUplaod />}
+                    className={`mx-2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
+                  />
+                </Upload>
               </div>
+            </Form.Item>
 
-              <Upload
-                accept="image/*"
-                showUploadList={false}
-                beforeUpload={() => false}
-                onChange={handleFileChange}
-                maxCount={1}
-              >
-                <Button
-                  type="text"
-                  icon={<ImageUplaod />}
-                  className={`mx-2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
-                />
-              </Upload>
-            </div>
-          </Form.Item>
-
-          <Form.Item name="message" noStyle className="flex-1">
-            <Input.TextArea
-              ref={inputRef}
-              disabled={chatUser?.isBlocked}
-              placeholder={replyingTo ? `Reply to ${replyingTo.sender?.userName}...` : "Type a message..."}
-              autoSize={{ minRows: 1, maxRows: 4 }}
-              className={`rounded-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-200'}`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!sendingMessage && !isSending) {
-                    form.submit();
+            <Form.Item name="message" noStyle className="flex-1">
+              <Input.TextArea
+                ref={inputRef}
+                disabled={chatUser?.isBlocked}
+                placeholder={replyingTo ? `Reply to ${replyingTo.sender?.userName}...` : "Type a message..."}
+                autoSize={{ minRows: 1, maxRows: 4 }}
+                className={`rounded-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-100 border-gray-200'}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!sendingMessage && !isSending) {
+                      form.submit();
+                    }
                   }
-                }
-              }}
-            />
-          </Form.Item>
+                }}
+              />
+            </Form.Item>
 
-          <Button
-            type="primary"
-            htmlType="submit"
-            icon={<IoMdSend />}
-            iconPosition="end"
-            style={{ width: "70px" }}
-            className="ml-2"
-            loading={sendingMessage || isSending}
-            disabled={sendingMessage || isSending || chatUser?.isBlocked}
-          >Send</Button>
-        </Form>
-      </div>
+            <Button
+              type="primary"
+              htmlType="submit"
+              icon={<IoMdSend />}
+              iconPosition="end"
+              style={{ width: "70px" }}
+              className="ml-2"
+              loading={sendingMessage || isSending}
+              disabled={sendingMessage || isSending || chatUser?.isBlocked}
+            >Send</Button>
+          </Form>
+        </div>
+      )}
     </div>
   );
 };

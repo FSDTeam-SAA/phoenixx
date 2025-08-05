@@ -3,6 +3,7 @@
 import { useTransition } from 'react';
 import CategoriesSidebar from '../../CategoriesSidebar';
 import FeedNavigation from '../../FeedNavigation';
+import { sortPosts } from '../utils/postUtils';
 import FilterIndicator from './FilterIndicator';
 import MainContent from './MainContent';
 
@@ -24,7 +25,9 @@ const DesktopLayout = ({
   const isGrid2 = gridNumber === 2;
   const [isPending, startTransition] = useTransition();
 
-  // Wrap category selection in transition for smoother updates
+  // Sort posts based on current sort parameter
+  const sortedPosts = sortPosts(posts, urlParams.sort);
+
   const handleCategorySelect = (category, subcategory) => {
     startTransition(() => {
       onCategorySelect(category, subcategory);
@@ -58,18 +61,12 @@ const DesktopLayout = ({
           urlParams={urlParams}
           posts={posts}
           onClearFilters={onClearFilters}
+          onSortChange={handleSortChange}
         />
 
-        {/* Content container with stable height and smooth transitions */}
-        <div
-          className={`
-            relative transition-opacity duration-300 ease-in-out
-          `}
-          style={{ minHeight: '600px' }} // Prevent height collapse
-        >
-
+        <div className="relative transition-opacity duration-300 ease-in-out" style={{ minHeight: '600px' }}>
           <MainContent
-            posts={posts}
+            posts={sortedPosts}
             pagination={pagination}
             currentUser={currentUser}
             gridNumber={gridNumber}

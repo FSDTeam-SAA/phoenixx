@@ -3,7 +3,7 @@ import { useContext } from 'react';
 import { ThemeContext } from '../../../app/ClientLayout';
 import { getCategoryName } from '../utils/postUtils';
 
-const FilterIndicator = ({ urlParams, posts, onClearFilters }) => {
+const FilterIndicator = ({ urlParams, posts, onClearFilters, onSortChange }) => {
   const { isDarkMode } = useContext(ThemeContext);
 
   if (!urlParams.category && !urlParams.subcategory && !urlParams.search) {
@@ -14,7 +14,6 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters }) => {
     ? `Search results for "${urlParams.search}"`
     : getCategoryName(posts, urlParams);
 
-  // Updated sort display with better labels
   const getSortDisplay = (sortType) => {
     switch (sortType) {
       case "oldest":
@@ -24,6 +23,12 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters }) => {
       case "newest":
       default:
         return "Newest first";
+    }
+  };
+
+  const handleSortChange = (sortType) => {
+    if (onSortChange) {
+      onSortChange(sortType);
     }
   };
 
@@ -47,9 +52,26 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters }) => {
             </span>
           )}
         </div>
-        <span className='text-blue-600 font-medium cursor-pointer' onClick={onClearFilters}>
-          Clear All Filters
-        </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500">Sort by:</span>
+            <select 
+              onChange={(e) => handleSortChange(e.target.value)}
+              value={urlParams.sort || 'newest'}
+              className={`border rounded px-2 py-1 ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="popular">Popular</option>
+            </select>
+          </div>
+          <span 
+            className='text-blue-600 font-medium cursor-pointer' 
+            onClick={onClearFilters}
+          >
+            Clear All Filters
+          </span>
+        </div>
       </div>
     </Card>
   );
