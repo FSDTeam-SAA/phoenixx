@@ -35,13 +35,16 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
   const [description, setDescription] = useState('');
+  const [wordCount, setWordCount] = useState(0);
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [initialImages, setInitialImages] = useState([]);
   const [editorInitialized, setEditorInitialized] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
+  const [editorInstance, setEditorInstance] = useState(null);
   const editorRef = useRef(null);
+  const debounceTimeoutRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
   const { isDarkMode } = useContext(ThemeContext);
@@ -58,6 +61,20 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
   // Responsive breakpoints
   const isMobile = !screens.md;
+
+  // Utility function to count words
+  const countWords = useCallback((html) => {
+    if (!html) return 0;
+
+    // Remove HTML tags and get plain text
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+
+    // Count words (split by whitespace and filter empty strings)
+    const words = plainText.trim().split(/\s+/).filter(word => word.length > 0);
+    return words.length;
+  }, []);
 
   // Memoized category options
   const categoryOptions = useMemo(() => (
@@ -127,19 +144,28 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
   // Froala Editor Configuration
   const config = useMemo(() => ({
-    placeholderText: 'Write your post description here...',
+    placeholderText: 'Write your post description here... (Max 1000 words)',
     heightMin: 300,
-    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage'],
-    pluginsEnabled: ['lists', 'emoticons', 'image'],
+    heightMax: 300, // Fixed height
+    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL'],
+    pluginsEnabled: ['lists'],
     quickInsertTags: [],
     listAdvancedTypes: false,
     toolbarInline: false,
     charCounterCount: false,
+    imageUpload: false,
+    imageInsertButtons: [],
+    imageEditButtons: [],
+    imagePaste: false,
+    imagePasteProcess: false,
     theme: isDarkMode ? 'dark' : undefined,
+    scrollableContainer: 'body',
     events: {
       'initialized': function () {
+        const editor = this;
+        setEditorInstance(editor);
+
         setTimeout(() => {
-          const editor = this;
           if (editor.$tb) {
             editor.$tb.find('.fr-command[data-cmd="formatOL"]').show();
             editor.$tb.find('.fr-command[data-cmd="formatUL"]').show();
@@ -147,22 +173,77 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
             editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
           }
         }, 100);
+      },
+      'contentChanged': function () {
+        const editor = this;
+        const content = editor.html.get();
+        const words = countWords(content);
+
+        // Clear previous timeout
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+        }
+
+        // Debounce the word count update and validation
+        debounceTimeoutRef.current = setTimeout(() => {
+          setWordCount(words);
+
+          // If word limit exceeded, truncate content
+          if (words > 1000) {
+            // Get plain text and limit to 1000 words
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            const plainText = tempDiv.textContent || tempDiv.innerText || '';
+            const wordsArray = plainText.trim().split(/\s+/);
+            const truncatedWords = wordsArray.slice(0, 1000);
+            const truncatedText = truncatedWords.join(' ');
+
+            // Set the truncated content back to editor
+            editor.html.set(truncatedText);
+            setWordCount(1000);
+            toast.error('Word limit of 1000 exceeded. Content has been truncated.');
+          }
+        }, 300);
+      },
+      'paste.before': function (e) {
+        // Prevent image paste by checking clipboard data
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (clipboardData && clipboardData.items) {
+          for (let i = 0; i < clipboardData.items.length; i++) {
+            const item = clipboardData.items[i];
+            if (item.type.indexOf('image') !== -1) {
+              e.preventDefault();
+              toast.error('Image pasting is not allowed. Please use the image upload section.');
+              return false;
+            }
+          }
+        }
+      },
+      'image.beforeUpload': function () {
+        // Block any image upload attempts
+        toast.error('Image upload through editor is disabled. Please use the image upload section.');
+        return false;
       }
     }
-  }), [isDarkMode]);
+  }), [isDarkMode, countWords]);
 
   const handleModelChange = useCallback((newContent) => {
+    // Use requestAnimationFrame to prevent blocking the UI
     requestAnimationFrame(() => {
       setDescription(newContent);
       if (formErrors.description) {
         setFormErrors(prev => ({ ...prev, description: null }));
       }
       // Auto-save recovery content
-      localStorage.setItem('editorRecovery', newContent);
+      try {
+        localStorage.setItem('editorRecovery', newContent);
+      } catch (error) {
+        console.warn('Failed to save to localStorage:', error);
+      }
     });
   }, [formErrors.description]);
 
-  // CSS to hide dropdown elements and make buttons simple
+  // CSS to hide dropdown elements and make buttons simple + fixed height styling
   useEffect(() => {
     const css = `
       .fr-dropdown-arrow,
@@ -202,6 +283,46 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       .fr-toolbar .fr-command[data-cmd="insertUnorderedList"].fr-active {
         background-color: rgba(0, 0, 0, 0.2);
       }
+      
+      /* Fixed height with scrollbar styling */
+      .fr-wrapper {
+        height: 300px !important;
+        max-height: 300px !important;
+        overflow: hidden !important;
+      }
+      
+      .fr-element {
+        height: 240px !important;
+        max-height: 240px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+      
+      /* Custom scrollbar styling */
+      .fr-element::-webkit-scrollbar {
+        width: 8px;
+      }
+      
+      .fr-element::-webkit-scrollbar-track {
+        background: ${isDarkMode ? '#374151' : '#f1f5f9'};
+        border-radius: 4px;
+      }
+      
+      .fr-element::-webkit-scrollbar-thumb {
+        background: ${isDarkMode ? '#6b7280' : '#cbd5e1'};
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+      
+      .fr-element::-webkit-scrollbar-thumb:hover {
+        background: ${isDarkMode ? '#9ca3af' : '#94a3b8'};
+      }
+      
+      /* Firefox scrollbar */
+      .fr-element {
+        scrollbar-width: thin;
+        scrollbar-color: ${isDarkMode ? '#6b7280 #374151' : '#cbd5e1 #f1f5f9'};
+      }
     `;
 
     const styleElement = document.createElement('style');
@@ -213,7 +334,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         document.head.removeChild(styleElement);
       }
     };
-  }, []);
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (!isEditing && !initialValues) {
@@ -225,6 +346,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           setCategory(draftData.category || null);
           setSubcategory(draftData.subcategory || null);
           setDescription(draftData.description || '');
+          setWordCount(countWords(draftData.description || ''));
           if (draftData.files && draftData.files.length > 0) {
             setFileList(draftData.files.map(file => ({
               uid: file.uid || `-${Math.random().toString(36).substr(2, 9)}`,
@@ -241,7 +363,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         }
       }
     }
-  }, [isEditing, initialValues]);
+  }, [isEditing, initialValues, countWords]);
 
   // Initialize form with initial values when editing
   useEffect(() => {
@@ -250,6 +372,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       setCategory(initialValues.category || null);
       setSubcategory(initialValues.subCategory || null);
       setDescription(initialValues.content || '');
+      setWordCount(countWords(initialValues.content || ''));
       if (initialValues.images && Array.isArray(initialValues.images)) {
         const initialImagesList = initialValues.images.map((image, index) => {
           const imageUrl = image.startsWith('http')
@@ -282,7 +405,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         setInitialImages(initialImage);
       }
     }
-  }, [initialValues]);
+  }, [initialValues, countWords]);
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
@@ -353,6 +476,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     setCategory(null);
     setSubcategory(null);
     setDescription('');
+    setWordCount(0);
     setFileList([]);
     if (editorRef.current && editorRef.current.getEditor) {
       editorRef.current.getEditor().html.set('');
@@ -374,6 +498,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     if (!description.trim()) {
       errors.description = 'Description is required';
     }
+    if (wordCount > 1000) {
+      errors.description = 'Description exceeds 1000 word limit';
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -387,7 +514,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       } else if (formErrors.subcategory) {
         toast.error('Please select a subcategory');
       } else if (formErrors.description) {
-        toast.error('Please enter content description');
+        toast.error(formErrors.description);
       }
       return;
     }
@@ -448,6 +575,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         setCategory(null);
         setSubcategory(null);
         setDescription('');
+        setWordCount(0);
         setFileList([]);
         if (editorRef.current && editorRef.current.getEditor) {
           editorRef.current.getEditor().html.set('');
@@ -466,8 +594,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
   useEffect(() => {
     return () => {
-      if (window.descriptionTimeout) {
-        clearTimeout(window.descriptionTimeout);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
       }
     };
   }, []);
@@ -596,8 +724,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="italic"] i,
         .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="underline"] i,
         .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatOL"] i,
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatUL"] i,
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="insertImage"] i {
+        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatUL"] i {
           color: #ffffff !important;
         }
         
@@ -646,6 +773,19 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         .froala-editor-container.dark .fr-toolbar .fr-command > * {
           color: inherit !important;
           fill: currentColor !important;
+        }
+
+        /* Word count indicator styling */
+        .word-count-indicator {
+          transition: color 0.2s ease-in-out;
+        }
+        
+        .word-count-warning {
+          color: #f59e0b !important;
+        }
+        
+        .word-count-error {
+          color: #ef4444 !important;
         }
       `}</style>
 
@@ -737,11 +877,20 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
               {/* Content Editor */}
               <div className="mb-6 sm:mb-8">
-                <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Description <span className="text-red-500">*</span>
-                </Title>
+                <div className="flex justify-between items-center mb-2">
+                  <Title level={5} className={`mb-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Description <span className="text-red-500">*</span>
+                  </Title>
+                  <div className={`text-sm font-medium word-count-indicator ${wordCount > 900 ? 'word-count-error' :
+                    wordCount > 800 ? 'word-count-warning' :
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                    {wordCount}/1000 words
+                  </div>
+                </div>
                 <div
-                  className={`froala-editor-container ${isDarkMode ? 'dark' : 'light'} rounded-lg overflow-hidden transition-all ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} ${formErrors.description ? 'border-red-500' : ''}`}
+                  className={`froala-editor-container ${isDarkMode ? 'dark' : 'light'} rounded-lg overflow-hidden transition-all ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} ${formErrors.description ? 'border-red-500' : 'border'}`}
+                  style={{ border: `1px solid ${formErrors.description ? '#ef4444' : isDarkMode ? '#4b5563' : '#d1d5db'}` }}
                 >
                   {editorInitialized ? (
                     <FroalaEditor
@@ -752,8 +901,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                       onModelChange={handleModelChange}
                     />
                   ) : (
-                    <div className={`p-4 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
-                      Loading editor...
+                    <div className={`p-4 h-[300px] flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        Loading editor...
+                      </div>
                     </div>
                   )}
                 </div>
@@ -833,6 +985,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                     className="border-0 shadow-md hover:shadow-lg"
                     onClick={handleSubmit}
                     loading={loading}
+                    disabled={wordCount > 1000}
                   >
                     {isEditing
                       ? (isMobile ? 'Update' : 'Update Post')

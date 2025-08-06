@@ -66,21 +66,21 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-md"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/20 backdrop-blur-md p-4"
       onClick={handleBackdropClick}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
-      {/* Modal Container - Responsive sizing */}
+      {/* Modal Container - Fixed centering with proper responsive sizing */}
       <div
-        className={`relative max-w-auto h-[50vh] sm:w-[90vw] sm:h-[85vh] md:w-[80vw] md:h-[80vh] lg:w-[70vw] lg:h-[85vh] xl:w-[40vw] xl:h-[60vh] ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
-          } rounded-lg md:rounded-xl shadow-2xl overflow-hidden border flex flex-col`}
+        className={`relative w-full max-w-4xl h-full max-h-[90vh] ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'
+          } rounded-lg md:rounded-xl shadow-2xl overflow-hidden border flex flex-col mx-auto my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with close button and counter */}
         <div
-          className={`flex justify-between items-center p-3 sm:p-4 border-b ${isDarkMode
-              ? 'bg-gray-800 border-gray-700 text-gray-200'
-              : 'bg-gray-50 border-gray-200 text-gray-800'
+          className={`flex justify-between items-center p-3 sm:p-4 border-b shrink-0 ${isDarkMode
+            ? 'bg-gray-800 border-gray-700 text-gray-200'
+            : 'bg-gray-50 border-gray-200 text-gray-800'
             }`}
         >
           {images.length > 1 && (
@@ -95,8 +95,8 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
           <button
             onClick={onClose}
             className={`p-1 sm:p-2 cursor-pointer rounded-full transition-colors ${isDarkMode
-                ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
-                : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+              ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
+              : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
               }`}
             aria-label="Close modal"
           >
@@ -104,9 +104,9 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
           </button>
         </div>
 
-        {/* Image Container with touch events */}
+        {/* Image Container with touch events - Properly centered */}
         <div
-          className="relative flex-1 flex items-center justify-center w-full h-full"
+          className="relative flex-1 flex items-center justify-center w-full min-h-0 p-4"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -131,12 +131,12 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
               console.error('Failed to load image:', images[currentIndex]);
             }}
             style={{
-              maxHeight: 'calc(100% - 80px)',
-              maxWidth: '100%',
+              display: 'block',
+              margin: '0 auto'
             }}
           />
 
-          {/* Navigation Arrows - Responsive sizing and positioning */}
+          {/* Navigation Arrows - Properly positioned */}
           {images.length > 1 && (
             <>
               <button
@@ -144,9 +144,9 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
                   e.stopPropagation();
                   onPrev();
                 }}
-                className={`absolute cursor-pointer left-2 sm:left-4 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${isDarkMode
-                    ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600'
-                    : 'bg-white/90 hover:bg-white text-gray-700 border border-gray-300'
+                className={`absolute cursor-pointer left-2 sm:left-4 top-1/2 transform -translate-y-1/2 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${isDarkMode
+                  ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600'
+                  : 'bg-white/90 hover:bg-white text-gray-700 border border-gray-300'
                   }`}
                 aria-label="Previous image"
               >
@@ -157,9 +157,9 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
                   e.stopPropagation();
                   onNext();
                 }}
-                className={`absolute cursor-pointer right-2 sm:right-4 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${isDarkMode
-                    ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600'
-                    : 'bg-white/90 hover:bg-white text-gray-700 border border-gray-300'
+                className={`absolute cursor-pointer right-2 sm:right-4 top-1/2 transform -translate-y-1/2 p-2 sm:p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${isDarkMode
+                  ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600'
+                  : 'bg-white/90 hover:bg-white text-gray-700 border border-gray-300'
                   }`}
                 aria-label="Next image"
               >
@@ -169,10 +169,10 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
           )}
         </div>
 
-        {/* Footer with dots indicator - Responsive spacing */}
+        {/* Footer with dots indicator - Properly centered */}
         {images.length > 1 && (
           <div
-            className={`flex justify-center items-center p-3 sm:p-4 space-x-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
+            className={`flex justify-center items-center p-3 sm:p-4 space-x-2 shrink-0 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
               }`}
           >
             {images.map((_, index) => (
@@ -188,12 +188,12 @@ const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode 
                   }
                 }}
                 className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-200 ${index === currentIndex
-                    ? isDarkMode
-                      ? 'bg-blue-400'
-                      : 'bg-blue-500'
-                    : isDarkMode
-                      ? 'bg-gray-600 hover:bg-gray-500'
-                      : 'bg-gray-300 hover:bg-gray-400'
+                  ? isDarkMode
+                    ? 'bg-blue-400'
+                    : 'bg-blue-500'
+                  : isDarkMode
+                    ? 'bg-gray-600 hover:bg-gray-500'
+                    : 'bg-gray-300 hover:bg-gray-400'
                   }`}
                 aria-label={`Go to image ${index + 1}`}
               />

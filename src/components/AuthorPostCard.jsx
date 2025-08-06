@@ -45,6 +45,14 @@ const AuthorPostCard = ({
   // Check if the current user has liked this post
   const isLikedByUser = postData?.likes?.some(userId => userId === login_user_id);
 
+  // Function to decode HTML entities
+  const decodeHtmlEntities = (text) => {
+    if (!text) return '';
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+  };
+
   useEffect(() => {
     const handleResize = () => {
       setWindowSize({
@@ -154,24 +162,92 @@ const AuthorPostCard = ({
     );
   };
 
+  const cleanContent = (content) => {
+    if (!content) return '';
+
+    // Remove Froala "Powered by" footer
+    const withoutFroala = content.replace(
+      /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
+      ''
+    );
+
+    // Remove all HTML tags
+    const withoutTags = withoutFroala.replace(/<[^>]+>/g, '').trim();
+
+    // Decode HTML entities
+    let decoded = decodeHtmlEntities(withoutTags);
+
+    // Handle long URLs or continuous text without spaces
+    decoded = decoded.replace(/(https?:\/\/[^\s]+)/g, (url) => {
+      // Add zero-width spaces to long URLs to allow breaking
+      return url.length > 30 ? url.replace(/(.{30})/g, '$1\u200B') : url;
+    });
+
+    // Add zero-width spaces after certain characters to allow breaking
+    decoded = decoded.replace(/([.,:;!?@#$%^&*()_+=\-\[\]{}|\\:";'<>?,./])/g, '$1\u200B');
+
+    return decoded;
+  };
+
+  const renderTitle = () => (
+    postData.title && (
+      <h2
+        onClick={handlePostDetails}
+        className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-gray-100 hover:text-blue-300' : 'hover:text-blue-700 text-gray-900'} font-bold mb-3`}
+        style={{
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+          hyphens: 'auto',
+          whiteSpace: 'pre-wrap'
+        }}
+      >
+        {postData.title}
+      </h2>
+    )
+  );
+
   const renderContent = () => {
-    const content = postData.content || '';
-    const plainContent = content.replace(/<[^>]+>/g, '');
+    const cleanedContent = cleanContent(postData.content);
+    const words = cleanedContent.split(' ');
 
     return (
-      <div className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}>
-        {plainContent.split(' ').length > 20 ? (
+      <div
+        className={`mb-3 ${isMobile ? 'text-sm' : 'text-base'} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'} leading-relaxed`}
+        style={{
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+          hyphens: 'auto',
+          whiteSpace: 'pre-wrap'
+        }}
+      >
+        {words.length > 20 ? (
           <>
-            {plainContent.split(' ').slice(0, 20).join(' ')}...
+            <span style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word'
+            }}>
+              {words.slice(0, 20).join(' ')}...
+            </span>
             <button
-              className={`${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} cursor-pointer font-medium ml-1`}
+              className={`${isDarkMode
+                ? 'text-blue-400 hover:text-blue-300'
+                : 'text-blue-600 hover:text-blue-800'
+                } cursor-pointer font-medium ml-1`}
               onClick={handleCommentClick}
+              style={{
+                whiteSpace: 'nowrap'
+              }}
             >
               See more
             </button>
           </>
         ) : (
-          plainContent
+          <span style={{
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word'
+          }}>
+            {cleanedContent}
+          </span>
         )}
       </div>
     );
@@ -183,7 +259,14 @@ const AuthorPostCard = ({
       tags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {tags.map((tag, index) => (
-            <span key={index} className={`${isDarkMode ? 'bg-primary text-blue-200' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}>
+            <span
+              key={index}
+              className={`${isDarkMode ? 'bg-primary text-blue-200' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}
+              style={{
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            >
               {tag}
             </span>
           ))}
@@ -333,7 +416,6 @@ const AuthorPostCard = ({
       </div>
     )
   ), [postData.images, handleImageClick]);
-
 
   const ImageModal = ({ images, currentIndex, onClose, onNext, onPrev, isDarkMode = false }) => {
     const [imageLoading, setImageLoading] = useState(true);
@@ -498,12 +580,28 @@ const AuthorPostCard = ({
 
   return (
     <>
-      <div className={`rounded-lg ${isDarkMode ? 'bg-gray-800 shadow-dark' : 'bg-white shadow'} mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
+      {/* Main card container with proper width constraints */}
+      <div
+        className={`rounded-lg ${isDarkMode ? 'bg-gray-800 shadow-dark' : 'bg-white shadow'} mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
+          overflow: 'hidden'
+        }}
+      >
+        {/* Header section */}
+        <div className="flex justify-between items-center mb-3" style={{ minWidth: 0, width: '100%' }}>
+          <div className="flex items-center gap-2" style={{ minWidth: 0, flex: 1 }}>
             {renderAuthorAvatar()}
-            <div className="flex flex-col items-start">
-              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+            <div className="flex flex-col items-start" style={{ minWidth: 0, flex: 1 }}>
+              <span
+                className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}
+                style={{
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word'
+                }}
+              >
                 {author.userName || author.name || "User"}
               </span>
               <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -529,13 +627,11 @@ const AuthorPostCard = ({
           </Dropdown>
         </div>
 
-        {postData.title && (
-          <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-gray-100 hover:text-blue-300' : 'hover:text-blue-700 text-gray-900'} font-bold mb-3`}>
-            {postData.title}
-          </h2>
-        )}
-
-        {renderContent()}
+        {/* Content section with proper width constraints */}
+        <div style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+          {renderTitle()}
+          {renderContent()}
+        </div>
 
         {renderImageGrid}
 
@@ -579,7 +675,7 @@ const AuthorPostCard = ({
 
       {showImageModal && postData.images && postData.images.length > 0 && (
         <ImageModal
-          images={postData.images.map(img => getImageUrl(img))}
+          images={postData.images}
           currentIndex={currentImageIndex}
           onClose={handleCloseModal}
           onNext={handleNextImage}

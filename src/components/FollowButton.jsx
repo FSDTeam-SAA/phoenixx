@@ -4,6 +4,7 @@ import { HiMiniBellAlert, HiOutlineBell } from "react-icons/hi2";
 import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '../features/Follow/followApi';
 
 const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
+
   const [isFollowing, setIsFollowing] = useState(false);
 
   const {
@@ -26,6 +27,36 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
     }
   }, [subscriptionsData, subscribedToId]);
 
+  // Check if user is logged in
+  const isLoggedIn = () => {
+    const token = localStorage.getItem('loginToken');
+    return token && token.trim() !== '';
+  };
+
+  // Redirect to login page
+  const redirectToLogin = () => {
+    // You can customize this URL based on your routing setup
+    window.location.href = '/auth/login';
+    // Or if you're using React Router, you might use:
+    // navigate('/login');
+  };
+
+  const handleButtonClick = () => {
+    // Check if user is logged in first
+    if (!isLoggedIn()) {
+      toast.error("Please login to follow users");
+      redirectToLogin();
+      return;
+    }
+
+    // Proceed with follow/unfollow action
+    if (isFollowing) {
+      unfollowUser();
+    } else {
+      followUser();
+    }
+  };
+
   const followUser = async () => {
     try {
       await follow({ subscriberId, subscribedToId }).unwrap();
@@ -33,6 +64,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
       toast.success("Following Successfully")
     } catch (error) {
       console.error("Error following user:", error);
+      toast.error("Failed to follow user");
     }
   };
 
@@ -43,18 +75,15 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
       toast.success("Unfollowing Successfully")
     } catch (error) {
       console.error("Error unfollowing user:", error);
+      toast.error("Failed to unfollow user");
     }
   };
-
-  if (subscriptionsError) {
-    return <button disabled>Error loading follow status</button>;
-  }
 
   const isLoading = followLoading || unfollowLoading;
 
   return (
     <button
-      onClick={isFollowing ? unfollowUser : followUser}
+      onClick={handleButtonClick}
       disabled={isLoading}
       className={`${className} w-full px-4 py-2 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
       style={{ border: "1px solid #1530c7" }}

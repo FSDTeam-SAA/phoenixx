@@ -150,7 +150,7 @@ const ChatWindow = ({ id }) => {
 
       const newScrollHeight = container.scrollHeight;
       const heightDifference = newScrollHeight - prevScrollHeight;
-      container.scrollTop = prevScrollTop + heightDifference;
+      container.scrollTop = heightDifference; // Changed from prevScrollTop + heightDifference
     } finally {
       setLoadingMore(false);
     }
@@ -418,9 +418,9 @@ const ChatWindow = ({ id }) => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-3 border-b ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-blue-50 border-blue-200'}`}
+          className={`p-3 border-b ${isDarkMode ? 'bg-gray-900 border-gray-700 text-gray-200' : 'bg-blue-50 border-blue-200 text-gray-800'}`}
         >
-          <div className="flex items-center text-sm font-medium text-blue-600">
+          <div className={`flex items-center text-sm font-medium ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
             <TbPinned className="mr-2" />
             Your Pinned Message
           </div>
@@ -432,17 +432,17 @@ const ChatWindow = ({ id }) => {
               currentUserPinnedMessages.map(msg => (
                 <div
                   key={msg._id}
-                  className="flex items-start justify-between text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
+                  className={`flex items-start justify-between text-sm cursor-pointer p-2 rounded ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-100 text-gray-600'}`}
                   onClick={() => scrollToPinnedMessage(msg._id)}
                 >
-                  <span className="truncate text-gray-600">
+                  <span className="truncate">
                     {msg.text || (msg.images?.length > 0 ? "📷 Image" : "Message")}
                   </span>
                   <Button
                     type="text"
                     size="small"
                     icon={<TbPinned />}
-                    className="text-gray-500 hover:text-blue-500"
+                    className={isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-500 hover:text-blue-500'}
                     onClick={(e) => {
                       e.stopPropagation();
                       handlePinMessage(msg._id, 'unpin');
@@ -452,17 +452,17 @@ const ChatWindow = ({ id }) => {
               ))
             ) : (
               <div
-                className="flex items-start justify-between text-sm cursor-pointer hover:bg-blue-100 p-2 rounded"
+                className={`flex items-start justify-between text-sm cursor-pointer p-2 rounded ${isDarkMode ? 'hover:bg-gray-700 text-gray-200' : 'hover:bg-blue-100 text-gray-600'}`}
                 onClick={() => scrollToPinnedMessage(currentUserPinnedMessages[0]._id)}
               >
-                <span className="truncate text-gray-600">
+                <span className="truncate">
                   {currentUserPinnedMessages[0].text || (currentUserPinnedMessages[0].images?.length > 0 ? "📷 Image" : "Message")}
                 </span>
                 <Button
                   type="text"
                   size="small"
                   icon={<TbPinned />}
-                  className="text-gray-500 hover:text-blue-500"
+                  className={isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-500 hover:text-blue-500'}
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePinMessage(currentUserPinnedMessages[0]._id, 'unpin');
@@ -477,7 +477,7 @@ const ChatWindow = ({ id }) => {
                 type="link"
                 size="small"
                 onClick={() => setShowAllPinnedMessages(!showAllPinnedMessages)}
-                className="text-blue-500 hover:text-blue-700"
+                className={isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-500 hover:text-blue-700'}
               >
                 {showAllPinnedMessages ? 'See less' : 'See more'}
               </Button>
@@ -743,7 +743,7 @@ const ChatWindow = ({ id }) => {
                     <div className={`absolute z-50 ${isCurrentUser ? "-left-3 -bottom-4" : "-right-3 -bottom-4"}`}>
                       {message.reactions?.length > 0 && (
                         <motion.div className="flex gap-1 mt-2">
-                          <div className={`flex items-center px-1 py-1 rounded-full backdrop-blur-lg border border-gray-200`}>
+                          <div className={`flex items-center px-1 py-1 rounded-full backdrop-blur-lg border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}>
                             {message.reactions.map((reaction, i) => (
                               <Tooltip key={i} title={reaction?.userId?.userName || 'User'}>
                                 <span className="text-sm">
@@ -944,21 +944,23 @@ const ChatWindow = ({ id }) => {
             exit={{ opacity: 0, height: 0 }}
             className={`p-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
           >
-            <div className="relative inline-block right-0">
-              <Button
-                type="text"
-                className={`absolute top-3 -right-24 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'
-                  } hover:bg-red-500 hover:text-white transition-all`}
-                onClick={removeImage}
-              >
-                ✕
-              </Button>
+            <div className="relative inline-block">
               <img
                 src={imagePreview}
                 alt="Preview"
-                className={`h-20 w-auto rounded-lg object-cover border-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'
-                  }`}
+                className={`h-20 w-auto rounded-lg object-cover border-2 ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}
               />
+              <button
+                type="button"
+                className={`absolute cursor-pointer -top-2 -right-2 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md z-10 ${isDarkMode
+                  ? 'bg-gray-700 text-white hover:bg-red-500'
+                  : 'bg-white text-gray-800 hover:bg-red-500 hover:text-white'
+                  } transition-colors`}
+                onClick={removeImage}
+                aria-label="Remove image"
+              >
+                ✕
+              </button>
             </div>
           </motion.div>
         )}
