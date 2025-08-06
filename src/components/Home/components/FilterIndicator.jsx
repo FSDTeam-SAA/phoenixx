@@ -53,20 +53,9 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters, onSortChange }) => 
           )}
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Sort by:</span>
-            <select 
-              onChange={(e) => handleSortChange(e.target.value)}
-              value={urlParams.sort || 'newest'}
-              className={`border rounded px-2 py-1 ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}
-            >
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="popular">Popular</option>
-            </select>
-          </div>
-          <span 
-            className='text-blue-600 font-medium cursor-pointer' 
+
+          <span
+            className='text-blue-600 font-medium cursor-pointer'
             onClick={onClearFilters}
           >
             Clear All Filters

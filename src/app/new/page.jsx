@@ -2,6 +2,9 @@
 import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { useCreatePostMutation, useEditPostMutation } from '@/features/post/postApi';
 import { SaveOutlined, UploadOutlined } from '@ant-design/icons';
+import { Underline } from "@tiptap/extension-underline";
+import { EditorContent, useEditor } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
 import {
   Button,
   Card,
@@ -12,20 +15,17 @@ import {
   Select,
   Space,
   Typography,
-  Upload
+  Upload,
+  message
 } from 'antd';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { MdFormatListBulleted } from 'react-icons/md';
+import { VscListOrdered } from "react-icons/vsc";
 import { baseURL } from '../../../utils/BaseURL';
 import { ThemeContext } from '../ClientLayout';
-
-// Froala Editor imports
-import 'froala-editor/css/froala_editor.pkgd.min.css';
-import 'froala-editor/css/froala_style.min.css';
-import 'froala-editor/css/themes/dark.min.css';
-import FroalaEditor from 'react-froala-wysiwyg';
 
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -40,10 +40,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [initialImages, setInitialImages] = useState([]);
-  const [editorInitialized, setEditorInitialized] = useState(false);
-  const [editorKey, setEditorKey] = useState(0);
-  const [editorInstance, setEditorInstance] = useState(null);
-  const editorRef = useRef(null);
   const debounceTimeoutRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
@@ -55,23 +51,17 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const { data: subcategoryData, isLoading: isSubcategoriesLoading } = useSubCategoriesQuery(category, {
     skip: !category,
     refetchOnMountOrArgChange: true,
-    tagTypes: ['subcategory']
   });
-  const [editPost] = useEditPostMutation();
 
-  // Responsive breakpoints
+  const [editPost] = useEditPostMutation();
   const isMobile = !screens.md;
 
   // Utility function to count words
   const countWords = useCallback((html) => {
     if (!html) return 0;
-
-    // Remove HTML tags and get plain text
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const plainText = tempDiv.textContent || tempDiv.innerText || '';
-
-    // Count words (split by whitespace and filter empty strings)
     const words = plainText.trim().split(/\s+/).filter(word => word.length > 0);
     return words.length;
   }, []);
@@ -92,250 +82,75 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }));
   }, [category, subcategoryData]);
 
-  // Initialize Froala Editor when component mounts
+  // Tiptap Editor Setup
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          HTMLAttributes: {
+            class: 'list-disc pl-5',
+          },
+        },
+        orderedList: {
+          keepMarks: true,
+          HTMLAttributes: {
+            class: 'list-decimal pl-5',
+          },
+        },
+      }),
+      Underline
+    ],
+    content: description,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      const words = countWords(html);
+      requestAnimationFrame(() => {
+        setDescription(html);
+        setWordCount(words);
+        if (formErrors.description) {
+          setFormErrors(prev => ({ ...prev, description: null }));
+        }
+        if (words > 1000) {
+          const cleanText = editor.getText().split(/\s+/).slice(0, 1000).join(' ');
+          editor.commands.setContent(cleanText);
+          setWordCount(1000);
+          toast.error('Word limit of 1000 exceeded. Content has been truncated.');
+        }
+      });
+    },
+    editorProps: {
+      attributes: {
+        class: `focus:outline-none p-4 min-h-[240px] max-h-[240px] overflow-y-auto ${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'
+          }`,
+      },
+    },
+  });
+
   useEffect(() => {
-    let mounted = true;
-    let editorScriptsLoaded = false;
-
-    const initializeEditor = async () => {
-      try {
-        if (!editorScriptsLoaded) {
-          // Dynamically import Froala Editor scripts
-          await Promise.all([
-            import('froala-editor/js/froala_editor.pkgd.min.js'),
-            import('froala-editor/js/plugins/lists.min.js')
-          ]);
-          editorScriptsLoaded = true;
-        }
-
-        if (mounted) {
-          setEditorInitialized(true);
-        }
-      } catch (error) {
-        console.error('Failed to load Froala Editor:', error);
-        if (mounted) {
-          setTimeout(() => {
-            initializeEditor();
-          }, 1000);
-        }
-      }
-    };
-
-    initializeEditor();
-
-    return () => {
-      mounted = false;
-      if (editorRef.current && editorRef.current.getEditor) {
-        try {
-          editorRef.current.getEditor().destroy();
-        } catch (e) {
-          console.error('Error destroying editor:', e);
-        }
-      }
-    };
-  }, []);
-
-  // Reset editor if dark mode changes
-  useEffect(() => {
-    if (editorInitialized) {
-      setEditorKey(prev => prev + 1);
+    if (editor) {
+      editor.commands.setContent(description);
     }
-  }, [isDarkMode]);
+  }, [description, editor]);
 
-  // Froala Editor Configuration
-  const config = useMemo(() => ({
-    placeholderText: 'Write your post description here... (Max 1000 words)',
-    heightMin: 300,
-    heightMax: 300, // Fixed height
-    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL'],
-    pluginsEnabled: ['lists'],
-    quickInsertTags: [],
-    listAdvancedTypes: false,
-    toolbarInline: false,
-    charCounterCount: false,
-    imageUpload: false,
-    imageInsertButtons: [],
-    imageEditButtons: [],
-    imagePaste: false,
-    imagePasteProcess: false,
-    theme: isDarkMode ? 'dark' : undefined,
-    scrollableContainer: 'body',
-    events: {
-      'initialized': function () {
-        const editor = this;
-        setEditorInstance(editor);
-
-        setTimeout(() => {
-          if (editor.$tb) {
-            editor.$tb.find('.fr-command[data-cmd="formatOL"]').show();
-            editor.$tb.find('.fr-command[data-cmd="formatUL"]').show();
-            editor.$tb.find('.fr-command[data-cmd="formatOL"]').removeClass('fr-dropdown');
-            editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
-          }
-        }, 100);
-      },
-      'contentChanged': function () {
-        const editor = this;
-        const content = editor.html.get();
-        const words = countWords(content);
-
-        // Clear previous timeout
-        if (debounceTimeoutRef.current) {
-          clearTimeout(debounceTimeoutRef.current);
-        }
-
-        // Debounce the word count update and validation
-        debounceTimeoutRef.current = setTimeout(() => {
-          setWordCount(words);
-
-          // If word limit exceeded, truncate content
-          if (words > 1000) {
-            // Get plain text and limit to 1000 words
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = content;
-            const plainText = tempDiv.textContent || tempDiv.innerText || '';
-            const wordsArray = plainText.trim().split(/\s+/);
-            const truncatedWords = wordsArray.slice(0, 1000);
-            const truncatedText = truncatedWords.join(' ');
-
-            // Set the truncated content back to editor
-            editor.html.set(truncatedText);
-            setWordCount(1000);
-            toast.error('Word limit of 1000 exceeded. Content has been truncated.');
-          }
-        }, 300);
-      },
-      'paste.before': function (e) {
-        // Prevent image paste by checking clipboard data
-        const clipboardData = e.clipboardData || window.clipboardData;
-        if (clipboardData && clipboardData.items) {
-          for (let i = 0; i < clipboardData.items.length; i++) {
-            const item = clipboardData.items[i];
-            if (item.type.indexOf('image') !== -1) {
-              e.preventDefault();
-              toast.error('Image pasting is not allowed. Please use the image upload section.');
-              return false;
-            }
-          }
-        }
-      },
-      'image.beforeUpload': function () {
-        // Block any image upload attempts
-        toast.error('Image upload through editor is disabled. Please use the image upload section.');
-        return false;
-      }
-    }
-  }), [isDarkMode, countWords]);
-
-  const handleModelChange = useCallback((newContent) => {
-    // Use requestAnimationFrame to prevent blocking the UI
-    requestAnimationFrame(() => {
-      setDescription(newContent);
-      if (formErrors.description) {
-        setFormErrors(prev => ({ ...prev, description: null }));
-      }
-      // Auto-save recovery content
-      try {
-        localStorage.setItem('editorRecovery', newContent);
-      } catch (error) {
-        console.warn('Failed to save to localStorage:', error);
-      }
-    });
-  }, [formErrors.description]);
-
-  // CSS to hide dropdown elements and make buttons simple + fixed height styling
+  // Handle dark mode change
   useEffect(() => {
-    const css = `
-      .fr-dropdown-arrow,
-      .fr-dropdown-menu {
-        display: none !important;
-      }
-      
-      .fr-command[data-cmd="insertOrderedList"],
-      .fr-command[data-cmd="insertUnorderedList"] {
-        position: relative;
-      }
-      
-      .fr-command[data-cmd="insertOrderedList"]::after,
-      .fr-command[data-cmd="insertUnorderedList"]::after {
-        display: none !important;
-      }
-      
-      [data-cmd*="listStyle"],
-      .fr-list-style,
-      .fr-dropdown[data-name*="list"] {
-        display: none !important;
-      }
-      
-      .fr-toolbar .fr-command[data-cmd="insertOrderedList"],
-      .fr-toolbar .fr-command[data-cmd="insertUnorderedList"] {
-        background: none;
-        border: none;
-        cursor: pointer;
-      }
-      
-      .fr-toolbar .fr-command[data-cmd="insertOrderedList"]:hover,
-      .fr-toolbar .fr-command[data-cmd="insertUnorderedList"]:hover {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-      
-      .fr-toolbar .fr-command[data-cmd="insertOrderedList"].fr-active,
-      .fr-toolbar .fr-command[data-cmd="insertUnorderedList"].fr-active {
-        background-color: rgba(0, 0, 0, 0.2);
-      }
-      
-      /* Fixed height with scrollbar styling */
-      .fr-wrapper {
-        height: 300px !important;
-        max-height: 300px !important;
-        overflow: hidden !important;
-      }
-      
-      .fr-element {
-        height: 240px !important;
-        max-height: 240px !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-      }
-      
-      /* Custom scrollbar styling */
-      .fr-element::-webkit-scrollbar {
-        width: 8px;
-      }
-      
-      .fr-element::-webkit-scrollbar-track {
-        background: ${isDarkMode ? '#374151' : '#f1f5f9'};
-        border-radius: 4px;
-      }
-      
-      .fr-element::-webkit-scrollbar-thumb {
-        background: ${isDarkMode ? '#6b7280' : '#cbd5e1'};
-        border-radius: 4px;
-        transition: background-color 0.2s;
-      }
-      
-      .fr-element::-webkit-scrollbar-thumb:hover {
-        background: ${isDarkMode ? '#9ca3af' : '#94a3b8'};
-      }
-      
-      /* Firefox scrollbar */
-      .fr-element {
-        scrollbar-width: thin;
-        scrollbar-color: ${isDarkMode ? '#6b7280 #374151' : '#cbd5e1 #f1f5f9'};
-      }
-    `;
+    if (editor) {
+      const updateClasses = () => {
+        const editorWrapper = document.querySelector('.tiptap-editor-wrapper');
+        if (editorWrapper) {
+          editorWrapper.className = `tiptap-editor-wrapper rounded-lg border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
+            }`;
+        }
+        const content = editor.view.dom;
+        content.className = `${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'
+          } p-4 min-h-[240px] max-h-[240px] overflow-y-auto focus:outline-none`;
+      };
+      updateClasses();
+    }
+  }, [isDarkMode, editor]);
 
-    const styleElement = document.createElement('style');
-    styleElement.textContent = css;
-    document.head.appendChild(styleElement);
-
-    return () => {
-      if (document.head.contains(styleElement)) {
-        document.head.removeChild(styleElement);
-      }
-    };
-  }, [isDarkMode]);
-
+  // Auto-save draft
   useEffect(() => {
     if (!isEditing && !initialValues) {
       const savedDraft = localStorage.getItem('blogPostDraft');
@@ -433,22 +248,19 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     const validFiles = newFileList.filter(file => {
       return file.status !== 'error';
     }).slice(0, 3);
-
     setFileList(validFiles);
   };
 
   const beforeUpload = (file) => {
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
-      toast.error('Only image files can be uploaded!');
+      message.error('Only image files can be uploaded!');
       return Upload.LIST_IGNORE;
     }
-
     const fileSizeInMB = file.size / 1024 / 1024;
     if (fileSizeInMB > 500) {
-      toast.success(`Uploading large files (${fileSizeInMB.toFixed(2)} MB). Please wait...`);
+      message.info(`Uploading large files (${fileSizeInMB.toFixed(2)} MB). Please wait...`);
     }
-
     return false;
   };
 
@@ -478,8 +290,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     setDescription('');
     setWordCount(0);
     setFileList([]);
-    if (editorRef.current && editorRef.current.getEditor) {
-      editorRef.current.getEditor().html.set('');
+    if (editor) {
+      editor.commands.setContent('');
     }
     toast.success('Draft cleared successfully');
   };
@@ -559,15 +371,15 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
       if (isEditing && response.success) {
         refetchPosts();
-        myCommentPostRefetch()
+        myCommentPostRefetch();
       }
+
       toast.success(isEditing ? 'Post updated successfully' : 'Post created successfully');
 
       if (!isEditing) {
         router.push('/');
         localStorage.removeItem('blogPostDraft');
       }
-
       if (onSuccess) onSuccess();
 
       if (!isEditing) {
@@ -577,8 +389,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         setDescription('');
         setWordCount(0);
         setFileList([]);
-        if (editorRef.current && editorRef.current.getEditor) {
-          editorRef.current.getEditor().html.set('');
+        if (editor) {
+          editor.commands.setContent('');
         }
       }
     } catch (error) {
@@ -603,197 +415,48 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   return (
     <>
       <style jsx global>{`
-        .fr-dark-mode .fr-wrapper {
-          background-color: #1f2937 !important;
-          color: #e5e7eb !important;
+        .tiptap-editor-wrapper {
+          border: 1px solid ${isDarkMode ? '#4b5563' : '#d1d5db'};
+          border-radius: 0.5rem;
+          overflow: hidden;
+          transition: border-color 0.2s;
         }
-        
-        .fr-dark-mode .fr-element {
-          background-color: #1f2937 !important;
-          color: #e5e7eb !important;
+        .tiptap-editor-wrapper .ProseMirror {
+          padding: 0.5rem;
+          outline: none;
+          line-height: 1.6;
         }
-        
-        .fr-dark-mode .fr-placeholder {
-          color: #9ca3af !important;
+        .tiptap-editor-wrapper .ProseMirror::-webkit-scrollbar {
+          width: 8px;
         }
-        
-        .fr-dark-mode .fr-toolbar {
-          background-color: #111827 !important;
+        .tiptap-editor-wrapper .ProseMirror::-webkit-scrollbar-track {
+          background: ${isDarkMode ? '#374151' : '#f1f5f9'};
         }
-        
-        .fr-dark-mode .fr-command.fr-btn {
-          background-color: transparent !important;
-          color: #e5e7eb !important;
+        .tiptap-editor-wrapper .ProseMirror::-webkit-scrollbar-thumb {
+          background: ${isDarkMode ? '#6b7280' : '#cbd5e1'};
+          border-radius: 4px;
         }
-        
-        .fr-dark-mode .fr-command.fr-btn:hover {
-          background-color: #374151 !important;
-          color: #ffffff !important;
+        .tiptap-editor-wrapper .ProseMirror::-webkit-scrollbar-thumb:hover {
+          background: ${isDarkMode ? '#9ca3af' : '#94a3b8'};
         }
-        
-        .fr-dark-mode .fr-command.fr-btn.fr-active {
-          background-color: #3b82f6 !important;
-          color: #ffffff !important;
+        .tiptap-editor-wrapper .ProseMirror {
+          scrollbar-width: thin;
+          scrollbar-color: ${isDarkMode ? '#6b7280 #374151' : '#cbd5e1 #f1f5f9'};
         }
-        
-        .fr-dark-mode .fr-separator {
-          background-color: #374151 !important;
-        }
-        
-        .fr-dark-mode .fr-popup {
-          background-color: #111827 !important;
-          color: #e5e7eb !important;
-        }
-        
-        .fr-dark-mode .fr-dropdown-menu {
-          background-color: #111827 !important;
-          border-color: #374151 !important;
-        }
-        
-        .fr-dark-mode .fr-dropdown-menu .fr-dropdown-item {
-          color: #e5e7eb !important;
-        }
-        
-        .fr-dark-mode .fr-dropdown-menu .fr-dropdown-item:hover {
-          background-color: #374151 !important;
-          color: #ffffff !important;
-        }
-        
-        .fr-dark-mode .fr-counter {
-          background-color: #111827 !important;
-          color: #9ca3af !important;
-        }
-        
-        .fr-dark-mode .fr-tooltip {
-          background-color: #111827 !important;
-        }
-        
-        .fr-element:not(.fr-dark-mode) {
-          background-color: #ffffff !important;
-          color: #1f2937 !important;
-        }
-        
-        .fr-command.fr-btn:not(.fr-dark-mode) {
-          color: #1f2937 !important;
-        }
-        
-        .fr-command.fr-btn:not(.fr-dark-mode):hover {
-          background-color: #f3f4f6 !important;
-        }
-        
-        .froala-editor-container.dark .fr-wrapper,
-        .froala-editor-container.dark .fr-element {
-          background-color: #1f2937 !important;
-          color: #e5e7eb !important;
-        }
-        
-        .froala-editor-container.dark .fr-toolbar {
-          background-color: #111827 !important;
-          border-color: #374151 !important;
-        }
-        
-        .froala-editor-container.dark .fr-command.fr-btn,
-        .froala-editor-container.dark .fr-command.fr-btn i,
-        .froala-editor-container.dark .fr-command.fr-btn svg,
-        .froala-editor-container.dark .fr-command.fr-btn path,
-        .froala-editor-container.dark .fr-command.fr-btn::before,
-        .froala-editor-container.dark .fr-command.fr-btn::after {
-          color: #ffffff !important;
-          fill: #ffffff !important;
-        }
-        
-        .froala-editor-container.dark .fr-command.fr-btn:hover,
-        .froala-editor-container.dark .fr-command.fr-btn:hover i,
-        .froala-editor-container.dark .fr-command.fr-btn:hover svg,
-        .froala-editor-container.dark .fr-command.fr-btn:hover path {
-          background-color: #374151 !important;
-          color: #ffffff !important;
-          fill: #ffffff !important;
-        }
-        
-        .froala-editor-container.dark .fr-command.fr-btn.fr-active,
-        .froala-editor-container.dark .fr-command.fr-btn.fr-active i,
-        .froala-editor-container.dark .fr-command.fr-btn.fr-active svg,
-        .froala-editor-container.dark .fr-command.fr-btn.fr-active path {
-          background-color: #3b82f6 !important;
-          color: #ffffff !important;
-          fill: #ffffff !important;
-        }
-        
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="bold"] i,
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="italic"] i,
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="underline"] i,
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatOL"] i,
-        .froala-editor-container.dark .fr-toolbar .fr-command[data-cmd="formatUL"] i {
-          color: #ffffff !important;
-        }
-        
-        .froala-editor-container.dark .fr-btn i[class*="fa-"],
-        .froala-editor-container.dark .fr-btn [class*="fr-svg"] {
-          color: #ffffff !important;
-          fill: #ffffff !important;
-        }
-        
-        .froala-editor-container.dark .fr-placeholder {
-          color: #9ca3af !important;
-        }
-        
-        .froala-editor-container.dark .fr-counter {
-          background-color: #111827 !important;
-          color: #9ca3af !important;
-        }
-
-        .fr-command[data-cmd="formatOL"]:after,
-        .fr-command[data-cmd="formatUL"]:after {
-          display: none !important;
-        }
-        
-        .fr-dropdown-menu {
-          display: none !important;
-        }
-        
-        .fr-command[data-cmd="formatOL"],
-        .fr-command[data-cmd="formatUL"] {
-          display: inline-block !important;
-          visibility: visible !important;
-        }
-        
-        .fr-element ol {
-          list-style-type: decimal !important;
-        }
-        
-        .fr-element ul {
-          list-style-type: disc !important;
-        }
-
-        .froala-editor-container.dark .fr-toolbar .fr-command {
-          color: #ffffff !important;
-        }
-
-        .froala-editor-container.dark .fr-toolbar .fr-command > * {
-          color: inherit !important;
-          fill: currentColor !important;
-        }
-
-        /* Word count indicator styling */
         .word-count-indicator {
           transition: color 0.2s ease-in-out;
         }
-        
         .word-count-warning {
-          color: #f59e0b !important;
+          color: #f59e0b;
         }
-        
         .word-count-error {
-          color: #ef4444 !important;
+          color: #ef4444;
         }
       `}</style>
 
-      <div className={`min-h-screen ${isEditing ? '' : 'py-4 sm:py-8 px-2 sm:px-4'}  transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+      <div className={`min-h-screen ${isEditing ? '' : 'py-4 sm:py-8 px-2 sm:px-4'} transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
         <div className="max-w-4xl mx-auto">
-          <Card
-            className={`rounded-xl shadow-lg border-0 overflow-hidden transition-colors duration-200 ${isEditing ? 'border-0 shadow-none' : ''} ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-          >
+          <Card className={`rounded-xl shadow-lg border-0 overflow-hidden ${isEditing ? 'border-0 shadow-none' : ''} ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             {!isEditing && (
               <div className="">
                 <Image
@@ -826,7 +489,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 )}
               </div>
 
-              {/* Category and Subcategory Selectors */}
+              {/* Category and Subcategory */}
               <div className="mb-6 sm:mb-8">
                 <Row gutter={[16, 16]}>
                   <Col xs={24} md={12}>
@@ -875,39 +538,76 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 </Row>
               </div>
 
-              {/* Content Editor */}
+              {/* Description Editor */}
               <div className="mb-6 sm:mb-8">
                 <div className="flex justify-between items-center mb-2">
                   <Title level={5} className={`mb-0 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                     Description <span className="text-red-500">*</span>
                   </Title>
-                  <div className={`text-sm font-medium word-count-indicator ${wordCount > 900 ? 'word-count-error' :
-                    wordCount > 800 ? 'word-count-warning' :
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
+                  <div className={`text-sm font-medium word-count-indicator ${wordCount > 900 ? 'word-count-error' : wordCount > 800 ? 'word-count-warning' : isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {wordCount}/1000 words
                   </div>
                 </div>
                 <div
-                  className={`froala-editor-container ${isDarkMode ? 'dark' : 'light'} rounded-lg overflow-hidden transition-all ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} ${formErrors.description ? 'border-red-500' : 'border'}`}
-                  style={{ border: `1px solid ${formErrors.description ? '#ef4444' : isDarkMode ? '#4b5563' : '#d1d5db'}` }}
+                  className="tiptap-editor-wrapper"
+                  onPaste={(e) => {
+                    if (e.clipboardData.files.length > 0) {
+                      e.preventDefault();
+                      toast.error('Image pasting is not allowed. Please use the image upload section.');
+                    }
+                  }}
                 >
-                  {editorInitialized ? (
-                    <FroalaEditor
-                      key={`froala-editor-${editorKey}`}
-                      ref={editorRef}
-                      config={config}
-                      model={description}
-                      onModelChange={handleModelChange}
-                    />
-                  ) : (
-                    <div className={`p-4 h-[300px] flex items-center justify-center ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-700'}`}>
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                        Loading editor...
-                      </div>
-                    </div>
-                  )}
+                  {/* Toolbar */}
+                  <div
+                    className={`flex gap-1 px-1 py-2 border-b ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => editor?.chain().focus().toggleBold().run()}
+                      className={`px-4 py-2 cursor-pointer rounded ${editor?.isActive('bold') ? 'bg-blue-700 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                        }`}
+                    >
+                      <strong>B</strong>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editor?.chain().focus().toggleItalic().run()}
+                      className={`px-[18px] py-2 cursor-pointer rounded ${editor?.isActive('italic') ? 'bg-blue-700 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                        }`}
+                    >
+                      <em>I</em>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editor?.chain().focus().toggleUnderline().run()}
+                      className={`px-4 py-2 cursor-pointer rounded ${editor?.isActive('underline') ? 'bg-blue-700 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                        }`}
+                    >
+                      <u>U</u>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                      className={`px-3 py-2 cursor-pointer rounded ${editor?.isActive('bulletList') ? 'bg-blue-700 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                        }`}
+                    >
+                      <MdFormatListBulleted size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+                      className={`px-3 py-2 cursor-pointer rounded ${editor?.isActive('orderedList') ? 'bg-blue-700 text-white' : isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                        }`}
+                    >
+                      <VscListOrdered size={20} />
+                    </button>
+                  </div>
+
+                  {/* Editor */}
+                  <EditorContent editor={editor} />
+
+                  {/* Word Count */}
+
                 </div>
                 {formErrors.description && (
                   <div className="text-red-500 mt-1 text-sm">{formErrors.description}</div>
@@ -919,9 +619,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                   Featured Images <span className="text-xs font-normal">(Maximum 3)</span>
                 </Title>
-                <Card
-                  className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
-                >
+                <Card className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}>
                   <Upload
                     accept="image/*"
                     listType={isMobile ? "picture" : "picture-card"}
@@ -934,11 +632,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                   >
                     {fileList.length < 3 && (
                       isMobile ? (
-                        <Button
-                          icon={<UploadOutlined />}
-                          size="middle"
-                          className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}
-                        >
+                        <Button icon={<UploadOutlined />} size="middle" className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
                           Add Photos
                         </Button>
                       ) : (

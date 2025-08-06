@@ -79,13 +79,28 @@ const ProfilePostCard = ({
 
   const handleLike = () => onLike?.(postData._id);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const postId = postData._id;
-    navigator.clipboard.writeText(`${baseURL}/posts/${postId}`).then(() => {
-      toast.success("Link copied successfully");
-    }).catch(() => {
+    const url = `${baseURL}/posts/${postId}`;
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied successfully");
+      } else {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success("Link copied successfully");
+      }
+    } catch (err) {
       toast.error("Failed to copy link");
-    });
+      console.error('Failed to copy: ', err);
+    }
   };
 
   const handleOptionSelect = ({ key }) => {
@@ -110,12 +125,6 @@ const ProfilePostCard = ({
       ''
     ).trim();
   };
-
-  // Replace this line:
-  // dangerouslySetInnerHTML={{ __html: post.content }}
-
-  // With this:
-
 
   const renderAuthorAvatar = () => {
     const author = postData?.author || {};
@@ -302,8 +311,6 @@ const ProfilePostCard = ({
   const commentsCount = postData.comments?.length || 0;
   const likesCount = postData.likes?.length || 0;
   const readsCount = postData.reads || 0;
-
-
 
   return (
     <>

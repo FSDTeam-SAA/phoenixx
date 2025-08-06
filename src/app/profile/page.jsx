@@ -251,10 +251,8 @@ const ProfilePage = () => {
               className={`shadow-sm hover:shadow transition-shadow ${isDarkMode ? 'dark-card' : 'light-card'}`}
               style={{
                 backgroundColor: themeStyles.cardBackground,
-                borderColor: themeStyles.borderColor
-              }}
-              bodyStyle={{
-                padding: screens.xs ? '12px' : '16px'
+                borderColor: themeStyles.borderColor,
+                 padding: screens.xs ? '12px' : '16px'
               }}
             >
               <Space direction="vertical" size="middle" className="w-full">

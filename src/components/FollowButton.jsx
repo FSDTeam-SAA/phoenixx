@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { HiMiniBellAlert, HiOutlineBell } from "react-icons/hi2";
+import { RiUserFollowFill, RiUserUnfollowLine } from 'react-icons/ri';
 import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '../features/Follow/followApi';
 
 const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
@@ -89,7 +89,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
       style={{ border: "1px solid #1530c7" }}
     >
       {isLoading ?
-        <HiMiniBellAlert
+        <RiUserFollowFill
           className='text-white'
           size={20}
           style={{
@@ -97,7 +97,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
             transformOrigin: 'center'
           }}
         /> :
-        (isFollowing ? <HiMiniBellAlert className='text-white' size={20} /> : <HiOutlineBell className='text-white' size={20} />)
+        (isFollowing ? <RiUserFollowFill className='text-white' size={20} /> : <RiUserUnfollowLine className='text-white' size={20} />)
       }
     </button>
   );

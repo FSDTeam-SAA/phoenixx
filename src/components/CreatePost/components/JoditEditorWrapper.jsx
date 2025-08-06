@@ -100,7 +100,6 @@ const JoditEditorWrapper = ({
       <Card
         className={`border rounded-lg overflow-hidden hover:border-blue-300 transition-all p-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
           } ${formErrors.description ? 'border-red-500' : ''}`}
-        bodyStyle={{ padding: 0 }}
       >
         <div className={`${isDarkMode ? 'jodit-dark-theme' : ''}`}>
           <JoditEditor

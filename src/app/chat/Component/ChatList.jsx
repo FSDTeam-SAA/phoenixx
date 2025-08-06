@@ -523,6 +523,9 @@ const ChatList = ({ setIsChatActive, status }) => {
               const isRead = chat.lastMessage?.read || chat.unreadCount === 0;
               const isActiveChat = chat._id === id;
 
+
+              console.log(participant, 'participant info');
+
               return (
                 <motion.div
                   key={chat._id}
@@ -553,7 +556,7 @@ const ChatList = ({ setIsChatActive, status }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
                         <h3 className={`font-medium truncate ${isBlocked ? 'line-through' : ''} ${isRead ? '' : 'font-semibold'}`}>
-                          {participant?.userName || "User"}
+                          {participant?.name ? participant?.name : participant?.userName}
                         </h3>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>

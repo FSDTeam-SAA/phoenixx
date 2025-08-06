@@ -58,6 +58,7 @@ const ChatWindow = ({ id }) => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showAllPinnedMessages, setShowAllPinnedMessages] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -88,35 +89,40 @@ const ChatWindow = ({ id }) => {
       setShowReactionPicker({ messageId: null, show: false, position: null });
       form.resetFields();
       setShowAllPinnedMessages(false);
+      setShouldAutoScroll(true);
     }
   }, [id, dispatch, form, currentChatId]);
 
   useEffect(() => {
-    if (initialLoad && messages.length > 0) {
-      setTimeout(() => {
-        scrollToBottom('auto');
-        setInitialLoad(false);
-      }, 100);
-    } else if (isNearBottom && messages.length > 0 && !initialLoad) {
-      setTimeout(() => scrollToBottom('smooth'), 100);
-    }
-  }, [messages, initialLoad, isNearBottom]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showEmojiPicker && emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) &&
-        emojiButtonRef.current && !emojiButtonRef.current.contains(event.target)) {
-        setShowEmojiPicker(false);
-      }
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setIsNearBottom(distanceFromBottom < 100);
 
-      if (showReactionPicker.show && reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
-        setShowReactionPicker({ messageId: null, show: false, position: null });
-      }
+      // Update shouldAutoScroll based on scroll position
+      setShouldAutoScroll(distanceFromBottom < 50);
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showEmojiPicker, showReactionPicker]);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    if (initialLoad && messages.length > 0) {
+      // Initial load - scroll to bottom immediately
+      container.scrollTop = container.scrollHeight;
+      setInitialLoad(false);
+    } else if (shouldAutoScroll && messages.length > 0) {
+      // Auto-scroll only if user is near bottom
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages, initialLoad, shouldAutoScroll]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -150,7 +156,7 @@ const ChatWindow = ({ id }) => {
 
       const newScrollHeight = container.scrollHeight;
       const heightDifference = newScrollHeight - prevScrollHeight;
-      container.scrollTop = heightDifference; // Changed from prevScrollTop + heightDifference
+      container.scrollTop = heightDifference;
     } finally {
       setLoadingMore(false);
     }
