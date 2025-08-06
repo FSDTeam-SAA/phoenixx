@@ -1,5 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*{/}?',
+        headers: [
+          {
+            key: 'X-Accel-Buffering',
+            value: 'no',
+          },
+        ],
+      },
+    ]
+  },
   images: {
     domains: [
       "10.0.60.123",
@@ -13,6 +26,9 @@ const nextConfig = {
   serverActions: {
     bodySizeLimit: '10mb', // or whatever size you need
   },
+
+
+
 };
 
 export default nextConfig;
