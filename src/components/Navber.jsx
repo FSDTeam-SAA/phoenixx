@@ -127,61 +127,6 @@ export default function Navbar() {
 
   const { data, isLoading } = useGetProfileQuery();
 
-  useEffect(() => {
-    if (data === undefined && !isLoading) {
-      setIsAccountSuspended(true);
-      const toastId = toast(
-        <div className="flex flex-col items-center p-4">
-          <div className="flex items-center justify-center w-16 h-16 mb-4 bg-red-100 rounded-full">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-10 h-10 text-red-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="mb-2 text-lg font-semibold text-gray-900">
-            Account Suspended
-          </h3>
-          <p className="mb-4 text-center text-gray-600">
-            Your account has been temporarily suspended. Please contact our support team for assistance.
-          </p>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => {
-                toast.dismiss(toastId);
-                setIsAccountSuspended(false);
-                clearLogin();
-                router.push("/auth/login");
-              }}
-              className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Return to Login
-            </button>
-          </div>
-        </div>,
-        {
-          autoClose: false,
-          closeOnClick: false,
-          duration: Infinity,
-          closeButton: false,
-          className: "!p-0 !rounded-lg !max-w-md",
-          bodyClassName: "!p-0",
-        }
-      );
-    } else {
-      setIsAccountSuspended(false);
-    }
-  }, [data, isLoading, router]);
-
   const { data: logo, isLoading: logoLoading } = useLogoQuery();
 
   const filteredLogo = logo?.data?.find(item =>
