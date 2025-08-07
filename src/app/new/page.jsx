@@ -66,6 +66,54 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     return words.length;
   }, []);
 
+  // Function to truncate content to 1000 words
+  const truncateTo1000Words = useCallback((html) => {
+    if (!html) return '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    const words = plainText.trim().split(/\s+/);
+    if (words.length <= 1000) return html;
+
+    // Reconstruct HTML with only first 1000 words
+    const truncatedWords = words.slice(0, 1000);
+    let truncatedHtml = '';
+    let wordCount = 0;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    const processNode = (node) => {
+      if (wordCount >= 1000) return;
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent || '';
+        const wordsInText = text.trim().split(/\s+/).filter(w => w.length > 0);
+
+        let accumulatedText = '';
+        for (const word of wordsInText) {
+          if (wordCount >= 1000) break;
+          accumulatedText += (accumulatedText ? ' ' : '') + word;
+          wordCount++;
+        }
+
+        if (accumulatedText) {
+          truncatedHtml += accumulatedText;
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toLowerCase();
+        const outerTagOpen = `<${tagName}${node.getAttribute('class') ? ` class="${node.getAttribute('class')}"` : ''}${node.getAttribute('style') ? ` style="${node.getAttribute('style')}"` : ''}>`;
+        const outerTagClose = `</${tagName}>`;
+
+        truncatedHtml += outerTagOpen;
+        Array.from(node.childNodes).forEach(child => processNode(child));
+        truncatedHtml += outerTagClose;
+      }
+    };
+
+    Array.from(doc.body.childNodes).forEach(child => processNode(child));
+    return truncatedHtml;
+  }, []);
+
   // Memoized category options
   const categoryOptions = useMemo(() => (
     categoryData?.data?.result?.map(item => ({
@@ -105,25 +153,59 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const words = countWords(html);
-      requestAnimationFrame(() => {
+
+      if (words > 1000) {
+        const truncatedHtml = truncateTo1000Words(html);
+        editor.commands.setContent(truncatedHtml);
+        setWordCount(1000);
+        setDescription(truncatedHtml);
+        toast.error('Word limit of 1000 exceeded. Content has been truncated.');
+      } else {
         setDescription(html);
         setWordCount(words);
-        if (formErrors.description) {
-          setFormErrors(prev => ({ ...prev, description: null }));
-        }
-        if (words > 1000) {
-          const cleanText = editor.getText().split(/\s+/).slice(0, 1000).join(' ');
-          editor.commands.setContent(cleanText);
-          setWordCount(1000);
-          toast.error('Word limit of 1000 exceeded. Content has been truncated.');
-        }
-      });
+      }
+
+      if (formErrors.description) {
+        setFormErrors(prev => ({ ...prev, description: null }));
+      }
     },
     editorProps: {
       attributes: {
         class: `focus:outline-none p-4 min-h-[240px] max-h-[240px] overflow-y-auto ${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'
           }`,
       },
+      handlePaste: (view, event) => {
+        const html = event.clipboardData?.getData('text/html');
+        const text = event.clipboardData?.getData('text/plain');
+
+        if (html || text) {
+          const currentWordCount = countWords(editor.getHTML());
+          const pastedWordCount = countWords(html || text);
+
+          if (currentWordCount + pastedWordCount > 1000) {
+            event.preventDefault();
+            toast.error(`Pasting this content would exceed the 1000 word limit. You have ${1000 - currentWordCount} words remaining.`);
+            return true;
+          }
+        }
+        return false;
+      },
+      handleDrop: (view, event) => {
+        const html = event.dataTransfer?.getData('text/html');
+        const text = event.dataTransfer?.getData('text/plain');
+
+        if (html || text) {
+          const currentWordCount = countWords(editor.getHTML());
+          const droppedWordCount = countWords(html || text);
+
+          if (currentWordCount + droppedWordCount > 1000) {
+            event.preventDefault();
+            toast.error(`Dropping this content would exceed the 1000 word limit. You have ${1000 - currentWordCount} words remaining.`);
+            return true;
+          }
+        }
+        return false;
+      }
     },
   });
 
@@ -387,8 +469,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }
   };
 
-
-
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
@@ -590,9 +670,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
                   {/* Editor */}
                   <EditorContent editor={editor} />
-
-                  {/* Word Count */}
-
                 </div>
                 {formErrors.description && (
                   <div className="text-red-500 mt-1 text-sm">{formErrors.description}</div>

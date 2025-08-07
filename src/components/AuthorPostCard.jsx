@@ -297,15 +297,6 @@ const AuthorPostCard = ({
     }
   ] : loginUserPost ? [
     {
-      key: 'delete',
-      label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-          <span>✕</span>
-          <span>Delete Post</span>
-        </div>
-      ),
-    },
-    {
       key: 'edit',
       label: (
         <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
