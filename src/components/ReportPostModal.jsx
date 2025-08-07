@@ -3,9 +3,10 @@ import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons
 import { Alert, Button, Form, Input, Modal, Radio } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { isAuthenticated } from '../../utils/auth';
+import { ThemeContext } from '../app/ClientLayout';
 
 const { TextArea } = Input;
 
@@ -16,6 +17,7 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
   const [report, { isLoading }] = useReportMutation();
   const [successMessage, setSuccessMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const { isDarkMode } = useContext(ThemeContext);
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
@@ -42,7 +44,6 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
 
   const handleSubmit = async () => {
     if (!isAuthenticated()) {
-      // router.push('/auth/login');
       toast.error('please login first then send report');
       return;
     } else {
@@ -54,12 +55,9 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
           postId: postId
         };
         const response = await report(reason).unwrap();
-        // Set success states
         setSuccessMessage(response?.message || 'Report Send successfully!');
         setIsSuccess(true);
-        // Reset form
         form.resetFields();
-        // Close modal after 3 seconds to give user time to read message
         setTimeout(() => {
           handleClose();
         }, 3000);
@@ -83,7 +81,9 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
       title={
         <div className="flex items-center gap-3">
           <ExclamationCircleOutlined className="text-red-500 text-2xl" />
-          <span className="text-2xl font-bold text-gray-800">Report Content</span>
+          <span className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+            Report Content
+          </span>
         </div>
       }
       open={isOpen}
@@ -92,7 +92,16 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
       width={650}
       destroyOnClose
       centered
-      className="report-modal"
+      className={`report-modal ${isDarkMode ? 'dark-modal' : ''}`}
+      styles={{
+        content: {
+          backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+        },
+        header: {
+          backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+          borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #f0f0f0',
+        },
+      }}
     >
       {/* Success/Error message inside the modal */}
       {successMessage && (
@@ -101,24 +110,37 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
           type={isSuccess ? 'success' : 'error'}
           showIcon
           className="mb-4"
+          style={{
+            backgroundColor: isDarkMode ? '#111827' : undefined,
+            borderColor: isDarkMode ? '#374151' : undefined,
+          }}
         />
       )}
 
       {!isSuccess && (
         <>
-          <div className="mb-6 text-gray-600 leading-6">
+          <div className={`mb-6 leading-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             <Alert
               message={
                 <span className="text-sm">
                   Help us maintain a safe community by reporting content that violates our{' '}
-                  <Link href="/terms-conditions" className="text-blue-600 hover:underline font-medium">Terms of Service</Link>.
+                  <Link
+                    href="/terms-conditions"
+                    className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'} hover:underline font-medium`}
+                  >
+                    Terms of Service
+                  </Link>.
                   All reports are confidential.
                 </span>
               }
               type="info"
               showIcon
-              icon={<InfoCircleOutlined className="text-blue-500" />}
+              icon={<InfoCircleOutlined className={isDarkMode ? "text-blue-400" : "text-blue-500"} />}
               className="mb-4"
+              style={{
+                backgroundColor: isDarkMode ? '#111827' : undefined,
+                borderColor: isDarkMode ? '#374151' : undefined,
+              }}
             />
           </div>
 
@@ -132,7 +154,9 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
           >
             <Form.Item
               name="reportReason"
-              label={<span className="font-medium text-gray-700">Reason for reporting</span>}
+              label={<span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Reason for reporting
+              </span>}
               rules={[{ required: true, message: 'Please select a reason for reporting' }]}
             >
               <Radio.Group
@@ -141,28 +165,40 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
                 onChange={(e) => setSelectedReason(e.target.value)}
               >
                 <Radio value="rude" className="block">
-                  <span className="font-medium">Rude or vulgar content</span>
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-300' : ''}`}>
+                    Rude or vulgar content
+                  </span>
                 </Radio>
                 <Radio value="harassment" className="block">
-                  <span className="font-medium">Harassment or hate speech</span>
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-300' : ''}`}>
+                    Harassment or hate speech
+                  </span>
                 </Radio>
                 <Radio value="spam" className="block">
-                  <span className="font-medium">Spam or copyright issue</span>
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-300' : ''}`}>
+                    Spam or copyright issue
+                  </span>
                 </Radio>
                 <Radio value="inappropriate" className="block">
-                  <span className="font-medium">Inappropriate content</span>
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-300' : ''}`}>
+                    Inappropriate content
+                  </span>
                 </Radio>
                 <Radio value="other" className="block">
-                  <span className="font-medium">Other issue</span>
+                  <span className={`font-medium ${isDarkMode ? 'text-gray-300' : ''}`}>
+                    Other issue
+                  </span>
                 </Radio>
               </Radio.Group>
             </Form.Item>
 
             <Form.Item
-              label={<span className="font-medium text-gray-700">Additional details</span>}
+              label={<span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Additional details
+              </span>}
               name="message"
               extra={
-                <span className="text-gray-500 text-sm">
+                <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Please provide specific details to help us investigate.
                 </span>
               }
@@ -170,14 +206,18 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
               <TextArea
                 rows={5}
                 placeholder="Describe the issue in detail..."
-                className="border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                className={`${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 hover:border-blue-400 focus:border-blue-500' : 'border-gray-300 hover:border-blue-400 focus:border-blue-500'}`}
                 showCount
                 maxLength={500}
               />
             </Form.Item>
 
             <div className="flex justify-end gap-3 pt-2">
-              <Button onClick={handleClose} className="px-6 h-10">
+              <Button
+                onClick={handleClose}
+                className="px-6 h-10"
+                style={isDarkMode ? { color: '#e5e7eb', borderColor: '#4b5563', backgroundColor: '#1f2937' } : {}}
+              >
                 Cancel
               </Button>
               <Button

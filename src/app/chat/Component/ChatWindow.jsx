@@ -27,6 +27,7 @@ const ChatWindow = ({ id }) => {
   const router = useRouter();
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
+  console.log(chatUser)
   const isOnline = useOnlineStatus();
 
   const { messages, pinnedMessages, isLoading, hasMore, page, currentChatId } = useSelector((state) => state.message);
@@ -58,7 +59,12 @@ const ChatWindow = ({ id }) => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showAllPinnedMessages, setShowAllPinnedMessages] = useState(false);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  // Improved scroll state management
+  const [userScrolled, setUserScrolled] = useState(false);
+  const isAutoScrollingRef = useRef(false);
+  const lastMessageCountRef = useRef(0);
+  const scrollTimeoutRef = useRef(null);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -78,6 +84,7 @@ const ChatWindow = ({ id }) => {
     return messages.find(msg => msg._id === replyToId);
   };
 
+  // Reset state when chat changes
   useEffect(() => {
     if (id && id !== currentChatId) {
       dispatch(setCurrentChatId(id));
@@ -89,58 +96,71 @@ const ChatWindow = ({ id }) => {
       setShowReactionPicker({ messageId: null, show: false, position: null });
       form.resetFields();
       setShowAllPinnedMessages(false);
-      setShouldAutoScroll(true);
+      setUserScrolled(false);
+      lastMessageCountRef.current = 0;
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
     }
   }, [id, dispatch, form, currentChatId]);
 
+  // Improved scroll handler with better top detection
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
+      // Skip if we're auto-scrolling
+      if (isAutoScrollingRef.current) return;
+
       const { scrollTop, scrollHeight, clientHeight } = container;
       const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      setIsNearBottom(distanceFromBottom < 100);
+      const isAtBottom = distanceFromBottom < 50;
+      const isAtTop = scrollTop <= 1; // Very small threshold for top detection
 
-      // Update shouldAutoScroll based on scroll position
-      setShouldAutoScroll(distanceFromBottom < 50);
-    };
+      setIsNearBottom(isAtBottom);
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    if (initialLoad && messages.length > 0) {
-      // Initial load - scroll to bottom immediately
-      container.scrollTop = container.scrollHeight;
-      setInitialLoad(false);
-    } else if (shouldAutoScroll && messages.length > 0) {
-      // Auto-scroll only if user is near bottom
-      container.scrollTop = container.scrollHeight;
-    }
-  }, [messages, initialLoad, shouldAutoScroll]);
-
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      setIsNearBottom(distanceFromBottom < 100);
-
-      if (scrollTop < 100 && hasMore && !loadingMore && !isLoading && !initialLoad && !isFetching) {
-        loadMoreMessages();
+      // Set user scrolled flag if not at bottom
+      if (!isAtBottom && !initialLoad) {
+        setUserScrolled(true);
+      } else if (isAtBottom) {
+        setUserScrolled(false);
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, [hasMore, isLoading, loadingMore, initialLoad, isFetching]);
+
+  // Handle auto-scroll for new messages
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || messages.length === 0) return;
+
+    const hasNewMessages = messages.length > lastMessageCountRef.current;
+    lastMessageCountRef.current = messages.length;
+
+    if (initialLoad) {
+      // Initial load - always scroll to bottom
+      isAutoScrollingRef.current = true;
+      container.scrollTop = container.scrollHeight;
+      setInitialLoad(false);
+
+      // Reset auto-scroll flag after a brief delay
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+      }, 100);
+    } else if (hasNewMessages && (!userScrolled || isNearBottom)) {
+      // Auto-scroll only if user hasn't manually scrolled up or is near bottom
+      isAutoScrollingRef.current = true;
+      container.scrollTop = container.scrollHeight;
+
+      // Reset auto-scroll flag after animation completes
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+      }, 100);
+    }
+  }, [messages, initialLoad, userScrolled, isNearBottom]);
 
   const loadMoreMessages = async () => {
     if (loadingMore || !hasMore || isLoading || isFetching) return;
@@ -152,23 +172,54 @@ const ChatWindow = ({ id }) => {
       const prevScrollTop = container.scrollTop;
 
       dispatch(setPage(page + 1));
+
+      // Wait for new messages to load
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const newScrollHeight = container.scrollHeight;
-      const heightDifference = newScrollHeight - prevScrollHeight;
-      container.scrollTop = heightDifference;
+      // Maintain scroll position with better calculation
+      requestAnimationFrame(() => {
+        const newScrollHeight = container.scrollHeight;
+        const heightDifference = newScrollHeight - prevScrollHeight;
+        isAutoScrollingRef.current = true;
+
+        // Ensure we maintain the relative position but allow reaching the very top
+        const newScrollTop = Math.max(0, prevScrollTop + heightDifference);
+        container.scrollTop = newScrollTop;
+
+        // If this was triggered by being at the very top, ensure we stay there
+        if (prevScrollTop === 0) {
+          container.scrollTop = 0;
+        }
+
+        setTimeout(() => {
+          isAutoScrollingRef.current = false;
+        }, 100);
+      });
     } finally {
       setLoadingMore(false);
     }
   };
 
   const scrollToBottom = (behavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    const container = messagesContainerRef.current;
+    if (container) {
+      isAutoScrollingRef.current = true;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior
+      });
+
+      setTimeout(() => {
+        isAutoScrollingRef.current = false;
+        setUserScrolled(false);
+      }, behavior === 'smooth' ? 300 : 100);
+    }
   };
 
   const scrollToPinnedMessage = (messageId) => {
     const messageElement = document.getElementById(`msg-${messageId}`);
     if (messageElement) {
+      setUserScrolled(true); // Mark as user-initiated scroll
       messageElement.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
@@ -186,6 +237,7 @@ const ChatWindow = ({ id }) => {
     const originalMsg = document.getElementById(`msg-${originalMessageId}`);
 
     if (originalMsg) {
+      setUserScrolled(true); // Mark as user-initiated scroll
       originalMsg.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
@@ -263,6 +315,8 @@ const ChatWindow = ({ id }) => {
       setImagePreview(null);
       setShowEmojiPicker(false);
       setReplyingTo(null);
+
+      // Auto-scroll to bottom after sending message
       setTimeout(() => {
         scrollToBottom('auto');
         inputRef.current?.focus();
@@ -413,8 +467,8 @@ const ChatWindow = ({ id }) => {
             <div className={`absolute bottom-0 right-0 w-3 h-3 ${isOnline ? "bg-green-500" : "bg-gray-500"} rounded-full border-2 border-white`}></div>
           </div>
           <div>
-            <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{item?.userName}</h2>
-            <p className={`text-sm ${isOnline ? 'text-green-500' : 'text-gray-500'} `}>{isOnline ? ' Online' : ' Offline'}</p>
+            <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{item?.name ? item?.name : item?.userName}</h2>
+            {/* <p className={`text-sm ${isOnline ? 'text-green-500' : 'text-gray-500'} `}>{isOnline ? ' Online' : ' Offline'}</p> */}
           </div>
         </div>
       ))}
@@ -495,7 +549,12 @@ const ChatWindow = ({ id }) => {
       {/* Messages Container */}
       <div
         ref={messagesContainerRef}
-        className={`flex-1 p-4 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}
+        className={`flex-1 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}
+        style={{
+          padding: '16px',
+          paddingTop: '8px', // Reduced top padding to ensure first message is fully visible
+          scrollBehavior: 'auto' // Prevent smooth scrolling conflicts
+        }}
       >
         <style jsx global>{`
           .message-container::-webkit-scrollbar {
@@ -511,6 +570,10 @@ const ChatWindow = ({ id }) => {
           }
           .message-container::-webkit-scrollbar-thumb:hover {
             background-color: ${isDarkMode ? '#718096' : '#A0AEC0'};
+          }
+          .message-container {
+            scroll-padding-top: 0px; /* Ensure no extra padding at top */
+            overscroll-behavior: contain; /* Prevent scroll chaining */
           }
           .message-bubble {
             position: relative;
@@ -620,7 +683,7 @@ const ChatWindow = ({ id }) => {
         `}</style>
 
         {loadingMore && (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-2 mb-2">
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
               <span className="text-sm text-gray-500">Loading more messages...</span>
@@ -646,17 +709,23 @@ const ChatWindow = ({ id }) => {
         )}
 
         <AnimatePresence initial={false}>
-          {[...messages]?.reverse()?.map((message) => {
+          {[...messages]?.reverse()?.map((message, index) => {
             const isCurrentUser = message.sender?._id === loginUserId;
             const isDeleted = message.isDeleted === true;
             const isPinnedByCurrentUser = isMessagePinnedByCurrentUser(message);
             const originalMessage = message.replyTo ? getOriginalMessage(message.replyTo) : null;
+            const isFirstMessage = index === 0; // Track if this is the first message
 
             return (
               <motion.div
                 id={`msg-${message._id}`}
                 key={message._id}
-                className={`relative flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-6 message-wrapper`}
+                className={`relative flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${isFirstMessage ? 'mb-6 mt-1' : 'mb-6'
+                  } message-wrapper`}
+                style={{
+                  // Ensure first message has minimal top margin for better visibility
+                  marginTop: isFirstMessage ? '4px' : undefined
+                }}
               >
                 {!isCurrentUser && (
                   <Avatar
@@ -832,8 +901,34 @@ const ChatWindow = ({ id }) => {
             );
           })}
         </AnimatePresence>
+
+        {/* Bottom spacer to ensure last message is fully visible */}
+        <div style={{ height: '8px' }} />
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Scroll to bottom button - shows when user scrolled up */}
+      {userScrolled && !isNearBottom && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          className="absolute bottom-20 right-6 z-10"
+        >
+          <Button
+            type="primary"
+            shape="circle"
+            size="large"
+            icon={
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 12L4 6h12l-6 6z" clipRule="evenodd" />
+              </svg>
+            }
+            className="shadow-lg"
+            onClick={() => scrollToBottom('smooth')}
+          />
+        </motion.div>
+      )}
 
       {/* Reaction Picker Portal */}
       {showReactionPicker.show && createPortal(

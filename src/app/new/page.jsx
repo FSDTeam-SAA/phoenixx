@@ -330,6 +330,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       }
       return;
     }
+
     try {
       setLoading(true);
       const formData = new FormData();
@@ -357,52 +358,36 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
             formData.append('image', file.originFileObj);
           }
         });
-      } else {
-        fileList.forEach((file) => {
-          if (file.originFileObj) {
-            formData.append('image', file.originFileObj);
-          }
-        });
       }
 
       const response = isEditing && postId
         ? await editPost({ id: postId, body: formData }).unwrap()
         : await createPost(formData).unwrap();
 
-      if (isEditing && response.success) {
-        refetchPosts();
-        myCommentPostRefetch();
+      if (response.success) {
+        toast.success(isEditing ? 'Post updated successfully' : 'Post created successfully');
+        if (onSuccess) onSuccess();
+      } else {
+        throw new Error(response.message || 'Operation failed');
       }
-
-      toast.success(isEditing ? 'Post updated successfully' : 'Post created successfully');
 
       if (!isEditing) {
         router.push('/');
         localStorage.removeItem('blogPostDraft');
       }
-      if (onSuccess) onSuccess();
-
-      if (!isEditing) {
-        setTitle('');
-        setCategory(null);
-        setSubcategory(null);
-        setDescription('');
-        setWordCount(0);
-        setFileList([]);
-        if (editor) {
-          editor.commands.setContent('');
-        }
-      }
     } catch (error) {
       console.error('Error:', error);
       toast.error(
         error.data?.message ||
+        error.message ||
         (isEditing ? 'Failed to update post' : 'Failed to create post')
       );
     } finally {
       setLoading(false);
     }
   };
+
+
 
   useEffect(() => {
     return () => {

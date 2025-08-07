@@ -3,7 +3,7 @@ import BlogPostForm from '@/app/new/page';
 import { Modal } from 'antd';
 import { useEffect } from 'react';
 
-const EditPostModal = ({ visible, onClose, postData, refetchPosts , myCommentPostRefetch }) => {
+const EditPostModal = ({ visible, onClose, postData, refetchPosts, myCommentPostRefetch }) => {
   // Disable body scroll when modal is open
   useEffect(() => {
     if (visible) {
@@ -19,7 +19,12 @@ const EditPostModal = ({ visible, onClose, postData, refetchPosts , myCommentPos
   }, [visible]);
 
   const handleUpdateSuccess = () => {
+    // Close the modal
     onClose();
+
+    // Refetch posts if needed
+    if (refetchPosts) refetchPosts();
+    if (myCommentPostRefetch) myCommentPostRefetch();
   };
 
   const handleCancel = () => {
@@ -40,7 +45,6 @@ const EditPostModal = ({ visible, onClose, postData, refetchPosts , myCommentPos
           maxHeight: '70vh',
           overflowY: 'auto',
           padding: '0px',
-          // Custom scrollbar styles
           scrollbarWidth: 'thin',
           scrollbarColor: '#888 #f1f1f1',
         },
@@ -54,27 +58,21 @@ const EditPostModal = ({ visible, onClose, postData, refetchPosts , myCommentPos
       maskClosable={false}
     >
       <style jsx global>{`
-        /* Webkit browsers (Chrome, Safari, Edge) */
         .ant-modal-body::-webkit-scrollbar {
           width: 6px;
         }
-
         .ant-modal-body::-webkit-scrollbar-track {
           background: #f1f1f1;
           border-radius: 3px;
         }
-
         .ant-modal-body::-webkit-scrollbar-thumb {
           background: #c1c1c1;
           border-radius: 3px;
           transition: background 0.2s ease;
         }
-
         .ant-modal-body::-webkit-scrollbar-thumb:hover {
           background: #a8a8a8;
         }
-
-        /* Ensure modal content doesn't cause horizontal scroll */
         .ant-modal-body {
           overflow-x: hidden;
         }

@@ -1,7 +1,7 @@
 const CommentIcon = () => {
   return (
     <>
-      <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg width="18" height="21" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M4 4 h16 a2 2 0 0 1 2 2 v10 a2 2 0 0 1 -2 2 h-12 l-4 4 v-4 h-2 a2 2 0 0 1 -2 -2 v-10 a2 2 0 0 1 2 -2 z" fill="#0001FB" />
         <circle cx="8" cy="11" r="1" fill="white" />
         <circle cx="12" cy="11" r="1" fill="white" />
@@ -124,13 +124,16 @@ const NewFollow = () => {
 const DefaultIcon = () => {
   return (
     <svg
-      viewBox="0 0 1024 1024"
+      viewBox="0 0 24 24"
+      width="30"
+      height="20"
+      xmlns="http://www.w3.org/2000/svg"
       fill="#0001FB"
-      width="1em"
-      height="1em"
     >
-      <path d="M816 768h-24V428c0-141.1-104.3-257.7-240-277.1V112c0-22.1-17.9-40-40-40s-40 17.9-40 40v38.9c-135.7 19.4-240 136-240 277.1v340h-24c-17.7 0-32 14.3-32 32s14.3 32 32 32h216c0 52.9 43.1 96 96 96s96-43.1 96-96h216c17.7 0 32-14.3 32-32s-14.3-32-32-32zM512 888c-26.5 0-48-21.5-48-48h96c0 26.5-21.5 48-48 48zM304 768V428c0-114.9 93.1-208 208-208s208 93.1 208 208v340H304z" />
+      <path d="M12 24c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6.3-6V11c0-3.1-1.6-5.6-4.3-6.3V4c0-.8-.7-1.5-1.5-1.5S11 3.2 11 4v.7C8.3 5.4 6.7 7.9 6.7 11v7L5 19v1h14v-1l-1.7-1z" />
     </svg>
+
+
   )
 }
 

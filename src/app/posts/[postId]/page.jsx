@@ -28,7 +28,6 @@ import Loading from '../../../components/Loading/Loading';
 import ImageModal from '../../../components/PostCard/components/ImageModal';
 import { ThemeContext } from '../../ClientLayout';
 
-
 const PostDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
@@ -45,7 +44,6 @@ const PostDetailsPage = () => {
     error: postError,
     refetch
   } = usePostDetailsQuery(postId);
-
 
   const [likePost, { isLoading: likePostLoading }] = useLikePostMutation();
   const [savepost] = useSavepostMutation();
@@ -82,6 +80,12 @@ const PostDetailsPage = () => {
     avatar: "/images/profile2.jpg",
   };
 
+  // Helper function to count words
+  const countWords = (text) => {
+    if (!text || !text.trim()) return 0;
+    return text.trim().split(/\s+/).length;
+  };
+
   useEffect(() => {
     const userId = localStorage.getItem("login_user_id");
     setLoginUserId(userId);
@@ -94,14 +98,11 @@ const PostDetailsPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-
-
   const handleImageClick = useCallback((index) => {
     console.log('Image clicked, index:', index); // Debug log
     setCurrentImageIndex(index);
     setShowImageModal(true);
   }, []);
-
 
   const handleNextImage = useCallback(() => {
     setCurrentImageIndex((prev) =>
@@ -132,6 +133,7 @@ const PostDetailsPage = () => {
 
     return commentTime.fromNow();
   };
+
   const sortComments = (commentsToSort) => {
     if (!commentsToSort || !Array.isArray(commentsToSort)) return [];
 
@@ -164,6 +166,7 @@ const PostDetailsPage = () => {
     // Default to relevant sorting
     return sorted;
   };
+
   const handleLike = async () => {
     if (!login_user_id) {
       return message.warning("Please login to like this post");
@@ -206,8 +209,6 @@ const PostDetailsPage = () => {
     }
   };
 
-
-
   const cleanPostContent = (content) => {
     if (!content) return '';
 
@@ -220,10 +221,16 @@ const PostDetailsPage = () => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!commentText.trim() || !login_user_id) {
-      if (!login_user_id) {
-        return message.warning("Please login to add a comment");
-      }
+    if (!login_user_id) {
+      return message.warning("Please login to add a comment");
+    }
+
+    const wordCount = countWords(commentText);
+    if (wordCount > 100) {
+      return message.error("Comment exceeds 100 word limit");
+    }
+
+    if (!commentText.trim()) {
       return;
     }
 
@@ -273,8 +280,16 @@ const PostDetailsPage = () => {
   };
 
   const handleReplySubmit = async (parentCommentId) => {
-    if (!replyText.trim() || !login_user_id) {
-      if (!login_user_id) return message.warning("Please login to reply to comments");
+    if (!login_user_id) {
+      return message.warning("Please login to reply to comments");
+    }
+
+    const wordCount = countWords(replyText);
+    if (wordCount > 100) {
+      return message.error("Reply exceeds 100 word limit");
+    }
+
+    if (!replyText.trim()) {
       return;
     }
 
@@ -302,6 +317,11 @@ const PostDetailsPage = () => {
   };
 
   const handleUpdateComment = async (commentId) => {
+    const wordCount = countWords(editCommentText);
+    if (wordCount > 100) {
+      return message.error("Comment exceeds 100 word limit");
+    }
+
     if (!editCommentText.trim()) return;
 
     try {
@@ -335,8 +355,6 @@ const PostDetailsPage = () => {
       toast.error(error.data?.message || "Failed to delete comment");
     }
   };
-
-
 
   const postMenuItems = [
     {
@@ -403,9 +421,6 @@ const PostDetailsPage = () => {
     );
   };
 
-
-
-
   const renderComment = (comment) => {
     if (!comment) return null;
 
@@ -413,9 +428,8 @@ const PostDetailsPage = () => {
     const isCommentLiked = comment.likes?.includes(login_user_id);
     const commentAuthor = comment.author || { userName: "Unknown" };
     const authorImage = commentAuthor.profile || commentAuthor.avatar;
-
-    // State for showing/hiding replies
-
+    const wordCount = countWords(editCommentText);
+    const replyWordCount = countWords(replyText);
 
     return (
       <div key={comment._id} className="w-full mb-4">
@@ -430,7 +444,6 @@ const PostDetailsPage = () => {
             )}
           </div>
 
-          {/* Comment Content */}
           {/* Comment Content */}
           <div className="flex-1 w-full">
             {/* Comment Header */}
@@ -466,8 +479,21 @@ const PostDetailsPage = () => {
                   value={editCommentText}
                   onChange={(e) => setEditCommentText(e.target.value)}
                   autoSize={{ minRows: 2, maxRows: 6 }}
-                  className={isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''}
+                  className={`${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''} ${wordCount > 100 ? 'border-red-500' : ''
+                    }`}
                 />
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-xs ${wordCount > 100 ? 'text-red-500' :
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                    {wordCount}/100
+                  </span>
+                  {wordCount > 100 && (
+                    <span className="text-red-500 text-xs">
+                      Comment exceeds 100 word limit
+                    </span>
+                  )}
+                </div>
                 <div className="flex justify-end mt-2">
                   <Button
                     onClick={() => setEditingCommentId(null)}
@@ -478,7 +504,7 @@ const PostDetailsPage = () => {
                   <Button
                     type="primary"
                     onClick={() => handleUpdateComment(comment._id)}
-                    disabled={!editCommentText.trim() || editCommentLoading}
+                    disabled={!editCommentText.trim() || editCommentLoading || wordCount > 100}
                     loading={editCommentLoading && editingCommentId === comment._id}
                   >
                     Update
@@ -486,7 +512,7 @@ const PostDetailsPage = () => {
                 </div>
               </div>
             ) : (
-              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 whitespace-pre-wrap`}>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 whitespace-pre-wrap break-words overflow-wrap-anywhere`}>
                 {comment.content}
               </p>
             )}
@@ -523,8 +549,21 @@ const PostDetailsPage = () => {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   autoSize={{ minRows: 1, maxRows: 4 }}
-                  className={isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''}
+                  className={`${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''} ${replyWordCount > 100 ? 'border-red-500' : ''
+                    }`}
                 />
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-xs ${replyWordCount > 100 ? 'text-red-500' :
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                    {replyWordCount}/100
+                  </span>
+                  {replyWordCount > 100 && (
+                    <span className="text-red-500 text-xs">
+                      Reply exceeds 100 word limit
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-2 mt-2">
                   <Button
                     onClick={() => setReplyingTo(null)}
@@ -536,7 +575,7 @@ const PostDetailsPage = () => {
                     type="primary"
                     onClick={() => handleReplySubmit(comment._id)}
                     loading={replayCommentLoading}
-
+                    disabled={replyWordCount > 100}
                   >
                     Reply
                   </Button>
@@ -588,11 +627,9 @@ const PostDetailsPage = () => {
     );
   };
 
-
   if (isLoading) {
     return (
       <div className={`h-[600px] p-4 flex items-center justify-center`}>
-        {/* <Card loading={true} style={{ width: 300 }} className={isDarkMode ? 'bg-gray-800 border-gray-700' : ''} /> */}
         <Loading />
       </div>
     );
@@ -616,8 +653,6 @@ const PostDetailsPage = () => {
       </div>
     );
   }
-
-
 
   const renderImageGrid = post?.images?.length > 0 ? (
     <div className="mb-4 rounded-lg overflow-hidden">
@@ -693,7 +728,7 @@ const PostDetailsPage = () => {
     </div>
   ) : null;
 
-
+  const commentWordCount = countWords(commentText);
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-[#F2F4F7]'} p-4`}>
@@ -804,34 +839,53 @@ const PostDetailsPage = () => {
             ) : (
               <Avatar size={32} icon={<MessageOutlined />} />
             )}
-            <Input
-              ref={commentInputRef}
-              placeholder={login_user_id ? "Add a comment..." : "Login to comment"}
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              className={`rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-gray-100 border-gray-200'}`}
-              disabled={!login_user_id}
-            />
+            <div className="flex-1 relative">
+              <Input.TextArea
+                ref={commentInputRef}
+                autoSize={{ minRows: 1, maxRows: 4 }}
+                placeholder={login_user_id ? "Add a comment..." : "Login to comment"}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                className={`rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : 'bg-gray-100 border-gray-200'} ${commentWordCount > 100 ? 'border-red-500' : ''
+                  }`}
+                disabled={!login_user_id}
+              />
+              <span
+                className={`absolute right-2 bottom-2 text-xs ${commentWordCount > 100 ? 'text-red-500' :
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+              >
+                {commentWordCount}/100
+              </span>
+            </div>
           </div>
           <Button
             type="primary"
             htmlType="submit"
             className="mt-2 ml-12"
-            disabled={!commentText.trim() || !login_user_id || createCommentLoading}
+            disabled={
+              !commentText.trim() ||
+              !login_user_id ||
+              createCommentLoading ||
+              commentWordCount > 100
+            }
             loading={createCommentLoading}
           >
             Post Comment
           </Button>
+          {commentWordCount > 100 && (
+            <span className="text-red-500 text-sm ml-12 mt-1 block">
+              Comment exceeds 100 word limit
+            </span>
+          )}
           {!login_user_id && (
-            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ml-2`}>
+            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ml-12 mt-1 block`}>
               Please login to comment
             </span>
           )}
         </form>
 
         <div id="comments" className='flex flex-col gap-3'>
-
-
           {comments.length === 0 ? (
             <Card className={`text-center p-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : ''}`}>
               <Empty

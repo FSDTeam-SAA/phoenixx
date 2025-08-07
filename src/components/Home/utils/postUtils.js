@@ -58,9 +58,14 @@ const convertToDate = (timeString) => {
   // If it's already a Date object
   if (timeString instanceof Date) return timeString;
 
-  // If it's a valid ISO string
+  // If it's a valid ISO string (including your format "2025-08-03T03:47:04.196Z")
   if (typeof timeString === 'string' && !isNaN(Date.parse(timeString))) {
     return new Date(timeString);
+  }
+
+  // Handle moment objects
+  if (moment.isMoment(timeString)) {
+    return timeString.toDate();
   }
 
   // Handle "X hours/days ago" format
@@ -87,36 +92,50 @@ const convertToDate = (timeString) => {
 };
 
 // Format timestamp
-export const formatTime = (timestamp) => (
-  timestamp ? moment(timestamp).fromNow() : "Just now"
-);
+export const formatTime = (timestamp) => {
+  if (!timestamp) return "Just now";
+
+  // If it's already a formatted string like "3 hours ago", return as-is
+  if (typeof timestamp === 'string' &&
+    (timestamp.includes('ago') || timestamp.includes('just now'))) {
+    return timestamp;
+  }
+
+  // Convert to Date object if it's a string
+  const date = convertToDate(timestamp);
+  return moment(date).fromNow();
+};
 
 // Format post data for consistent structure
-export const formatPostData = (post, currentUserId) => ({
-  id: post._id || post.id,
-  author: {
-    id: post?.author?._id || post?.author?.id,
-    username: post?.author?.userName || post?.author?.username || "Anonymous",
-    avatar: post?.author?.profile || post?.author?.avatar,
-    name: post?.author?.name || "User"
-  },
-  timePosted: post.timePosted || formatTime(post.createdAt),
-  title: post.title,
-  content: post.content,
-  images: post.images,
-  tags: post.tags || [{
-    category: post.category?.name,
-    subcategory: post.subCategory?.name
-  }],
-  stats: {
-    likes: post.stats?.likes || post.likes?.length || 0,
-    comments: post.stats?.comments || post.comments?.length || 0,
-    reads: post.stats?.reads || post.views || 0,
-    likedBy: post.stats?.likedBy || post.likes || []
-  },
-  isLiked: post.isLiked || post.likes?.includes(currentUserId) || false,
-  createdAt: post.createdAt || new Date() // Ensure createdAt exists
-});
+export const formatPostData = (post, currentUserId) => {
+  const createdAt = post.createdAt || post.timePosted || new Date();
+
+  return {
+    id: post._id || post.id,
+    author: {
+      id: post?.author?._id || post?.author?.id,
+      username: post?.author?.userName || post?.author?.username || "Anonymous",
+      avatar: post?.author?.profile || post?.author?.avatar,
+      name: post?.author?.name || "User"
+    },
+    timePosted: formatTime(createdAt),
+    title: post.title,
+    content: post.content,
+    images: post.images,
+    tags: post.tags || [{
+      category: post.category?.name,
+      subcategory: post.subCategory?.name
+    }],
+    stats: {
+      likes: post.stats?.likes || post.likes?.length || 0,
+      comments: post.stats?.comments || post.comments?.length || 0,
+      reads: post.stats?.reads || post.views || 0,
+      likedBy: post.stats?.likedBy || post.likes || []
+    },
+    isLiked: post.isLiked || post.likes?.includes(currentUserId) || false,
+    createdAt: convertToDate(createdAt) // Ensure proper Date object
+  };
+};
 
 // Get category display name
 export const getCategoryName = (posts, urlParams) => {

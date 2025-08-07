@@ -524,7 +524,6 @@ const ChatList = ({ setIsChatActive, status }) => {
               const isActiveChat = chat._id === id;
 
 
-              console.log(participant, 'participant info');
 
               return (
                 <motion.div
@@ -569,8 +568,8 @@ const ChatList = ({ setIsChatActive, status }) => {
 
                         <p className={`text-sm truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} ${isRead ? '' : 'font-bold'}`}>
                           {chat?.lastMessage?.text?.slice(0, 30) || ''}
-                          {chat?.lastMessage?.type === "image" && '📷 Send to Image'}
-                          {chat?.lastMessage?.type === "both" && '📷 Send to Image'}
+                          {chat?.lastMessage?.type === "image" && 'Image'}
+                          {chat?.lastMessage?.type === "both" && 'Image'}
                         </p>
                         {isRead && chat.lastMessage?.sender === currentUserId && (
                           <BsCheckAll className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} size={14} />
