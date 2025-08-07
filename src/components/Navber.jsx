@@ -41,6 +41,7 @@ import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '
 import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery, useUnreadIconCountMutation } from '../features/chat/chatList/chatApi';
 
+import toast from 'react-hot-toast';
 import { connectSocket } from '../../utils/socket';
 import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
@@ -55,6 +56,7 @@ export default function Navbar() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAccountSuspended, setIsAccountSuspended] = useState(false);
   const searchRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -113,15 +115,78 @@ export default function Navbar() {
     };
   }, [refetch, router]);
 
+  const clearLogin = () => {
+    localStorage.removeItem('loginToken');
+    localStorage.removeItem('login_user_id');
+    localStorage.removeItem('rememberedCredentials');
+    localStorage.setItem('theme', 'light');
+    localStorage.removeItem('isLoggedIn');
+  }
+
   const { notifications } = useSelector((state) => state);
 
   const { data, isLoading } = useGetProfileQuery();
-  const { data: logo, isLoading:logoLoading } = useLogoQuery();
+
+  useEffect(() => {
+    if (data === undefined && !isLoading) {
+      setIsAccountSuspended(true);
+      const toastId = toast(
+        <div className="flex flex-col items-center p-4">
+          <div className="flex items-center justify-center w-16 h-16 mb-4 bg-red-100 rounded-full">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-10 h-10 text-red-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold text-gray-900">
+            Account Suspended
+          </h3>
+          <p className="mb-4 text-center text-gray-600">
+            Your account has been temporarily suspended. Please contact our support team for assistance.
+          </p>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => {
+                toast.dismiss(toastId);
+                setIsAccountSuspended(false);
+                clearLogin();
+                router.push("/auth/login");
+              }}
+              className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              Return to Login
+            </button>
+          </div>
+        </div>,
+        {
+          autoClose: false,
+          closeOnClick: false,
+          duration: Infinity,
+          closeButton: false,
+          className: "!p-0 !rounded-lg !max-w-md",
+          bodyClassName: "!p-0",
+        }
+      );
+    } else {
+      setIsAccountSuspended(false);
+    }
+  }, [data, isLoading, router]);
+
+  const { data: logo, isLoading: logoLoading } = useLogoQuery();
 
   const filteredLogo = logo?.data?.find(item =>
     (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
   );
-
 
   // Initialize search query from URL
   useEffect(() => {
@@ -136,6 +201,7 @@ export default function Navbar() {
   }, [searchParams]);
 
   const handleNavigation = async (path) => {
+    if (isAccountSuspended) return;
     if (!isAuthenticated()) {
       router.push('/auth/login');
       return;
@@ -147,6 +213,7 @@ export default function Navbar() {
   };
 
   const handleChatNavigation = async (path) => {
+    if (isAccountSuspended) return;
     if (!isAuthenticated()) {
       router.push('/auth/login')
       return;
@@ -165,6 +232,7 @@ export default function Navbar() {
   }
 
   const handleNotificationNavigate = async (path) => {
+    if (isAccountSuspended) return;
     if (!isAuthenticated()) {
       router.push('/auth/login');
       return;
@@ -239,6 +307,7 @@ export default function Navbar() {
       label: 'Sign Out',
       danger: true,
       onClick: () => {
+        if (isAccountSuspended) return;
         router.push('/auth/login');
         localStorage.removeItem('loginToken');
         localStorage.removeItem('login_user_id');
@@ -253,6 +322,7 @@ export default function Navbar() {
 
   // Function to handle search
   const handleSearch = (value) => {
+    if (isAccountSuspended) return;
     const trimmedValue = value?.trim();
     if (trimmedValue) {
       router.push(`/?search=${encodeURIComponent(trimmedValue)}`);
@@ -263,6 +333,7 @@ export default function Navbar() {
 
   // Function to handle input change
   const handleInputChange = (e) => {
+    if (isAccountSuspended) return;
     const value = e.target.value;
     setSearchQuery(value);
 
@@ -273,6 +344,7 @@ export default function Navbar() {
 
   // Function to handle when Enter key is pressed
   const handleKeyDown = (e) => {
+    if (isAccountSuspended) return;
     if (e.key === 'Enter') {
       handleSearch(searchQuery);
     }
@@ -280,11 +352,13 @@ export default function Navbar() {
 
   // Function to clear the search input
   const handleClear = () => {
+    if (isAccountSuspended) return;
     setSearchQuery('');
     router.push('/');
   };
 
   const showDrawer = () => {
+    if (isAccountSuspended) return;
     setDrawerVisible(true);
   };
 
@@ -293,6 +367,7 @@ export default function Navbar() {
   };
 
   const toggleMobileSearch = () => {
+    if (isAccountSuspended) return;
     setShowMobileSearch(!showMobileSearch);
     if (!showMobileSearch) {
       setSearchQuery('');
@@ -334,10 +409,10 @@ export default function Navbar() {
     <div style={{
       width: screens.lg ? '35%' : '30%',
       minWidth: '200px',
-      marginLeft: screens.lg ? '160px' : '40px', // Reduced margin to give more space to logo
-      paddingLeft: screens.xl ? '60px' : '0', // Reduced padding
-      flex: '1 1 auto', // Allow flexible growth
-      maxWidth: '500px' // Set max width
+      marginLeft: screens.lg ? '160px' : '40px',
+      paddingLeft: screens.xl ? '60px' : '0',
+      flex: '1 1 auto',
+      maxWidth: '500px'
     }}>
       <Flex
         align="center"
@@ -446,242 +521,259 @@ export default function Navbar() {
   return (
     <>
       <SocketComponent />
-      <Header
-        className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
-        style={{
-          background: isDarkMode ? '#101828' : '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: screens.xs ? '0 8px' : '0 16px', // Reduced padding to give more space
-          height: '75px',
-          boxShadow: isDarkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.15)' : '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          color: isDarkMode ? 'var(--text-color)' : 'inherit',
-          borderBottom: `1px solid ${isDarkMode ? '#333' : 'transparent'}`,
-          overflow: 'visible' // Ensure content isn't clipped
-        }}
-      >
-        {/* Left Side - Logo and Menu Button */}
-        {!showMobileSearch && (
-          <Flex align="center" style={{
-            height: '100%',
-            minWidth: 'fit-content', // Ensure minimum width for logo
-            flex: '0 0 auto' // Prevent shrinking
-          }}>
-            {!screens.md && (
-              <Button
-                type="text"
-                icon={<MenuOutlined />}
-                onClick={showDrawer}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  padding: '0 8px', // Reduced padding
-                  color: isDarkMode ? 'var(--text-color)' : 'inherit',
-                  minWidth: '40px'
-                }}
-              />
-            )}
-            <Link
-              href="/"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                height: '100%',
-                lineHeight: 0,
-                minWidth: 'fit-content', // Ensure logo doesn't shrink
-                paddingLeft: screens.xs ? '4px' : '8px', // Add some padding
-                paddingRight: screens.xs ? '8px' : '12px'
-              }}
-            >
-              {!logoLoading && filteredLogo && (
-               <Image
-                src={filteredLogo?.logo && `${baseURL}${filteredLogo.logo}`}
-                width={screens.xs ? 90 : screens.sm ? 110 : 150} // Increased width significantly
-                height={screens.xs ? 40 : screens.sm ? 50 : 60} // Increased height
-                alt='logo'
-                style={{
-                  objectFit: 'contain',
-                  width: 'auto',
-                  height: 'auto',
-                  maxHeight: '65px', // Increased max height
-                  minWidth: screens.xs ? '90px' : screens.sm ? '110px' : '150px', // Set minimum width to prevent cutting
-                  filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
-                }}
-                priority // Add priority for faster loading
-              />)}
-            </Link>
-          </Flex>
+      <div style={{ position: 'relative' }}>
+        {isAccountSuspended && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            pointerEvents: 'auto' // Ensure the overlay captures all clicks
+          }} />
         )}
-
-        {/* Middle - Search Bar */}
-        {screens.md ? renderDesktopSearch() : (showMobileSearch && renderMobileSearch())}
-
-        {/* Right Side Actions */}
-        {!showMobileSearch && (
-          <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{
-            height: '100%',
-            flex: '0 0 auto' // Prevent shrinking
-          }}>
-            {screens.md ? (
-              <>
+        <Header
+          className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
+          style={{
+            background: isDarkMode ? '#101828' : '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: screens.xs ? '0 8px' : '0 16px',
+            height: '75px',
+            boxShadow: isDarkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.15)' : '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            color: isDarkMode ? 'var(--text-color)' : 'inherit',
+            borderBottom: `1px solid ${isDarkMode ? '#333' : 'transparent'}`,
+            overflow: 'visible',
+            filter: isAccountSuspended ? 'blur(2px)' : 'none',
+            pointerEvents: isAccountSuspended ? 'none' : 'auto'
+          }}
+        >
+          {/* Left Side - Logo and Menu Button */}
+          {!showMobileSearch && (
+            <Flex align="center" style={{
+              height: '100%',
+              minWidth: 'fit-content',
+              flex: '0 0 auto'
+            }}>
+              {!screens.md && (
                 <Button
-                  onClick={() => handleNavigation('/new')}
-                  type="primary"
-                  icon={<PlusOutlined />}
+                  type="text"
+                  icon={<MenuOutlined />}
+                  onClick={showDrawer}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    height: '40px',
-                    minWidth: screens.lg ? '100px' : '40px'
+                    height: '100%',
+                    padding: '0 8px',
+                    color: isDarkMode ? 'var(--text-color)' : 'inherit',
+                    minWidth: '40px'
                   }}
-                >
-                  {screens.lg ? 'New Post' : ''}
-                </Button>
-
-                <Badge
-                  style={{
-                    backgroundColor: "#2930FF",
-                    marginTop: "5px",
-                    marginRight: "5px"
-                  }}
-                  count={pronab?.data?.totalIconUnreadMessages || 0}
-                >
-                  <Button
-                    onClick={() => handleChatNavigation("/chat")}
-                    type="text"
-                    icon={isDarkMode ? <MessageDark /> : <MessageLight />}
-                    style={iconButtonStyles}
-                  />
-                </Badge>
-
-                <Badge
-                  style={{
-                    backgroundColor: "#2930FF",
-                    marginTop: "5px",
-                    marginRight: "5px"
-                  }}
-                  count={notifications?.unreadCount || 0}
-                >
-                  <Button
-                    onClick={() => handleNotificationNavigate("/notification")}
-                    type="text"
-                    icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
-                    style={iconButtonStyles}
-                  />
-                </Badge>
-              </>
-            ) : (
-              <Button
-                type="text"
-                icon={<SearchOutlined />}
-                onClick={toggleMobileSearch}
+                />
+              )}
+              <Link
+                href="/"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   height: '100%',
-                  padding: '0 12px',
-                  color: isDarkMode ? 'var(--text-color)' : 'inherit'
+                  lineHeight: 0,
+                  minWidth: 'fit-content',
+                  paddingLeft: screens.xs ? '4px' : '8px',
+                  paddingRight: screens.xs ? '8px' : '12px'
                 }}
-              />
-            )}
-
-            {localStorage.getItem('isLoggedIn') === 'true' ? (
-              <Dropdown
-                menu={{ items }}
-                trigger={['click']}
-                placement="bottomRight"
-                arrow={{ pointAtCenter: true }}
               >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  height: '100%',
-                  padding: screens.xs ? '0 4px' : '0 8px'
-                }}>
-                  <Avatar
-                    src={getImageUrl(data?.data?.profile)}
-                    size={screens.xs ? 36 : 44}
+                {!logoLoading && filteredLogo && (
+                  <Image
+                    src={filteredLogo?.logo && `${baseURL}${filteredLogo.logo}`}
+                    width={screens.xs ? 90 : screens.sm ? 110 : 150}
+                    height={screens.xs ? 40 : screens.sm ? 50 : 60}
+                    alt='logo'
                     style={{
-                      cursor: 'pointer',
-                      border: isDarkMode ? '1px solid #333' : 'none'
+                      objectFit: 'contain',
+                      width: 'auto',
+                      height: 'auto',
+                      maxHeight: '65px',
+                      minWidth: screens.xs ? '90px' : screens.sm ? '110px' : '150px',
+                      filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
                     }}
-                  />
-                </div>
-              </Dropdown>
-            ) : (
-              <Button
-                type="primary"
-                style={{
-                  height: "38px",
-                  width: screens.xs ? "80px" : "100px",
-                  fontSize: screens.xs ? "12px" : "14px"
-                }}
-                onClick={() => router.push('/auth/login')}
-              >
-                Sign In
-              </Button>
-            )}
-          </Flex>
-        )}
-      </Header>
+                    priority
+                  />)}
+              </Link>
+            </Flex>
+          )}
 
-      {/* Mobile Drawer */}
-      <Drawer
-        title="Menu"
-        placement="left"
-        closable={true}
-        onClose={onClose}
-        open={drawerVisible}
-        width={screens.xs ? 250 : 300}
-        className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
-        styles={{
-          body: {
-            padding: 0
-          }
-        }}
-      >
-        <Menu
-          mode="inline"
-          theme={isDarkMode ? "dark" : "light"}
-          items={[
-            {
-              key: 'new-post',
-              icon: <PlusOutlined />,
-              label: 'New Post',
-              onClick: () => handleNavigation("/new")
-            },
-            {
-              key: 'messages',
-              icon: <MessageOutlined />,
-              label: 'Messages',
-              onClick: () => handleChatNavigation('/chat')
-            },
-            {
-              key: 'notifications',
-              icon: <IoNotificationsSharp />,
-              label: 'Notifications',
-              onClick: () => handleNotificationNavigate('/notification')
-            },
-            {
-              type: 'divider',
-            },
-            ...items
-              .filter(item => item.key !== 'profile-header')
-              .map(item => ({
-                ...item,
-                onClick: item.onClick || (() => { })
-              }))
-          ]}
-        />
-      </Drawer>
+          {/* Middle - Search Bar */}
+          {screens.md ? renderDesktopSearch() : (showMobileSearch && renderMobileSearch())}
+
+          {/* Right Side Actions */}
+          {!showMobileSearch && (
+            <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{
+              height: '100%',
+              flex: '0 0 auto'
+            }}>
+              {screens.md ? (
+                <>
+                  <Button
+                    onClick={() => handleNavigation('/new')}
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '40px',
+                      minWidth: screens.lg ? '100px' : '40px'
+                    }}
+                  >
+                    {screens.lg ? 'New Post' : ''}
+                  </Button>
+
+                  <Badge
+                    style={{
+                      backgroundColor: "#2930FF",
+                      marginTop: "5px",
+                      marginRight: "5px"
+                    }}
+                    count={pronab?.data?.totalIconUnreadMessages || 0}
+                  >
+                    <Button
+                      onClick={() => handleChatNavigation("/chat")}
+                      type="text"
+                      icon={isDarkMode ? <MessageDark /> : <MessageLight />}
+                      style={iconButtonStyles}
+                    />
+                  </Badge>
+
+                  <Badge
+                    style={{
+                      backgroundColor: "#2930FF",
+                      marginTop: "5px",
+                      marginRight: "5px"
+                    }}
+                    count={notifications?.unreadCount || 0}
+                  >
+                    <Button
+                      onClick={() => handleNotificationNavigate("/notification")}
+                      type="text"
+                      icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
+                      style={iconButtonStyles}
+                    />
+                  </Badge>
+                </>
+              ) : (
+                <Button
+                  type="text"
+                  icon={<SearchOutlined />}
+                  onClick={toggleMobileSearch}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    padding: '0 12px',
+                    color: isDarkMode ? 'var(--text-color)' : 'inherit'
+                  }}
+                />
+              )}
+
+              {localStorage.getItem('isLoggedIn') === 'true' ? (
+                <Dropdown
+                  menu={{ items }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                  arrow={{ pointAtCenter: true }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    height: '100%',
+                    padding: screens.xs ? '0 4px' : '0 8px'
+                  }}>
+                    <Avatar
+                      src={getImageUrl(data?.data?.profile)}
+                      size={screens.xs ? 36 : 44}
+                      style={{
+                        cursor: 'pointer',
+                        border: isDarkMode ? '1px solid #333' : 'none'
+                      }}
+                    />
+                  </div>
+                </Dropdown>
+              ) : (
+                <Button
+                  type="primary"
+                  style={{
+                    height: "38px",
+                    width: screens.xs ? "80px" : "100px",
+                    fontSize: screens.xs ? "12px" : "14px"
+                  }}
+                  onClick={() => router.push('/auth/login')}
+                >
+                  Sign In
+                </Button>
+              )}
+            </Flex>
+          )}
+        </Header>
+
+        {/* Mobile Drawer */}
+        <Drawer
+          title="Menu"
+          placement="left"
+          closable={true}
+          onClose={onClose}
+          open={drawerVisible}
+          width={screens.xs ? 250 : 300}
+          className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
+          styles={{
+            body: {
+              padding: 0
+            }
+          }}
+        >
+          <Menu
+            mode="inline"
+            theme={isDarkMode ? "dark" : "light"}
+            items={[
+              {
+                key: 'new-post',
+                icon: <PlusOutlined />,
+                label: 'New Post',
+                onClick: () => handleNavigation("/new")
+              },
+              {
+                key: 'messages',
+                icon: <MessageOutlined />,
+                label: 'Messages',
+                onClick: () => handleChatNavigation('/chat')
+              },
+              {
+                key: 'notifications',
+                icon: <IoNotificationsSharp />,
+                label: 'Notifications',
+                onClick: () => handleNotificationNavigate('/notification')
+              },
+              {
+                type: 'divider',
+              },
+              ...items
+                .filter(item => item.key !== 'profile-header')
+                .map(item => ({
+                  ...item,
+                  onClick: item.onClick || (() => { })
+                }))
+            ]}
+          />
+        </Drawer>
+      </div>
     </>
   );
 }
