@@ -423,10 +423,11 @@ const PostDetailsPage = () => {
 
   const renderComment = (comment) => {
     if (!comment) return null;
-
+    const isCurrentUserComment = comment.author?._id === login_user_id;
     const isEditing = editingCommentId === comment._id;
     const isCommentLiked = comment.likes?.includes(login_user_id);
     const commentAuthor = comment.author || { userName: "Unknown" };
+    // console.log(commentAuthor)
     const authorImage = commentAuthor.profile || commentAuthor.avatar;
     const wordCount = countWords(editCommentText);
     const replyWordCount = countWords(replyText);
@@ -436,7 +437,7 @@ const PostDetailsPage = () => {
         {/* Main Comment */}
         <div className={`flex w-full ${isDarkMode ? 'dark-mode' : ''}`}>
           {/* User Avatar */}
-          <div className="mr-4 flex-shrink-0">
+          <div onClick={() => router.push(`/profiles/${commentAuthor._id}`)} className="mr-4 cursor-pointer flex-shrink-0">
             {authorImage ? (
               <Avatar src={getImageUrl(authorImage)} size={40} />
             ) : (
@@ -449,7 +450,7 @@ const PostDetailsPage = () => {
             {/* Comment Header */}
             <div className="flex items-start justify-between -mb-1">
               <div>
-                <span className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                <span onClick={() => router.push(`/profiles/${commentAuthor._id}`)} className={`font-medium cursor-pointer text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                   {commentAuthor.userName}
                 </span>
                 <span className={`text-xs ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -463,11 +464,11 @@ const PostDetailsPage = () => {
                   trigger={['click']}
                   placement="bottomRight"
                 >
-                  <Button
+                  {isCurrentUserComment && <Button
                     type="text"
                     icon={<EllipsisOutlined className={isDarkMode ? 'text-gray-300' : ''} />}
                     className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                  />
+                  />}
                 </Dropdown>
               </div>
             </div>
