@@ -45,6 +45,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const screens = useBreakpoint();
   const { isDarkMode } = useContext(ThemeContext);
 
+  // Add refs to track editor state and prevent unnecessary updates
+  const editorInitialized = useRef(false);
+  const isUpdatingContent = useRef(false);
+  const lastCursorPosition = useRef(null);
+
   // API hooks
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
   const { data: categoryData } = useCategoriesQuery();
@@ -56,62 +61,117 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const [editPost] = useEditPostMutation();
   const isMobile = !screens.md;
 
-  // Utility function to count words
+  // FIXED: Improved utility function to count words properly
   const countWords = useCallback((html) => {
     if (!html) return 0;
+
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const plainText = tempDiv.textContent || tempDiv.innerText || '';
-    const words = plainText.trim().split(/\s+/).filter(word => word.length > 0);
+
+    // Remove all extra whitespace and normalize spaces
+    const normalizedText = plainText
+      .replace(/\s+/g, ' ') // Replace multiple spaces/whitespace with single space
+      .trim(); // Remove leading and trailing spaces
+
+    if (!normalizedText) return 0;
+
+    // Split by single space and filter out empty strings
+    const words = normalizedText.split(' ').filter(word => word.length > 0);
     return words.length;
   }, []);
 
-  // Function to truncate content to 1000 words
+  // FIXED: Improved function to truncate content to 1000 words while preserving HTML structure
   const truncateTo1000Words = useCallback((html) => {
     if (!html) return '';
+
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const plainText = tempDiv.textContent || tempDiv.innerText || '';
-    const words = plainText.trim().split(/\s+/);
+
+    // Normalize text for word counting
+    const normalizedText = plainText.replace(/\s+/g, ' ').trim();
+    const words = normalizedText.split(' ').filter(word => word.length > 0);
+
     if (words.length <= 1000) return html;
 
-    // Reconstruct HTML with only first 1000 words
-    const truncatedWords = words.slice(0, 1000);
-    let truncatedHtml = '';
-    let wordCount = 0;
+    // Create a more sophisticated truncation that preserves HTML structure
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    const processNode = (node) => {
-      if (wordCount >= 1000) return;
+    let wordCount = 0;
+    const targetWords = 1000;
 
-      if (node.nodeType === Node.TEXT_NODE) {
-        const text = node.textContent || '';
-        const wordsInText = text.trim().split(/\s+/).filter(w => w.length > 0);
+    const processTextNode = (textNode) => {
+      if (wordCount >= targetWords) return '';
 
-        let accumulatedText = '';
-        for (const word of wordsInText) {
-          if (wordCount >= 1000) break;
-          accumulatedText += (accumulatedText ? ' ' : '') + word;
-          wordCount++;
-        }
+      const text = textNode.textContent || '';
+      const normalizedNodeText = text.replace(/\s+/g, ' ').trim();
 
-        if (accumulatedText) {
-          truncatedHtml += accumulatedText;
-        }
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const tagName = node.tagName.toLowerCase();
-        const outerTagOpen = `<${tagName}${node.getAttribute('class') ? ` class="${node.getAttribute('class')}"` : ''}${node.getAttribute('style') ? ` style="${node.getAttribute('style')}"` : ''}>`;
-        const outerTagClose = `</${tagName}>`;
+      if (!normalizedNodeText) return text; // Preserve whitespace-only nodes as they might be important for formatting
 
-        truncatedHtml += outerTagOpen;
-        Array.from(node.childNodes).forEach(child => processNode(child));
-        truncatedHtml += outerTagClose;
+      const nodeWords = normalizedNodeText.split(' ').filter(word => word.length > 0);
+      const remainingWords = targetWords - wordCount;
+
+      if (nodeWords.length <= remainingWords) {
+        wordCount += nodeWords.length;
+        return text; // Return original text to preserve formatting
+      } else {
+        // Truncate this text node
+        const truncatedWords = nodeWords.slice(0, remainingWords);
+        wordCount += truncatedWords.length;
+
+        // Try to preserve the original spacing format as much as possible
+        let result = truncatedWords.join(' ');
+
+        // If original text had leading space, preserve it
+        if (text.startsWith(' ')) result = ' ' + result;
+
+        return result;
       }
     };
 
-    Array.from(doc.body.childNodes).forEach(child => processNode(child));
-    return truncatedHtml;
+    const processNode = (node) => {
+      if (wordCount >= targetWords) return '';
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        return processTextNode(node);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tagName = node.tagName.toLowerCase();
+
+        // Get attributes
+        let attributes = '';
+        for (let i = 0; i < node.attributes.length; i++) {
+          const attr = node.attributes[i];
+          attributes += ` ${attr.name}="${attr.value}"`;
+        }
+
+        const openTag = `<${tagName}${attributes}>`;
+        const closeTag = `</${tagName}>`;
+
+        let content = '';
+        for (let child of node.childNodes) {
+          if (wordCount >= targetWords) break;
+          content += processNode(child);
+        }
+
+        // Only include the element if it has content or if it's a self-closing element
+        if (content.trim() || ['br', 'hr', 'img'].includes(tagName)) {
+          return openTag + content + closeTag;
+        }
+        return '';
+      }
+
+      return '';
+    };
+
+    let result = '';
+    for (let child of doc.body.childNodes) {
+      if (wordCount >= targetWords) break;
+      result += processNode(child);
+    }
+
+    return result;
   }, []);
 
   // Memoized category options
@@ -130,7 +190,101 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }));
   }, [category, subcategoryData]);
 
-  // Tiptap Editor Setup
+  // FIXED: Improved paste handler
+  const handlePaste = useCallback((view, event) => {
+    const html = event.clipboardData?.getData('text/html');
+    const text = event.clipboardData?.getData('text/plain');
+
+    if (html || text) {
+      const currentWordCount = countWords(view.state.doc.textContent);
+      const pastedWordCount = countWords(html || text);
+
+      if (currentWordCount + pastedWordCount > 1000) {
+        event.preventDefault();
+        toast.error(`Pasting this content would exceed the 1000 word limit. You have ${1000 - currentWordCount} words remaining.`);
+        return true;
+      }
+    }
+    return false;
+  }, [countWords]);
+
+  // FIXED: Improved drop handler
+  const handleDrop = useCallback((view, event) => {
+    const html = event.dataTransfer?.getData('text/html');
+    const text = event.dataTransfer?.getData('text/plain');
+
+    if (html || text) {
+      const currentWordCount = countWords(view.state.doc.textContent);
+      const droppedWordCount = countWords(html || text);
+
+      if (currentWordCount + droppedWordCount > 1000) {
+        event.preventDefault();
+        toast.error(`Dropping this content would exceed the 1000 word limit. You have ${1000 - droppedWordCount} words remaining.`);
+        return true;
+      }
+    }
+    return false;
+  }, [countWords]);
+
+  // FIXED: Updated editor update handler
+  const handleEditorUpdate = useCallback(({ editor }) => {
+    // Prevent recursive updates
+    if (isUpdatingContent.current) return;
+
+    // Store cursor position before processing
+    const { from, to } = editor.state.selection;
+    lastCursorPosition.current = { from, to };
+
+    const html = editor.getHTML();
+    const words = countWords(html);
+
+    // Only handle truncation if word count exceeds limit
+    if (words > 1000) {
+      isUpdatingContent.current = true;
+      const truncatedHtml = truncateTo1000Words(html);
+
+      // Use setTimeout to ensure the update happens after current cycle
+      setTimeout(() => {
+        editor.commands.setContent(truncatedHtml, false, {
+          preserveWhitespace: 'full'
+        });
+
+        // Restore cursor position (adjust for truncation)
+        const newWords = countWords(truncatedHtml);
+        if (newWords < words) {
+          // Content was truncated, position cursor at end
+          editor.commands.focus('end');
+        } else {
+          // Try to restore original position
+          try {
+            editor.commands.setTextSelection({
+              from: Math.min(lastCursorPosition.current.from, editor.state.doc.content.size),
+              to: Math.min(lastCursorPosition.current.to, editor.state.doc.content.size)
+            });
+          } catch (e) {
+            // Fallback to focus at current position
+            editor.commands.focus();
+          }
+        }
+
+        isUpdatingContent.current = false;
+      }, 0);
+
+      setWordCount(1000);
+      setDescription(truncatedHtml);
+      toast.error('Word limit of 1000 exceeded. Content has been truncated.');
+    } else {
+      // Normal update without cursor issues
+      setDescription(html);
+      setWordCount(words);
+    }
+
+    if (formErrors.description) {
+      setFormErrors(prev => ({ ...prev, description: null }));
+    }
+  }, [countWords, truncateTo1000Words, formErrors.description]);
+
+  // Tiptap Editor Setup with fixed cursor position handling
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -150,68 +304,57 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       Underline
     ],
     content: description,
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      const words = countWords(html);
-
-      if (words > 1000) {
-        const truncatedHtml = truncateTo1000Words(html);
-        editor.commands.setContent(truncatedHtml);
-        setWordCount(1000);
-        setDescription(truncatedHtml);
-        toast.error('Word limit of 1000 exceeded. Content has been truncated.');
-      } else {
-        setDescription(html);
-        setWordCount(words);
-      }
-
-      if (formErrors.description) {
-        setFormErrors(prev => ({ ...prev, description: null }));
-      }
-    },
+    onUpdate: handleEditorUpdate,
     editorProps: {
       attributes: {
         class: `focus:outline-none p-4 min-h-[240px] max-h-[240px] overflow-y-auto ${isDarkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-gray-800'
           }`,
       },
-      handlePaste: (view, event) => {
-        const html = event.clipboardData?.getData('text/html');
-        const text = event.clipboardData?.getData('text/plain');
-
-        if (html || text) {
-          const currentWordCount = countWords(editor.getHTML());
-          const pastedWordCount = countWords(html || text);
-
-          if (currentWordCount + pastedWordCount > 1000) {
-            event.preventDefault();
-            toast.error(`Pasting this content would exceed the 1000 word limit. You have ${1000 - currentWordCount} words remaining.`);
-            return true;
-          }
-        }
-        return false;
-      },
-      handleDrop: (view, event) => {
-        const html = event.dataTransfer?.getData('text/html');
-        const text = event.dataTransfer?.getData('text/plain');
-
-        if (html || text) {
-          const currentWordCount = countWords(editor.getHTML());
-          const droppedWordCount = countWords(html || text);
-
-          if (currentWordCount + droppedWordCount > 1000) {
-            event.preventDefault();
-            toast.error(`Dropping this content would exceed the 1000 word limit. You have ${1000 - currentWordCount} words remaining.`);
-            return true;
-          }
-        }
-        return false;
-      }
+      handlePaste,
+      handleDrop
     },
+    // Add onSelectionUpdate to track cursor position
+    onSelectionUpdate: ({ editor }) => {
+      if (!isUpdatingContent.current) {
+        const { from, to } = editor.state.selection;
+        lastCursorPosition.current = { from, to };
+      }
+    }
   });
 
+  // Fixed useEffect to prevent cursor jumping
   useEffect(() => {
-    if (editor) {
+    if (editor && editorInitialized.current && !isUpdatingContent.current) {
+      // Only update if the content is actually different
+      const currentContent = editor.getHTML();
+      if (currentContent !== description) {
+        isUpdatingContent.current = true;
+
+        // Store current cursor position
+        const { from, to } = editor.state.selection;
+
+        editor.commands.setContent(description, false, {
+          preserveWhitespace: 'full'
+        });
+
+        // Restore cursor position after content update
+        setTimeout(() => {
+          try {
+            editor.commands.setTextSelection({
+              from: Math.min(from, editor.state.doc.content.size),
+              to: Math.min(to, editor.state.doc.content.size)
+            });
+          } catch (e) {
+            // Fallback: just focus the editor
+            editor.commands.focus();
+          }
+          isUpdatingContent.current = false;
+        }, 0);
+      }
+    } else if (editor && !editorInitialized.current) {
+      // Initial setup
       editor.commands.setContent(description);
+      editorInitialized.current = true;
     }
   }, [description, editor]);
 
@@ -373,7 +516,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     setWordCount(0);
     setFileList([]);
     if (editor) {
-      editor.commands.setContent('');
+      isUpdatingContent.current = true;
+      editor.commands.clearContent();
+      setTimeout(() => {
+        isUpdatingContent.current = false;
+      }, 0);
     }
     toast.success('Draft cleared successfully');
   };
@@ -421,6 +568,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       if (subcategory) formData.append('subCategory', subcategory);
       formData.append('content', description);
 
+      // Add images for both create and edit cases
+      fileList.forEach((file) => {
+        if (file.originFileObj) {
+          formData.append('image', file.originFileObj);
+        }
+      });
+
       if (isEditing && postId) {
         const deletedImages = [];
         initialImages.forEach(initialImage => {
@@ -435,11 +589,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
         if (deletedImages.length > 0) {
           formData.append('deletedImages', JSON.stringify(deletedImages));
         }
-        fileList.forEach((file) => {
-          if (file.originFileObj) {
-            formData.append('image', file.originFileObj);
-          }
-        });
       }
 
       const response = isEditing && postId
@@ -490,6 +639,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           padding: 0.5rem;
           outline: none;
           line-height: 1.6;
+          white-space: pre-wrap; /* Preserves spaces but normalizes line breaks */
         }
         .tiptap-editor-wrapper .ProseMirror::-webkit-scrollbar {
           width: 8px;

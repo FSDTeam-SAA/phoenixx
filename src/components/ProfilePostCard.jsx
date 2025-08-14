@@ -128,7 +128,6 @@ const ProfilePostCard = ({
 
   const renderAuthorAvatar = () => {
     const author = postData?.author || {};
-    console.log(author)
 
     return (
       author.profile ? (

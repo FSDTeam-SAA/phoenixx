@@ -29,6 +29,7 @@ export const useHomePage = () => {
 
   // API calls
   const { data: apiData, isLoading, error, refetch } = useGetPostQuery(queryParams);
+  console.log(apiData?.data?.data)
   const [likePost, { isLoading: likePostLoading }] = useLikePostMutation();
 
   // Process API data

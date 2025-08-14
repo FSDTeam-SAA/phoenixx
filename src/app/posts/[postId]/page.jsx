@@ -209,14 +209,49 @@ const PostDetailsPage = () => {
     }
   };
 
+  const decodeHtmlEntities = (text) => {
+    if (!text) return '';
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+  };
+
   const cleanPostContent = (content) => {
+    console.log(content)
     if (!content) return '';
 
     // Remove Froala "Powered by" footer
-    return content.replace(
+    const withoutFroala = content.replace(
       /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
       ''
-    ).trim();
+    );
+
+    // Convert empty paragraphs to line breaks to preserve spacing
+    let processedContent = withoutFroala.replace(/<p[^>]*>\s*<\/p>/gi, '<br><br>');
+
+    // Convert paragraph breaks to double line breaks for spacing
+    processedContent = processedContent.replace(/<\/p>\s*<p[^>]*>/gi, '<br><br>');
+
+    // Convert remaining paragraph tags to line breaks
+    processedContent = processedContent.replace(/<\/?p[^>]*>/gi, '');
+
+    // Convert other block elements to line breaks
+    processedContent = processedContent.replace(/<\/(div|h[1-6]|section|article)>/gi, '<br>');
+    processedContent = processedContent.replace(/<(div|h[1-6]|section|article)[^>]*>/gi, '');
+
+    // Convert <br> tags to actual line breaks
+    processedContent = processedContent.replace(/<br\s*\/?>/gi, '\n');
+
+    // Remove any remaining HTML tags
+    processedContent = processedContent.replace(/<[^>]+>/g, '');
+
+    // Decode HTML entities
+    const decoded = decodeHtmlEntities(processedContent);
+
+    // Preserve multiple line breaks but clean up excessive ones (more than 4 consecutive)
+    const withPreservedSpacing = decoded.replace(/\n{5,}/g, '\n\n\n\n');
+
+    return withPreservedSpacing.trim();
   };
 
   const handleCommentSubmit = async (e) => {
@@ -776,10 +811,17 @@ const PostDetailsPage = () => {
               </h2>
             )}
 
-            <div
+            {/* <div
               className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}
               dangerouslySetInnerHTML={{ __html: cleanPostContent(post.content) }}
-            />
+            /> */}
+
+            <div
+              className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}
+              style={{ whiteSpace: 'pre-line' }}
+            >
+              {cleanPostContent(post.content)}
+            </div>
 
             {renderImageGrid}
 
