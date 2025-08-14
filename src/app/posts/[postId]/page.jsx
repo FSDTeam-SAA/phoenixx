@@ -68,6 +68,8 @@ const PostDetailsPage = () => {
   const [collapsedReplies, setCollapsedReplies] = useState({});
 
   const post = postDetails?.data;
+
+  // console.log(post.content)
   const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
   const isLiked = post?.likes?.includes(login_user_id);
@@ -216,42 +218,81 @@ const PostDetailsPage = () => {
     return textArea.value;
   };
 
+  // const cleanPostContent = (content) => {
+  //   if (!content) return '';
+
+  //   // Remove Froala "Powered by" footer
+  //   const withoutFroala = content.replace(
+  //     /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
+  //     ''
+  //   );
+
+  //   // Convert empty paragraphs to line breaks to preserve spacing
+  //   let processedContent = withoutFroala.replace(/<p[^>]*>\s*<\/p>/gi, '<br><br>');
+
+  //   // Preserve lists - convert to text with proper indentation
+  //   processedContent = processedContent.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, inner) => {
+  //     const items = inner.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
+  //       return `\n1. ${liContent.replace(/<[^>]+>/g, '').trim()}`;
+  //     });
+  //     return items;
+  //   });
+
+  //   processedContent = processedContent.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, inner) => {
+  //     const items = inner.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
+  //       return `\n• ${liContent.replace(/<[^>]+>/g, '').trim()}`;
+  //     });
+  //     return items;
+  //   });
+
+  //   // Handle basic formatting
+  //   processedContent = processedContent.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
+  //   processedContent = processedContent.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
+  //   processedContent = processedContent.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
+  //   processedContent = processedContent.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
+  //   processedContent = processedContent.replace(/<u[^>]*>(.*?)<\/u>/gi, '_$1_');
+
+  //   // Convert paragraph breaks to double line breaks for spacing
+  //   processedContent = processedContent.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
+  //   processedContent = processedContent.replace(/<\/?p[^>]*>/gi, '');
+
+  //   // Convert other block elements to line breaks
+  //   processedContent = processedContent.replace(/<\/(div|h[1-6]|section|article)>/gi, '\n');
+  //   processedContent = processedContent.replace(/<(div|h[1-6]|section|article)[^>]*>/gi, '');
+
+  //   // Convert <br> tags to actual line breaks
+  //   processedContent = processedContent.replace(/<br\s*\/?>/gi, '\n');
+
+  //   // Remove any remaining HTML tags (except those we've explicitly handled)
+  //   processedContent = processedContent.replace(/<[^>]+>/g, '');
+
+  //   // Decode HTML entities
+  //   const decoded = decodeHtmlEntities(processedContent);
+
+  //   // Clean up excessive line breaks (more than 4 consecutive)
+  //   const withPreservedSpacing = decoded.replace(/\n{5,}/g, '\n\n\n\n');
+
+  //   return withPreservedSpacing.trim();
+  // };
+
+
+
   const cleanPostContent = (content) => {
-    console.log(content)
     if (!content) return '';
 
     // Remove Froala "Powered by" footer
-    const withoutFroala = content.replace(
+    let processedContent = content.replace(
       /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
       ''
     );
 
-    // Convert empty paragraphs to line breaks to preserve spacing
-    let processedContent = withoutFroala.replace(/<p[^>]*>\s*<\/p>/gi, '<br><br>');
+    // Convert empty paragraphs to single line breaks
+    processedContent = processedContent.replace(/<p[^>]*>\s*<\/p>/gi, '<br>');
 
-    // Convert paragraph breaks to double line breaks for spacing
-    processedContent = processedContent.replace(/<\/p>\s*<p[^>]*>/gi, '<br><br>');
+    // Clean up excessive empty paragraphs but preserve some spacing
+    processedContent = processedContent.replace(/(<br>\s*){3,}/gi, '<br><br>');
 
-    // Convert remaining paragraph tags to line breaks
-    processedContent = processedContent.replace(/<\/?p[^>]*>/gi, '');
-
-    // Convert other block elements to line breaks
-    processedContent = processedContent.replace(/<\/(div|h[1-6]|section|article)>/gi, '<br>');
-    processedContent = processedContent.replace(/<(div|h[1-6]|section|article)[^>]*>/gi, '');
-
-    // Convert <br> tags to actual line breaks
-    processedContent = processedContent.replace(/<br\s*\/?>/gi, '\n');
-
-    // Remove any remaining HTML tags
-    processedContent = processedContent.replace(/<[^>]+>/g, '');
-
-    // Decode HTML entities
-    const decoded = decodeHtmlEntities(processedContent);
-
-    // Preserve multiple line breaks but clean up excessive ones (more than 4 consecutive)
-    const withPreservedSpacing = decoded.replace(/\n{5,}/g, '\n\n\n\n');
-
-    return withPreservedSpacing.trim();
+    return processedContent.trim();
   };
 
   const handleCommentSubmit = async (e) => {
@@ -816,12 +857,21 @@ const PostDetailsPage = () => {
               dangerouslySetInnerHTML={{ __html: cleanPostContent(post.content) }}
             /> */}
 
-            <div
+            {/* <div
               className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}
               style={{ whiteSpace: 'pre-line' }}
             >
               {cleanPostContent(post.content)}
-            </div>
+            </div> */}
+
+            <div
+              dangerouslySetInnerHTML={{
+                __html: cleanPostContent(post.content)
+              }}
+            />
+
+
+
 
             {renderImageGrid}
 
