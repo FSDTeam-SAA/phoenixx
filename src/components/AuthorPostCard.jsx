@@ -593,7 +593,7 @@ const AuthorPostCard = ({
                   overflowWrap: 'break-word'
                 }}
               >
-                {author.userName || author.name || "User"}
+                {author.name ? author.name : author.username || author.userName}
               </span>
               <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {postData.isSavedPost

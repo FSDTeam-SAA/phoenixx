@@ -68,8 +68,6 @@ const PostDetailsPage = () => {
   const [collapsedReplies, setCollapsedReplies] = useState({});
 
   const post = postDetails?.data;
-
-  // console.log(post.content)
   const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
   const isLiked = post?.likes?.includes(login_user_id);
@@ -277,20 +275,20 @@ const PostDetailsPage = () => {
 
 
 
+
+
+
   const cleanPostContent = (content) => {
     if (!content) return '';
 
-    // Remove Froala "Powered by" footer
+    // Only remove Froala "Powered by" footer, keep everything else
     let processedContent = content.replace(
       /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
       ''
     );
 
-    // Convert empty paragraphs to single line breaks
+    // Convert empty paragraphs to <br> tags to show as line breaks
     processedContent = processedContent.replace(/<p[^>]*>\s*<\/p>/gi, '<br>');
-
-    // Clean up excessive empty paragraphs but preserve some spacing
-    processedContent = processedContent.replace(/(<br>\s*){3,}/gi, '<br><br>');
 
     return processedContent.trim();
   };
@@ -822,12 +820,12 @@ const PostDetailsPage = () => {
                   />
                 ) : (
                   <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'} flex items-center justify-center text-xs`}>
-                    {post.author?.userName?.charAt(0).toUpperCase() || 'A'}
+                    {post?.author?.userName?.charAt(0).toUpperCase() || 'A'}
                   </div>
                 )}
                 <div className="flex flex-col justify-start items-start">
                   <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                    {post.author?.userName || "Anonymous"}
+                    {post?.author?.name ? post?.author?.name : post?.author?.userName}
                   </span>
                   <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     {formatDate(post.createdAt)}
