@@ -21,10 +21,13 @@ const ProfileBanner = () => {
   const [usernameError, setUsernameError] = useState('');
 
   const [remainingChanges, setRemainingChanges] = useState(0);
+  const [isUsernameReadOnly, setIsUsernameReadOnly] = useState(false);
 
   useEffect(() => {
     if (data?.data) {
-      setRemainingChanges(data.data.maxChangeUserName || 0);
+      const changesLeft = data.data.maxChangeUserName || 0;
+      setRemainingChanges(changesLeft);
+      setIsUsernameReadOnly(changesLeft <= 0);
 
       if (isModalOpen) {
         form.setFieldsValue({
@@ -40,12 +43,15 @@ const ProfileBanner = () => {
     setFileList([]);
     setUsernameError('');
     if (data?.data) {
+      const changesLeft = data.data.maxChangeUserName || 0;
+      setRemainingChanges(changesLeft);
+      setIsUsernameReadOnly(changesLeft <= 0);
+
       form.setFieldsValue({
         name: data.data.name || data.data.userName,
         email: data.data.email,
         contact: data.data.contact || '',
       });
-      setRemainingChanges(data.data.maxChangeUserName || 0);
     }
     setIsModalOpen(true);
     // Prevent background scrolling
@@ -63,28 +69,57 @@ const ProfileBanner = () => {
     try {
       const values = await form.validateFields();
 
-      // Check if username has changed and if changes are remaining
+      // Get current username and new username
       const currentUsername = data?.data?.userName;
       const newUsername = values.name;
+      const hasUsernameChanged = currentUsername !== newUsername;
 
-      if (currentUsername !== newUsername && remainingChanges <= 0) {
+      // Check if username has changed and if changes are remaining
+      if (hasUsernameChanged && remainingChanges <= 0) {
         setUsernameError("You have reached the maximum limit for username changes!");
         return;
       }
 
       const formData = new FormData();
-      formData.append('userName', values.name);
+
+      // Only include username in FormData if:
+      // 1. Username has changed AND there are remaining changes, OR
+      // 2. Username hasn't changed (no limit impact)
+      if (remainingChanges > 0 || !hasUsernameChanged) {
+        formData.append('userName', values.name);
+      }
+
+      // Always include contact if provided
       if (values.contact) {
         formData.append('contact', values.contact);
       }
 
+      // Always include image if provided
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append('image', fileList[0].originFileObj);
+      }
+
+      // Check if we have any data to update
+      const hasImageUpdate = fileList.length > 0 && fileList[0].originFileObj;
+      const hasContactUpdate = values.contact !== (data?.data?.contact || '');
+      const hasUsernameUpdate = hasUsernameChanged && remainingChanges > 0;
+
+      if (!hasImageUpdate && !hasContactUpdate && !hasUsernameUpdate) {
+        message.info("No changes detected to update");
+        return;
       }
 
       const response = await updateProfile(formData).unwrap();
 
       if (response.success) {
+        // Only decrement counter if username was actually changed and included in update
+        if (hasUsernameChanged && remainingChanges > 0) {
+          setRemainingChanges(prev => prev - 1);
+          if (remainingChanges - 1 <= 0) {
+            setIsUsernameReadOnly(true);
+          }
+        }
+
         message.success("Profile updated successfully");
         setIsModalOpen(false);
         setUsernameError('');
@@ -269,7 +304,7 @@ const ProfileBanner = () => {
                 <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username*</span>
                 {remainingChanges >= 0 && (
                   <span className={`text-xs pl-2 ${remainingChanges === 0 ? 'text-red-500' : 'text-blue-500'}`}>
-                    Limit{remainingChanges !== 1 ? 's' : ''} {remainingChanges}
+                    {remainingChanges} change{remainingChanges !== 1 ? 's' : ''} remaining
                   </span>
                 )}
               </div>
@@ -279,7 +314,7 @@ const ProfileBanner = () => {
               { min: 2, message: 'Username must be at least 2 characters' }
             ]}
             validateStatus={usernameError ? 'error' : ''}
-            help={usernameError}
+            help={usernameError || (isUsernameReadOnly ? "Username changes limit reached. You can still update your profile picture. So you cann`t Update your Profile" : "")}
           >
             <Input
               placeholder='Username'
@@ -290,7 +325,7 @@ const ProfileBanner = () => {
                 color: isDarkMode ? '#ffffff' : '#111827',
                 borderColor: isDarkMode ? '#6B7280' : '#d1d5db'
               }}
-              disabled={remainingChanges <= 0 && form.getFieldValue('name') === data?.data?.userName}
+              readOnly={isUsernameReadOnly}
             />
           </Form.Item>
 

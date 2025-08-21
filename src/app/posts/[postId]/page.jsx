@@ -189,10 +189,10 @@ const PostDetailsPage = () => {
 
     try {
       const response = await savepost({ postId }).unwrap();
-      message.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
+      toast.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
     } catch (error) {
       console.error('Save/Unsave error:', error);
-      message.error('Failed to update saved status');
+      toast.error('Failed to update saved status');
     }
   };
 

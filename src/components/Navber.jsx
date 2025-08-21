@@ -204,7 +204,7 @@ export default function Navbar() {
     const limited = combined.slice(0, 5);
 
     setSuggestions(limited);
-    setShowSuggestions(true); // Always show dropdown (with "No results" if needed)
+    setShowSuggestions(true);
   }, [searchQuery, postData]);
 
   const handleNavigation = async (path) => {
@@ -366,10 +366,23 @@ export default function Navbar() {
   // -----------------------------
   const handleSuggestionClick = (type, id) => {
     setShowSuggestions(false);
+
+
     if (type === 'user') {
-      router.push(`/profiles/${id}`);
+
+      if (!isAuthenticated()) {
+        router.push('/auth/login');
+        return;
+      } else {
+        router.push(`/profiles/${id}`);
+      }
     } else if (type === 'post') {
-      router.push(`/posts/${id}`);
+      if (!isAuthenticated()) {
+        router.push('/auth/login');
+        return;
+      } else {
+        router.push(`/posts/${id}`);
+      }
     }
   };
 
@@ -410,7 +423,7 @@ export default function Navbar() {
           position: 'absolute',
           top: '100%',
           left: 0,
-          right: 0,
+          width: '100%', // ✅ Match parent container width
           backgroundColor: isDarkMode ? '#1f1f1f' : '#fff',
           borderRadius: '8px',
           border: `1px solid ${isDarkMode ? '#424242' : '#ddd'}`,
@@ -481,21 +494,6 @@ export default function Navbar() {
   // -----------------------------
   // 🖋️ Search Input Styles
   // -----------------------------
-  const searchFieldStyles = {
-    input: {
-      backgroundColor: 'transparent',
-      border: 'none',
-      padding: '10px 16px',
-      boxShadow: 'none',
-      height: '100%',
-    },
-    searchIcon: {
-      color: isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#6b7280',
-      fontSize: '16px',
-      marginRight: '8px',
-    }
-  };
-
   const iconButtonStyles = {
     display: 'flex',
     alignItems: 'center',
@@ -509,15 +507,16 @@ export default function Navbar() {
   };
 
   const renderDesktopSearch = () => (
-    <div style={{
-      width: screens.lg ? '35%' : '30%',
-      minWidth: '200px',
-      marginLeft: screens.lg ? '160px' : screens.md ? '80px' : '20px',
-      paddingLeft: screens.xl ? '60px' : '0',
-      flex: '1 1 auto',
-      maxWidth: '600px',
-      position: 'relative'
-    }}>
+    <div
+      style={{
+        width: screens.lg ? '35%' : '30%',
+        minWidth: '200px',
+        marginLeft: screens.lg ? '160px' : screens.md ? '80px' : '20px',
+        flex: '1 1 auto',
+        maxWidth: '600px',
+        position: 'relative' // ✅ Required for absolute positioning of suggestions
+      }}
+    >
       <Flex
         align="center"
         style={{
@@ -526,10 +525,9 @@ export default function Navbar() {
           backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
           borderRadius: '12px',
           border: `1px solid ${isDarkMode ? '#424242' : '#D8D8D8'}`,
-          boxShadow: isDarkMode ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.05)',
+          boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.4)' : '0 2px 6px rgba(0,0,0,0.05)',
           overflow: 'hidden',
           transition: 'all 0.2s ease-in-out',
-          position: 'relative'
         }}
       >
         <Input
@@ -570,6 +568,7 @@ export default function Navbar() {
         />
       </Flex>
 
+      {/* Suggestions dropdown now matches input width */}
       {renderSuggestions()}
     </div>
   );
@@ -587,19 +586,21 @@ export default function Navbar() {
         ref={searchRef}
         value={searchQuery}
         placeholder="Search topics"
-        prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
+        prefix={<SearchOutlined style={{ color: isDarkMode ? '#bbbbbb' : '#888888' }} />}
         style={{
-          ...searchFieldStyles.input,
           width: '100%',
+          height: '40px',
           background: isDarkMode ? '#1f1f1f' : '#f3f2fa',
           borderRadius: '10px',
+          border: `1px solid ${isDarkMode ? '#424242' : '#ddd'}`,
           color: isDarkMode ? 'rgba(255, 255, 255, 0.85)' : 'inherit',
+          padding: '0 12px',
         }}
         autoFocus
         onChange={handleInputChange}
         onPressEnter={handleKeyDown}
         allowClear={{
-          clearIcon: <CloseOutlined onClick={handleClear} />
+          clearIcon: <CloseOutlined onClick={handleClear} style={{ color: isDarkMode ? '#888' : '#aaa' }} />
         }}
         suffix={
           <Button
