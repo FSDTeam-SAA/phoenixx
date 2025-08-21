@@ -98,6 +98,9 @@ const HomePage = () => {
           )}
         </div>
       </main>
+      <div className="text-sm text-gray-500 text-center pb-10">
+        © 2025 Mehor. All rights reserved.
+      </div>
     </div>
   );
 };
