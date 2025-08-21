@@ -314,7 +314,7 @@ const ProfileBanner = () => {
               { min: 2, message: 'Username must be at least 2 characters' }
             ]}
             validateStatus={usernameError ? 'error' : ''}
-            help={usernameError || (isUsernameReadOnly ? "Username changes limit reached. You can still update your profile picture. So you cann`t Update your Profile" : "")}
+            help={usernameError || (isUsernameReadOnly ? "Username changes limit reached. So you cann`t Update your Profile" : "")}
           >
             <Input
               placeholder='Username'
