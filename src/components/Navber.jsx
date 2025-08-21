@@ -37,13 +37,12 @@ import { useSelector } from 'react-redux';
 import { isAuthenticated } from '../../utils/auth';
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
+import { connectSocket } from '../../utils/socket';
 import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery, useUnreadIconCountMutation } from '../features/chat/chatList/chatApi';
-
-import toast from 'react-hot-toast';
-import { connectSocket } from '../../utils/socket';
 import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
+import { useGetPostQuery } from '../features/post/postApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
 
@@ -57,18 +56,22 @@ export default function Navbar() {
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAccountSuspended, setIsAccountSuspended] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [readCound] = useUnreadIconCountMutation();
   const socketRef = useRef(null);
 
-  // Using ThemeContext instead of useTheme hook
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
   const [readNotification] = useMarkAllAsReadMutation();
   const { data: pronab, isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
+
+  // Get all posts (for suggestion matching)
+  const { data: postData } = useGetPostQuery({ searchTerm: '', limit: 100, page: 1 });
 
   const getCurrentUserId = useCallback(() => {
     try {
@@ -86,21 +89,18 @@ export default function Navbar() {
     const socket = connectSocket(loggedInUserId);
     socketRef.current = socket;
 
-    // Connection events
     socket.on('connect', () => {
-      // console.log('Socket connected to ChatList');
+      // console.log('Socket connected');
     });
 
     socket.on('disconnect', () => {
-      // console.log('Socket disconnected from ChatList');
+      // console.log('Socket disconnected');
     });
 
-    // Unread count update
     socket.on(`unreadCountUpdate::${loggedInUserId}`, (data) => {
       refetchChat();
     });
 
-    // Chat list update (general updates)
     socket.on(`chatListUpdate::${loggedInUserId}`, (data) => {
       refetchChat();
     });
@@ -124,26 +124,88 @@ export default function Navbar() {
   }
 
   const { notifications } = useSelector((state) => state);
-
-  const { data, isLoading } = useGetProfileQuery();
-
+  const { data: profileData, isLoading: profileLoading } = useGetProfileQuery();
   const { data: logo, isLoading: logoLoading } = useLogoQuery();
 
   const filteredLogo = logo?.data?.find(item =>
     (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
   );
 
-  // Initialize search query from URL
   useEffect(() => {
     const query = searchParams.get('search');
     if (query) {
-      // Remove quotes if they exist in the query
       const cleanQuery = query.replace(/^"|"$/g, '');
       setSearchQuery(cleanQuery);
     } else {
       setSearchQuery('');
     }
   }, [searchParams]);
+
+  // -----------------------------
+  // 🔍 Strict Word-Start Matching Helper
+  // -----------------------------
+  const startsWithWord = (text, query) => {
+    if (!query) return false;
+    const regex = new RegExp(`\\b${query}`, 'i'); // Matches word boundary + query
+    return regex.test(text);
+  };
+
+  const getMatchingWord = (text, query) => {
+    if (!query) return null;
+    const regex = new RegExp(`(\\b${query}\\w*)`, 'i');
+    const match = text.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // -----------------------------
+  // 🔍 Auto-Suggestions Logic (Strict Word Matching)
+  // -----------------------------
+  useEffect(() => {
+    if (searchQuery.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const posts = postData?.data?.data || [];
+    const authorMap = new Map();
+    const matchedPosts = [];
+    const matchedAuthors = [];
+
+    posts.forEach(post => {
+      // Match post title (strict word start)
+      if (startsWithWord(post.title, searchQuery)) {
+        matchedPosts.push({
+          type: 'post',
+          id: post._id,
+          title: post.title,
+          image: post.images?.[0] || null,
+        });
+      }
+
+      // Match author name (strict word start)
+      if (startsWithWord(post.author.name, searchQuery)) {
+        const authorKey = post.author._id;
+        if (!authorMap.has(authorKey)) {
+          authorMap.set(authorKey, true);
+          matchedAuthors.push({
+            type: 'user',
+            id: post.author._id,
+            name: post.author.name,
+            userName: post.author.userName,
+            profile: post.author.profile,
+          });
+        }
+      }
+    });
+
+    // Combine results: Posts first, then users
+    const combined = [...matchedPosts, ...matchedAuthors];
+    const limited = combined.slice(0, 5);
+
+    setSuggestions(limited);
+    setShowSuggestions(true); // Always show dropdown (with "No results" if needed)
+  }, [searchQuery, postData]);
 
   const handleNavigation = async (path) => {
     if (isAccountSuspended) return;
@@ -165,8 +227,6 @@ export default function Navbar() {
     } else {
       try {
         const response = await readCound().unwrap();
-        console.log(response)
-
         router.push(path);
         localStorage.removeItem("messageCount")
         setDrawerVisible(false);
@@ -193,28 +253,15 @@ export default function Navbar() {
       key: 'profile-header',
       label: (
         <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'text-black' : ''}`}>
-          <Avatar
-            src={getImageUrl(data?.data?.profile)}
-            size={44}
-          />
+          <Avatar src={getImageUrl(profileData?.data?.profile)} size={44} />
           <Space direction="vertical" size={0}>
-            {/* Name - always black if exists */}
-            <Text strong className={data?.data?.name ? "text-black" : "text-transparent"}>
-              {data?.data?.name}
-            </Text>
-
-            {/* Username - gray if name exists, black otherwise */}
-            <Text className={data?.data?.name ? "text-gray-500" : "text-black"}>
-              {data?.data?.userName ? `@${data?.data?.userName}` : ""}
-            </Text>
+            <Text strong>{profileData?.data?.userName}</Text>
           </Space>
         </Flex>
       ),
       onClick: () => handleNavigation("/profile"),
     },
-    {
-      type: 'divider',
-    },
+    { type: 'divider' },
     {
       key: 'about',
       icon: <UserOutlined />,
@@ -239,55 +286,48 @@ export default function Navbar() {
     {
       key: 'darkmode',
       icon: isDarkMode ? <SunOutlined /> : <MoonOutlined />,
-      label: `${isDarkMode ? "Switch to light mode" : "Switch to dark mode"}`,
+      label: isDarkMode ? "Switch to light mode" : "Switch to dark mode",
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50',
       onClick: toggleTheme,
     },
-    {
-      type: 'divider',
-    },
+    { type: 'divider' },
     {
       key: 'signout',
       icon: <LogoutOutlined />,
       label: 'Sign Out',
       danger: true,
       onClick: () => {
-        if (isAccountSuspended) return;
         router.push('/auth/login');
-        localStorage.removeItem('loginToken');
-        localStorage.removeItem('login_user_id');
-        localStorage.removeItem('rememberedCredentials');
-        localStorage.setItem('theme', 'light');
-        localStorage.removeItem('isLoggedIn');
+        clearLogin();
       },
       style: { color: '#ff4d4f' },
       className: 'hover:!bg-gray-100 hover:!text-red-600',
     }
   ];
 
-  // Function to handle search
+  // -----------------------------
+  // 🔎 Search Handlers
+  // -----------------------------
   const handleSearch = (value) => {
     if (isAccountSuspended) return;
-    const trimmedValue = value?.trim();
-    if (trimmedValue) {
-      router.push(`/?search=${encodeURIComponent(trimmedValue)}`);
+    const trimmed = value.trim();
+    if (trimmed) {
+      router.push(`/?search=${encodeURIComponent(trimmed)}`);
     } else {
       router.push('/');
     }
+    setShowSuggestions(false);
   };
 
-  // Function to handle input change
   const handleInputChange = (e) => {
     if (isAccountSuspended) return;
     const value = e.target.value;
     setSearchQuery(value);
-
     if (!value) {
       router.push('/');
     }
   };
 
-  // Function to handle when Enter key is pressed
   const handleKeyDown = (e) => {
     if (isAccountSuspended) return;
     if (e.key === 'Enter') {
@@ -295,11 +335,11 @@ export default function Navbar() {
     }
   };
 
-  // Function to clear the search input
   const handleClear = () => {
     if (isAccountSuspended) return;
     setSearchQuery('');
     router.push('/');
+    setShowSuggestions(false);
   };
 
   const showDrawer = () => {
@@ -317,10 +357,130 @@ export default function Navbar() {
     if (!showMobileSearch) {
       setSearchQuery('');
       router.push('/');
+      setShowSuggestions(false);
     }
   };
 
-  // Responsive search bar styles
+  // -----------------------------
+  // 🎯 Suggestion Item Click
+  // -----------------------------
+  const handleSuggestionClick = (type, id) => {
+    setShowSuggestions(false);
+    if (type === 'user') {
+      router.push(`/profiles/${id}`);
+    } else if (type === 'post') {
+      router.push(`/posts/${id}`);
+    }
+  };
+
+  // -----------------------------
+  // 🔍 Highlight Matching Word Only
+  // -----------------------------
+  const highlightMatch = (text, query) => {
+    if (!query || query.length < 2) return <span>{text}</span>;
+
+    const matchWord = getMatchingWord(text, query);
+    if (!matchWord) return <span>{text}</span>;
+
+    const regex = new RegExp(`(${matchWord})`, 'gi');
+    const parts = text.split(regex);
+
+    return (
+      <span>
+        {parts.filter(Boolean).map((part, i) =>
+          regex.test(part) ? (
+            <span key={i} className="font-semibold" style={{ color: '#2563eb' }}>{part}</span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </span>
+    );
+  };
+
+  // -----------------------------
+  // 📝 Render Suggestions (Same Width as Search Bar)
+  // -----------------------------
+  const renderSuggestions = () => {
+    if (!showSuggestions) return null;
+
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          backgroundColor: isDarkMode ? '#1f1f1f' : '#fff',
+          borderRadius: '8px',
+          border: `1px solid ${isDarkMode ? '#424242' : '#ddd'}`,
+          boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.1)',
+          zIndex: 1000,
+          maxHeight: '300px',
+          overflowY: 'auto',
+        }}
+      >
+        {suggestions.length === 0 ? (
+          <div
+            style={{
+              padding: '12px 16px',
+              textAlign: 'center',
+              color: '#888',
+              fontStyle: 'italic',
+            }}
+          >
+            No results found
+          </div>
+        ) : (
+          suggestions.map((item, index) => (
+            <div
+              key={index}
+              onClick={() => handleSuggestionClick(item.type, item.id)}
+              style={{
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = isDarkMode ? '#333' : '#f5f5f5';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              {item.type === 'user' ? (
+                <Avatar src={getImageUrl(item.profile)} size={36} />
+              ) : (
+                <Avatar
+                  src={item.image ? getImageUrl(item.image) : '/images/default-post.png'}
+                  size={36}
+                  style={{ objectFit: 'cover' }}
+                />
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1 }}>
+                <div style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#000' }}>
+                  {item.type === 'user'
+                    ? highlightMatch(item.name, searchQuery)
+                    : highlightMatch(item.title, searchQuery)
+                  }
+                </div>
+                <div style={{ fontSize: '12px', color: '#888' }}>
+                  {item.type === 'user' ? `${item.userName}` : 'Post'}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  };
+
+  // -----------------------------
+  // 🖋️ Search Input Styles
+  // -----------------------------
   const searchFieldStyles = {
     input: {
       backgroundColor: 'transparent',
@@ -336,7 +496,6 @@ export default function Navbar() {
     }
   };
 
-  // Responsive icon button styles
   const iconButtonStyles = {
     display: 'flex',
     alignItems: 'center',
@@ -349,15 +508,15 @@ export default function Navbar() {
     backgroundColor: isDarkMode ? '#1f1f1f' : '#f9fafb'
   };
 
-  // Desktop search component with responsive styling
   const renderDesktopSearch = () => (
     <div style={{
       width: screens.lg ? '35%' : '30%',
       minWidth: '200px',
-      marginLeft: screens.lg ? '160px' : '40px',
+      marginLeft: screens.lg ? '160px' : screens.md ? '80px' : '20px',
       paddingLeft: screens.xl ? '60px' : '0',
       flex: '1 1 auto',
-      maxWidth: '500px'
+      maxWidth: '600px',
+      position: 'relative'
     }}>
       <Flex
         align="center"
@@ -369,10 +528,12 @@ export default function Navbar() {
           border: `1px solid ${isDarkMode ? '#424242' : '#D8D8D8'}`,
           boxShadow: isDarkMode ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.05)',
           overflow: 'hidden',
-          transition: 'all 0.2s ease-in-out'
+          transition: 'all 0.2s ease-in-out',
+          position: 'relative'
         }}
       >
         <Input
+          ref={searchRef}
           value={searchQuery}
           placeholder="Search topics..."
           prefix={<SearchOutlined style={{ color: isDarkMode ? '#bbbbbb' : '#888888' }} />}
@@ -392,7 +553,6 @@ export default function Navbar() {
             clearIcon: <CloseOutlined onClick={handleClear} style={{ color: isDarkMode ? '#888' : '#aaa' }} />
           }}
         />
-
         <Button
           type="primary"
           icon={<SearchOutlined />}
@@ -406,20 +566,14 @@ export default function Navbar() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'background-color 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = isDarkMode ? '#0001FB' : '#0001FB';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = isDarkMode ? '#0001FB' : '#0001FB';
           }}
         />
       </Flex>
+
+      {renderSuggestions()}
     </div>
   );
 
-  // Mobile search component with responsive styling
   const renderMobileSearch = () => (
     <div style={{
       flex: 1,
@@ -427,8 +581,10 @@ export default function Navbar() {
       alignItems: 'center',
       height: '100%',
       padding: '0 8px',
+      position: 'relative'
     }}>
       <Input
+        ref={searchRef}
         value={searchQuery}
         placeholder="Search topics"
         prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
@@ -460,6 +616,7 @@ export default function Navbar() {
           />
         }
       />
+      {renderSuggestions()}
     </div>
   );
 
@@ -477,7 +634,7 @@ export default function Navbar() {
             backgroundColor: 'rgba(0, 0, 0, 0.5)',
             backdropFilter: 'blur(5px)',
             zIndex: 9999,
-            pointerEvents: 'auto' // Ensure the overlay captures all clicks
+            pointerEvents: 'auto'
           }} />
         )}
         <Header
@@ -487,8 +644,8 @@ export default function Navbar() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: screens.xs ? '0 8px' : '0 16px',
-            height: '75px',
+            padding: screens.xs ? '0 8px' : screens.sm ? '0 12px' : '0 16px',
+            height: screens.xs ? '60px' : '75px',
             boxShadow: isDarkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.15)' : '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
             position: 'sticky',
             top: 0,
@@ -500,13 +657,9 @@ export default function Navbar() {
             pointerEvents: isAccountSuspended ? 'none' : 'auto'
           }}
         >
-          {/* Left Side - Logo and Menu Button */}
+          {/* Left Side - Logo and Menu */}
           {!showMobileSearch && (
-            <Flex align="center" style={{
-              height: '100%',
-              minWidth: 'fit-content',
-              flex: '0 0 auto'
-            }}>
+            <Flex align="center" style={{ height: '100%', minWidth: 'fit-content', flex: '0 0 auto' }}>
               {!screens.md && (
                 <Button
                   type="text"
@@ -538,32 +691,30 @@ export default function Navbar() {
                 {!logoLoading && filteredLogo && (
                   <Image
                     src={filteredLogo?.logo && `${baseURL}${filteredLogo.logo}`}
-                    width={screens.xs ? 90 : screens.sm ? 110 : 150}
-                    height={screens.xs ? 40 : screens.sm ? 50 : 60}
+                    width={screens.xs ? 80 : screens.sm ? 100 : 130}
+                    height={screens.xs ? 35 : screens.sm ? 45 : 55}
                     alt='logo'
                     style={{
                       objectFit: 'contain',
                       width: 'auto',
                       height: 'auto',
-                      maxHeight: '65px',
-                      minWidth: screens.xs ? '90px' : screens.sm ? '110px' : '150px',
+                      maxHeight: screens.xs ? '40px' : '65px',
+                      minWidth: screens.xs ? '80px' : screens.sm ? '100px' : '130px',
                       filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
                     }}
                     priority
-                  />)}
+                  />
+                )}
               </Link>
             </Flex>
           )}
 
-          {/* Middle - Search Bar */}
+          {/* Middle - Search */}
           {screens.md ? renderDesktopSearch() : (showMobileSearch && renderMobileSearch())}
 
-          {/* Right Side Actions */}
+          {/* Right Side */}
           {!showMobileSearch && (
-            <Flex align="center" gap={screens.xs ? 'small' : 'middle'} style={{
-              height: '100%',
-              flex: '0 0 auto'
-            }}>
+            <Flex align="center" gap={screens.xs ? '8px' : 'middle'} style={{ height: '100%', flex: '0 0 auto' }}>
               {screens.md ? (
                 <>
                   <Button
@@ -575,41 +726,36 @@ export default function Navbar() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       height: '40px',
-                      minWidth: screens.lg ? '100px' : '40px'
+                      minWidth: screens.lg ? '100px' : '40px',
+                      fontSize: screens.lg ? '14px' : '12px'
                     }}
                   >
                     {screens.lg ? 'New Post' : ''}
                   </Button>
 
-                  <Badge
-                    style={{
-                      backgroundColor: "#2930FF",
-                      marginTop: "5px",
-                      marginRight: "5px"
-                    }}
-                    count={pronab?.data?.totalIconUnreadMessages || 0}
-                  >
+                  <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={pronab?.data?.totalIconUnreadMessages || 0}>
                     <Button
                       onClick={() => handleChatNavigation("/chat")}
                       type="text"
                       icon={isDarkMode ? <MessageDark /> : <MessageLight />}
-                      style={iconButtonStyles}
+                      style={{
+                        ...iconButtonStyles,
+                        width: screens.lg ? '40px' : '36px',
+                        height: screens.lg ? '40px' : '36px'
+                      }}
                     />
                   </Badge>
 
-                  <Badge
-                    style={{
-                      backgroundColor: "#2930FF",
-                      marginTop: "5px",
-                      marginRight: "5px"
-                    }}
-                    count={notifications?.unreadCount || 0}
-                  >
+                  <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={notifications?.unreadCount || 0}>
                     <Button
                       onClick={() => handleNotificationNavigate("/notification")}
                       type="text"
                       icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
-                      style={iconButtonStyles}
+                      style={{
+                        ...iconButtonStyles,
+                        width: screens.lg ? '40px' : '36px',
+                        height: screens.lg ? '40px' : '36px'
+                      }}
                     />
                   </Badge>
                 </>
@@ -630,12 +776,7 @@ export default function Navbar() {
               )}
 
               {localStorage.getItem('isLoggedIn') === 'true' ? (
-                <Dropdown
-                  menu={{ items }}
-                  trigger={['click']}
-                  placement="bottomRight"
-                  arrow={{ pointAtCenter: true }}
-                >
+                <Dropdown menu={{ items }} trigger={['click']} placement="bottomRight" arrow={{ pointAtCenter: true }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -643,12 +784,9 @@ export default function Navbar() {
                     padding: screens.xs ? '0 4px' : '0 8px'
                   }}>
                     <Avatar
-                      src={getImageUrl(data?.data?.profile)}
-                      size={screens.xs ? 36 : 44}
-                      style={{
-                        cursor: 'pointer',
-                        border: isDarkMode ? '1px solid #333' : 'none'
-                      }}
+                      src={getImageUrl(profileData?.data?.profile)}
+                      size={screens.xs ? 32 : screens.sm ? 36 : 44}
+                      style={{ cursor: 'pointer', border: isDarkMode ? '1px solid #333' : 'none' }}
                     />
                   </div>
                 </Dropdown>
@@ -656,8 +794,8 @@ export default function Navbar() {
                 <Button
                   type="primary"
                   style={{
-                    height: "38px",
-                    width: screens.xs ? "80px" : "100px",
+                    height: screens.xs ? "32px" : "38px",
+                    width: screens.xs ? "70px" : screens.sm ? "90px" : "100px",
                     fontSize: screens.xs ? "12px" : "14px"
                   }}
                   onClick={() => router.push('/auth/login')}
@@ -669,7 +807,6 @@ export default function Navbar() {
           )}
         </Header>
 
-        {/* Mobile Drawer */}
         <Drawer
           title="Menu"
           placement="left"
@@ -678,43 +815,17 @@ export default function Navbar() {
           open={drawerVisible}
           width={screens.xs ? 250 : 300}
           className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
-          styles={{
-            body: {
-              padding: 0
-            }
-          }}
+          styles={{ body: { padding: 0 } }}
         >
           <Menu
             mode="inline"
             theme={isDarkMode ? "dark" : "light"}
             items={[
-              {
-                key: 'new-post',
-                icon: <PlusOutlined />,
-                label: 'New Post',
-                onClick: () => handleNavigation("/new")
-              },
-              {
-                key: 'messages',
-                icon: <MessageOutlined />,
-                label: 'Messages',
-                onClick: () => handleChatNavigation('/chat')
-              },
-              {
-                key: 'notifications',
-                icon: <IoNotificationsSharp />,
-                label: 'Notifications',
-                onClick: () => handleNotificationNavigate('/notification')
-              },
-              {
-                type: 'divider',
-              },
-              ...items
-                .filter(item => item.key !== 'profile-header')
-                .map(item => ({
-                  ...item,
-                  onClick: item.onClick || (() => { })
-                }))
+              { key: 'new-post', icon: <PlusOutlined />, label: 'New Post', onClick: () => handleNavigation("/new") },
+              { key: 'messages', icon: <MessageOutlined />, label: 'Messages', onClick: () => handleChatNavigation('/chat') },
+              { key: 'notifications', icon: <IoNotificationsSharp />, label: 'Notifications', onClick: () => handleNotificationNavigate('/notification') },
+              { type: 'divider' },
+              ...items.filter(item => item.key !== 'profile-header').map(item => ({ ...item, onClick: item.onClick || (() => { }) }))
             ]}
           />
         </Drawer>

@@ -19,7 +19,7 @@ const ProfileBanner = () => {
   const isTablet = screens.md && !screens.lg;
   const isLaptop = screens.lg && !screens.xl;
   const isDesktop = screens.xl;
-  
+
   const router = useRouter();
   const { id } = useParams();
   const [createChat] = useCreateChatMutation();
@@ -90,8 +90,8 @@ const ProfileBanner = () => {
               {/* Follow and Message Buttons - Responsive layout */}
               <div className={`${isMobile ? 'w-full flex justify-between gap-2' : 'ml-auto flex items-center gap-4'}`}>
                 <div className={`${isMobile ? 'flex-1' : ''}`}>
-                  <FollowButton 
-                    subscriberId={localStorage.getItem("login_user_id")} 
+                  <FollowButton
+                    subscriberId={localStorage.getItem("login_user_id")}
                     subscribedToId={id}
                     className={isMobile ? "w-full" : ""}
                   />
@@ -116,15 +116,11 @@ const ProfileBanner = () => {
             </div>
 
             {/* Profile Info */}
-            <div className="text-center pb-6 sm:pb-10 px-4">
-              {profile?.data?.name &&
-                <h1 className={`${isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'} font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2 transition-colors duration-200`}>
-                  {profile?.data?.name}
-                </h1>
-              }
-              <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} ${isMobile ? 'text-sm' : 'text-base'} transition-colors duration-200`}>
-                @{profile?.data?.userName || 'username'}
-              </p>
+            <div className="text-center pb-3 sm:pb-10 px-4">
+
+              <h1 className={`${isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'} font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2 transition-colors duration-200`}>
+                {profile?.data?.userName || 'username'}
+              </h1>
 
               {profile?.data?.bio && (
                 <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'} mt-3 max-w-2xl mx-auto transition-colors duration-200`}>

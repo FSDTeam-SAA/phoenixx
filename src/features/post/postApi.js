@@ -98,5 +98,5 @@ export const {
   useDeletePostMutation,
   useEditPostMutation,
   useGetByUserIdQuery,
-  useGetProfileByIdQuery
+  useGetProfileByIdQuery,
 } = postApi;

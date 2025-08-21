@@ -18,25 +18,34 @@ const ProfileBanner = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
+  const [usernameError, setUsernameError] = useState('');
+
+  const [remainingChanges, setRemainingChanges] = useState(0);
 
   useEffect(() => {
-    if (isModalOpen && data?.data) {
-      form.setFieldsValue({
-        name: data.data.name || data.data.userName,
-        email: data.data.email,
-        contact: data.data.contact || '',
-      });
+    if (data?.data) {
+      setRemainingChanges(data.data.maxChangeUserName || 0);
+
+      if (isModalOpen) {
+        form.setFieldsValue({
+          name: data.data.name || data.data.userName,
+          email: data.data.email,
+          contact: data.data.contact || '',
+        });
+      }
     }
   }, [data, isModalOpen, form]);
 
   const showModal = () => {
     setFileList([]);
+    setUsernameError('');
     if (data?.data) {
       form.setFieldsValue({
         name: data.data.name || data.data.userName,
         email: data.data.email,
         contact: data.data.contact || '',
       });
+      setRemainingChanges(data.data.maxChangeUserName || 0);
     }
     setIsModalOpen(true);
     // Prevent background scrolling
@@ -45,6 +54,7 @@ const ProfileBanner = () => {
 
   const handleCancel = () => {
     setIsModalOpen(false);
+    setUsernameError('');
     // Restore background scrolling
     document.body.style.overflow = 'unset';
   };
@@ -52,8 +62,18 @@ const ProfileBanner = () => {
   const handleUpdate = async () => {
     try {
       const values = await form.validateFields();
+
+      // Check if username has changed and if changes are remaining
+      const currentUsername = data?.data?.userName;
+      const newUsername = values.name;
+
+      if (currentUsername !== newUsername && remainingChanges <= 0) {
+        setUsernameError("You have reached the maximum limit for username changes!");
+        return;
+      }
+
       const formData = new FormData();
-      formData.append('name', values.name);
+      formData.append('userName', values.name);
       if (values.contact) {
         formData.append('contact', values.contact);
       }
@@ -67,6 +87,7 @@ const ProfileBanner = () => {
       if (response.success) {
         message.success("Profile updated successfully");
         setIsModalOpen(false);
+        setUsernameError('');
         // Restore background scrolling
         document.body.style.overflow = 'unset';
       } else {
@@ -74,7 +95,13 @@ const ProfileBanner = () => {
       }
     } catch (error) {
       console.error("Update error:", error);
-      message.error(error.data?.message || "Failed to update profile");
+
+      // Handle username change limit error
+      if (error.data?.message?.includes('maximum limit')) {
+        setUsernameError(error.data.message);
+      } else {
+        message.error(error.data?.message || "Failed to update profile");
+      }
     }
   };
 
@@ -164,13 +191,10 @@ const ProfileBanner = () => {
             </div>
 
             {/* User Info */}
-            <div className="text-center">
+            <div className="text-center pb-5">
               <h2 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {data?.data?.name || data?.data?.userName}
+                {data?.data?.userName}
               </h2>
-              <p className={`text-sm sm:text-base mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                {data?.data?.name ? "@" + data?.data?.userName : data?.data?.email}
-              </p>
             </div>
           </div>
         </div>
@@ -240,14 +264,25 @@ const ProfileBanner = () => {
 
           <Form.Item
             name="name"
-            label={<span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Full Name*</span>}
+            label={
+              <div className="flex justify-between items-center">
+                <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username*</span>
+                {remainingChanges >= 0 && (
+                  <span className={`text-xs pl-2 ${remainingChanges === 0 ? 'text-red-500' : 'text-blue-500'}`}>
+                    Limit{remainingChanges !== 1 ? 's' : ''} {remainingChanges}
+                  </span>
+                )}
+              </div>
+            }
             rules={[
-              { required: true, message: 'Please enter your name' },
-              { min: 2, message: 'Name must be at least 2 characters' }
+              { required: true, message: 'Please enter your username' },
+              { min: 2, message: 'Username must be at least 2 characters' }
             ]}
+            validateStatus={usernameError ? 'error' : ''}
+            help={usernameError}
           >
             <Input
-              placeholder='Name'
+              placeholder='Username'
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
               size={isMobile ? 'middle' : 'large'}
               style={{
@@ -255,6 +290,7 @@ const ProfileBanner = () => {
                 color: isDarkMode ? '#ffffff' : '#111827',
                 borderColor: isDarkMode ? '#6B7280' : '#d1d5db'
               }}
+              disabled={remainingChanges <= 0 && form.getFieldValue('name') === data?.data?.userName}
             />
           </Form.Item>
 
