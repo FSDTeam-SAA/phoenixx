@@ -39,6 +39,77 @@ const ProfileBanner = () => {
     }
   }, [data, isModalOpen, form]);
 
+  // Professional username validation
+  const validateUsername = (username) => {
+    const errors = [];
+
+    if (!username || !username.trim()) {
+      errors.push('Username is required');
+      return errors;
+    }
+
+    // Length validation
+    if (username.length < 3) {
+      errors.push('Username must be at least 3 characters');
+    }
+
+    if (username.length > 20) {
+      errors.push('Username must be 20 characters or less');
+    }
+
+    // Character validation - only letters, numbers, underscores, and hyphens
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      errors.push('Username can only contain letters, numbers, underscores, and hyphens');
+    }
+
+    // Must start with a letter
+    if (!/^[a-zA-Z]/.test(username)) {
+      errors.push('Username must start with a letter');
+    }
+
+    // Cannot end with underscore or hyphen
+    if (/[_-]$/.test(username)) {
+      errors.push('Username cannot end with underscore or hyphen');
+    }
+
+    // Cannot have consecutive special characters
+    if (/[_-]{2,}/.test(username)) {
+      errors.push('Username cannot have consecutive underscores or hyphens');
+    }
+
+    // Reserved words check
+    const reservedWords = ['admin', 'root', 'user', 'guest', 'test', 'null', 'undefined', 'api', 'www', 'mail', 'ftp'];
+    if (reservedWords.includes(username.toLowerCase())) {
+      errors.push('This username is not available');
+    }
+
+    return errors;
+  };
+
+  // Handle username input with validation
+  const handleUsernameChange = (e) => {
+    let value = e.target.value;
+
+    // Remove spaces and convert to lowercase for professional format
+    value = value.replace(/\s+/g, '').toLowerCase();
+
+    // Update form value
+    form.setFieldValue('name', value);
+
+    // Clear previous username errors
+    if (usernameError) {
+      setUsernameError('');
+    }
+
+    // Real-time validation (optional - you can remove this if you prefer validation only on submit)
+    if (value && !isUsernameReadOnly) {
+      const validationErrors = validateUsername(value);
+      if (validationErrors.length > 0) {
+        setUsernameError(validationErrors.join(', '));
+      }
+    }
+  };
+
   const showModal = () => {
     setFileList([]);
     setUsernameError('');
@@ -71,6 +142,15 @@ const ProfileBanner = () => {
       const newUsername = values.name;
       const hasUsernameChanged = currentUsername !== newUsername;
 
+      // Validate username if it has changed and changes are available
+      if (hasUsernameChanged && remainingChanges > 0) {
+        const usernameValidationErrors = validateUsername(newUsername);
+        if (usernameValidationErrors.length > 0) {
+          setUsernameError(usernameValidationErrors.join(', '));
+          return;
+        }
+      }
+
       // Check if username has changed but no changes remaining
       if (hasUsernameChanged && remainingChanges <= 0) {
         setUsernameError("You've reached your username change limit. You can still update your profile picture and contact info!");
@@ -79,7 +159,7 @@ const ProfileBanner = () => {
 
       const formData = new FormData();
 
-      // Only include username if changes are available AND username has actually changed
+      // Only include username if changes are available AND username has actually changed AND it's valid
       if (hasUsernameChanged && remainingChanges > 0) {
         formData.append('userName', values.name);
       }
@@ -149,6 +229,8 @@ const ProfileBanner = () => {
 
       if (error.data?.message?.includes('maximum limit')) {
         setUsernameError("You've reached your username change limit. You can still update other profile information!");
+      } else if (error.data?.message?.includes('username') || error.data?.message?.includes('userName')) {
+        setUsernameError(error.data.message);
       } else {
         message.error(error.data?.message || "Failed to update profile");
       }
@@ -330,7 +412,7 @@ const ProfileBanner = () => {
             </Row>
           </Form.Item>
 
-          {/* Username Field */}
+          {/* Username Field with Professional Validation */}
           <Form.Item
             name="name"
             label={
@@ -354,16 +436,40 @@ const ProfileBanner = () => {
             }
             rules={[
               { required: true, message: 'Please enter your username' },
-              { min: 2, message: 'Username must be at least 2 characters' }
+              { min: 3, message: 'Username must be at least 3 characters' },
+              { max: 20, message: 'Username must be 20 characters or less' },
+              {
+                pattern: /^[a-zA-Z0-9_-]+$/,
+                message: 'Username can only contain letters, numbers, underscores, and hyphens'
+              },
+              {
+                pattern: /^[a-zA-Z]/,
+                message: 'Username must start with a letter'
+              },
+              {
+                validator: (_, value) => {
+                  if (!value || isUsernameReadOnly) return Promise.resolve();
+
+                  const validationErrors = validateUsername(value);
+                  if (validationErrors.length > 0) {
+                    return Promise.reject(new Error(validationErrors.join(', ')));
+                  }
+                  return Promise.resolve();
+                }
+              }
             ]}
             validateStatus={usernameError ? 'error' : ''}
             help={usernameError || (isUsernameReadOnly ?
               <span className={isDarkMode ? 'text-blue-300' : 'text-blue-600'}>
                 Username is locked - You can still update your profile picture
-              </span> : "")}
+              </span> :
+              <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                3-20 characters. Must start with a letter. Only letters, numbers, underscores, and hyphens allowed.
+              </span>)}
           >
             <Input
-              placeholder='Username'
+              placeholder='john_doe'
+              onChange={handleUsernameChange}
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
               size={isMobile ? 'middle' : 'large'}
               style={{
@@ -396,8 +502,6 @@ const ProfileBanner = () => {
               }}
             />
           </Form.Item>
-
-
 
           <Form.Item>
             <Button

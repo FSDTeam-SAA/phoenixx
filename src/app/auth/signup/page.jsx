@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaEye, FaEyeSlash } from 'react-icons/fa'; // Import eye icons from react-icons
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const SignUp = () => {
   const router = useRouter();
@@ -24,15 +24,22 @@ const SignUp = () => {
     rememberMe: ''
   });
 
-  const [showPassword, setShowPassword] = useState(false); // State for password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   const [signUp, { isLoading }] = useSignupMutation();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // For username, remove spaces and convert to lowercase
+    let processedValue = value;
+    if (name === 'username') {
+      processedValue = value.replace(/\s+/g, '').toLowerCase();
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : processedValue
     }));
 
     if (errors[name]) {
@@ -41,6 +48,53 @@ const SignUp = () => {
         [name]: ''
       }));
     }
+  };
+
+  // Professional username validation
+  const validateUsername = (username) => {
+    const errors = [];
+
+    if (!username.trim()) {
+      errors.push('Username is required');
+      return errors;
+    }
+
+    // Length validation
+    if (username.length < 3) {
+      errors.push('Username must be at least 3 characters');
+    }
+
+    if (username.length > 20) {
+      errors.push('Username must be 20 characters or less');
+    }
+
+    // Character validation - only letters, numbers, underscores, and hyphens
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      errors.push('Username can only contain letters, numbers, underscores, and hyphens');
+    }
+
+    // Must start with a letter
+    if (!/^[a-zA-Z]/.test(username)) {
+      errors.push('Username must start with a letter');
+    }
+
+    // Cannot end with underscore or hyphen
+    if (/[_-]$/.test(username)) {
+      errors.push('Username cannot end with underscore or hyphen');
+    }
+
+    // Cannot have consecutive special characters
+    if (/[_-]{2,}/.test(username)) {
+      errors.push('Username cannot have consecutive underscores or hyphens');
+    }
+
+    // Reserved words check
+    const reservedWords = ['admin', 'root', 'user', 'guest', 'test', 'null', 'undefined', 'api', 'www', 'mail', 'ftp'];
+    if (reservedWords.includes(username.toLowerCase())) {
+      errors.push('This username is not available');
+    }
+
+    return errors;
   };
 
   // Password validation function
@@ -74,14 +128,14 @@ const SignUp = () => {
     let isValid = true;
     const newErrors = { ...errors };
 
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-      isValid = false;
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    // Username validation
+    const usernameErrors = validateUsername(formData.username);
+    if (usernameErrors.length > 0) {
+      newErrors.username = usernameErrors.join(', ');
       isValid = false;
     }
 
+    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -90,6 +144,7 @@ const SignUp = () => {
       isValid = false;
     }
 
+    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -100,10 +155,10 @@ const SignUp = () => {
         isValid = false;
       }
     }
+
     setErrors(newErrors);
     return isValid;
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -175,7 +230,7 @@ const SignUp = () => {
                 <label htmlFor="username" className="block text-gray-700 mb-2">Username</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5  text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -185,11 +240,14 @@ const SignUp = () => {
                     type="text"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="James123"
+                    placeholder="john_doe"
                     className={`w-full pl-10 pr-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
                 </div>
                 {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
+                <p className="mt-2 text-xs text-gray-500">
+                  3-20 characters. Must start with a letter. Only letters, numbers, underscores, and hyphens allowed.
+                </p>
               </div>
 
               <div className="mb-4">
