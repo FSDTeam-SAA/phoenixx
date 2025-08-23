@@ -1,7 +1,7 @@
 "use client";
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/features/profile/profileApi';
-import { PlusOutlined } from '@ant-design/icons';
-import { Button, Col, Form, Grid, Input, message, Modal, Row, Upload } from 'antd';
+import { InfoCircleOutlined, LockOutlined, PlusOutlined } from '@ant-design/icons';
+import { Alert, Button, Col, Form, Grid, Input, message, Modal, Row, Tooltip, Upload } from 'antd';
 import { useContext, useEffect, useState } from 'react';
 import { getImageUrl } from '../../../utils/getImageUrl';
 import { ThemeContext } from '../../app/ClientLayout';
@@ -54,14 +54,12 @@ const ProfileBanner = () => {
       });
     }
     setIsModalOpen(true);
-    // Prevent background scrolling
     document.body.style.overflow = 'hidden';
   };
 
   const handleCancel = () => {
     setIsModalOpen(false);
     setUsernameError('');
-    // Restore background scrolling
     document.body.style.overflow = 'unset';
   };
 
@@ -69,23 +67,20 @@ const ProfileBanner = () => {
     try {
       const values = await form.validateFields();
 
-      // Get current username and new username
       const currentUsername = data?.data?.userName;
       const newUsername = values.name;
       const hasUsernameChanged = currentUsername !== newUsername;
 
-      // Check if username has changed and if changes are remaining
+      // Check if username has changed but no changes remaining
       if (hasUsernameChanged && remainingChanges <= 0) {
-        setUsernameError("You have reached the maximum limit for username changes!");
+        setUsernameError("You've reached your username change limit. You can still update your profile picture and contact info!");
         return;
       }
 
       const formData = new FormData();
 
-      // Only include username in FormData if:
-      // 1. Username has changed AND there are remaining changes, OR
-      // 2. Username hasn't changed (no limit impact)
-      if (remainingChanges > 0 || !hasUsernameChanged) {
+      // Only include username if changes are available AND username has actually changed
+      if (hasUsernameChanged && remainingChanges > 0) {
         formData.append('userName', values.name);
       }
 
@@ -99,13 +94,23 @@ const ProfileBanner = () => {
         formData.append('image', fileList[0].originFileObj);
       }
 
-      // Check if we have any data to update
+      // Check what updates are available
       const hasImageUpdate = fileList.length > 0 && fileList[0].originFileObj;
       const hasContactUpdate = values.contact !== (data?.data?.contact || '');
       const hasUsernameUpdate = hasUsernameChanged && remainingChanges > 0;
 
       if (!hasImageUpdate && !hasContactUpdate && !hasUsernameUpdate) {
-        message.info("No changes detected to update");
+        if (hasUsernameChanged && remainingChanges <= 0) {
+          message.info({
+            content: "Username changes are no longer available. You can still update your profile picture and contact info!",
+            duration: 5,
+          });
+        } else {
+          message.info({
+            content: "No changes detected to update",
+            duration: 3,
+          });
+        }
         return;
       }
 
@@ -114,16 +119,27 @@ const ProfileBanner = () => {
       if (response.success) {
         // Only decrement counter if username was actually changed and included in update
         if (hasUsernameChanged && remainingChanges > 0) {
-          setRemainingChanges(prev => prev - 1);
-          if (remainingChanges - 1 <= 0) {
+          const newRemainingChanges = remainingChanges - 1;
+          setRemainingChanges(newRemainingChanges);
+
+          if (newRemainingChanges <= 0) {
             setIsUsernameReadOnly(true);
+            message.success({
+              content: "Profile updated successfully! This was your final username change.",
+              duration: 5,
+            });
+          } else {
+            message.success({
+              content: `Profile updated successfully! You have ${newRemainingChanges} username change${newRemainingChanges !== 1 ? 's' : ''} remaining.`,
+              duration: 4,
+            });
           }
+        } else {
+          message.success("Profile updated successfully!");
         }
 
-        message.success("Profile updated successfully");
         setIsModalOpen(false);
         setUsernameError('');
-        // Restore background scrolling
         document.body.style.overflow = 'unset';
       } else {
         message.error(response.message || "Failed to update profile");
@@ -131,9 +147,8 @@ const ProfileBanner = () => {
     } catch (error) {
       console.error("Update error:", error);
 
-      // Handle username change limit error
       if (error.data?.message?.includes('maximum limit')) {
-        setUsernameError(error.data.message);
+        setUsernameError("You've reached your username change limit. You can still update other profile information!");
       } else {
         message.error(error.data?.message || "Failed to update profile");
       }
@@ -193,7 +208,7 @@ const ProfileBanner = () => {
               </div>
             </div>
 
-            {/* Edit Button - positioned differently based on screen size */}
+            {/* Edit Button */}
             <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
               <button
                 onClick={showModal}
@@ -250,7 +265,7 @@ const ProfileBanner = () => {
             backgroundColor: isDarkMode ? '#374151' : '#ffffff'
           },
           body: {
-            padding: isMobile ? '16px' : '4px',
+            padding: isMobile ? '16px' : '24px',
             backgroundColor: isDarkMode ? '#374151' : '#ffffff'
           },
           content: {
@@ -263,6 +278,24 @@ const ProfileBanner = () => {
           layout="vertical"
           className={isDarkMode ? 'dark-form' : ''}
         >
+          {/* Username Change Limit Alert */}
+          {remainingChanges <= 0 && (
+            <Alert
+              message="Username Change Limit Reached"
+              description="You've used all your username changes. You can still update your profile picture and other information."
+              type="info"
+              icon={<InfoCircleOutlined />}
+              showIcon
+              className={`mb-4 ${isDarkMode ? 'bg-blue-900/20 border-blue-700 text-blue-200' : 'bg-blue-50 border-blue-200 text-blue-800'}`}
+              style={{
+                backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
+                borderColor: isDarkMode ? '#1d4ed8' : '#93c5fd',
+                color: isDarkMode ? '#dbeafe' : '#1e40af'
+              }}
+            />
+          )}
+
+          {/* Profile Picture Upload */}
           <Form.Item label={<span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Profile Picture</span>}>
             <Row gutter={[16, 16]} align="middle">
               {fileList.length === 0 && (
@@ -297,14 +330,24 @@ const ProfileBanner = () => {
             </Row>
           </Form.Item>
 
+          {/* Username Field */}
           <Form.Item
             name="name"
             label={
               <div className="flex justify-between items-center">
-                <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username*</span>
-                {remainingChanges >= 0 && (
-                  <span className={`text-xs pl-2 ${remainingChanges === 0 ? 'text-red-500' : 'text-blue-500'}`}>
-                    {remainingChanges} change{remainingChanges !== 1 ? 's' : ''} remaining
+                <div className="flex items-center gap-2">
+                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username*</span>
+                  {isUsernameReadOnly && (
+                    <Tooltip title="Username changes are no longer available">
+                      <LockOutlined className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                    </Tooltip>
+                  )}
+                </div>
+                {remainingChanges >= 0 && !isUsernameReadOnly && (
+                  <span className={`text-xs pl-2 font-medium ${remainingChanges === 0 ? 'text-red-500' :
+                    remainingChanges === 1 ? 'text-orange-500' : 'text-blue-500'
+                    }`}>
+                    {remainingChanges} change{remainingChanges !== 1 ? 's' : ''} left
                   </span>
                 )}
               </div>
@@ -314,21 +357,30 @@ const ProfileBanner = () => {
               { min: 2, message: 'Username must be at least 2 characters' }
             ]}
             validateStatus={usernameError ? 'error' : ''}
-            help={usernameError || (isUsernameReadOnly ? "Username changes limit reached. So you cann`t Update your Profile" : "")}
+            help={usernameError || (isUsernameReadOnly ?
+              <span className={isDarkMode ? 'text-blue-300' : 'text-blue-600'}>
+                Username is locked - You can still update your profile picture
+              </span> : "")}
           >
             <Input
               placeholder='Username'
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
               size={isMobile ? 'middle' : 'large'}
               style={{
-                backgroundColor: isDarkMode ? '#4B5563' : '#ffffff',
-                color: isDarkMode ? '#ffffff' : '#111827',
+                backgroundColor: isUsernameReadOnly ?
+                  (isDarkMode ? '#4B5563' : '#f9fafb') :
+                  (isDarkMode ? '#4B5563' : '#ffffff'),
+                color: isUsernameReadOnly ?
+                  (isDarkMode ? '#9CA3AF' : '#6B7280') :
+                  (isDarkMode ? '#ffffff' : '#111827'),
                 borderColor: isDarkMode ? '#6B7280' : '#d1d5db'
               }}
               readOnly={isUsernameReadOnly}
+              suffix={isUsernameReadOnly && <LockOutlined className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />}
             />
           </Form.Item>
 
+          {/* Email Field */}
           <Form.Item
             name="email"
             label={<span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Email</span>}
@@ -344,6 +396,8 @@ const ProfileBanner = () => {
               }}
             />
           </Form.Item>
+
+
 
           <Form.Item>
             <Button
@@ -394,6 +448,16 @@ const ProfileBanner = () => {
         .dark-form .ant-upload-list-picture-card .ant-upload-list-item {
           background-color: #4B5563 !important;
           border-color: #6B7280 !important;
+        }
+        .dark-form .ant-alert {
+          background-color: rgba(59, 130, 246, 0.1) !important;
+          border-color: #1d4ed8 !important;
+        }
+        .dark-form .ant-alert-message {
+          color: #dbeafe !important;
+        }
+        .dark-form .ant-alert-description {
+          color: #bfdbfe !important;
         }
       `}</style>
     </div>
