@@ -59,6 +59,7 @@ export default function Navbar() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
+  const suggestionsRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [readCound] = useUnreadIconCountMutation();
@@ -114,6 +115,26 @@ export default function Navbar() {
       }
     };
   }, [refetch, router]);
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showSuggestions &&
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target) &&
+        searchRef.current &&
+        !searchRef.current.input.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
 
   const clearLogin = () => {
     localStorage.removeItem('loginToken');
@@ -367,9 +388,7 @@ export default function Navbar() {
   const handleSuggestionClick = (type, id) => {
     setShowSuggestions(false);
 
-
     if (type === 'user') {
-
       if (!isAuthenticated()) {
         router.push('/auth/login');
         return;
@@ -412,6 +431,54 @@ export default function Navbar() {
   };
 
   // -----------------------------
+  // 🖼️ Get Avatar Content (Image or Initial)
+  // -----------------------------
+  const getAvatarContent = (item) => {
+    if (item.type === 'user') {
+      if (item.profile) {
+        return <Avatar src={getImageUrl(item.profile)} size={36} />;
+      } else {
+        // Show first character of the name
+        const initial = item.name ? item.name.charAt(0).toUpperCase() : 'U';
+        return (
+          <Avatar
+            size={36}
+            style={{
+              backgroundColor: isDarkMode ? '#424242' : '#d9d9d9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {initial}
+          </Avatar>
+        );
+      }
+    } else {
+      if (item.image) {
+        return <Avatar src={getImageUrl(item.image)} size={36} style={{ objectFit: 'cover' }} />;
+      } else {
+        // Show first character of the first word of the title
+        const firstWord = item.title ? item.title.split(' ')[0] : '';
+        const initial = firstWord ? firstWord.charAt(0).toUpperCase() : 'P';
+        return (
+          <Avatar
+            size={36}
+            style={{
+              backgroundColor: isDarkMode ? '#424242' : '#d9d9d9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {initial}
+          </Avatar>
+        );
+      }
+    }
+  };
+
+  // -----------------------------
   // 📝 Render Suggestions (Same Width as Search Bar)
   // -----------------------------
   const renderSuggestions = () => {
@@ -419,14 +486,14 @@ export default function Navbar() {
 
     return (
       <div
+        ref={suggestionsRef}
         style={{
           position: 'absolute',
           top: '100%',
           left: 0,
-          width: '100%', // ✅ Match parent container width
+          width: '92%', // ✅ Match parent container width
           backgroundColor: isDarkMode ? '#1f1f1f' : '#fff',
-          borderRadius: '8px',
-          border: `1px solid ${isDarkMode ? '#424242' : '#ddd'}`,
+          borderRadius: '5px',
           boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.1)',
           zIndex: 1000,
           maxHeight: '300px',
@@ -436,7 +503,7 @@ export default function Navbar() {
         {suggestions.length === 0 ? (
           <div
             style={{
-              padding: '12px 16px',
+              padding: '2px 16px',
               textAlign: 'center',
               color: '#888',
               fontStyle: 'italic',
@@ -450,7 +517,7 @@ export default function Navbar() {
               key={index}
               onClick={() => handleSuggestionClick(item.type, item.id)}
               style={{
-                padding: '12px 16px',
+                padding: '2px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
@@ -464,15 +531,7 @@ export default function Navbar() {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              {item.type === 'user' ? (
-                <Avatar src={getImageUrl(item.profile)} size={36} />
-              ) : (
-                <Avatar
-                  src={item.image ? getImageUrl(item.image) : '/images/default-post.png'}
-                  size={36}
-                  style={{ objectFit: 'cover' }}
-                />
-              )}
+              {getAvatarContent(item)}
               <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1 }}>
                 <div style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#000' }}>
                   {item.type === 'user'
