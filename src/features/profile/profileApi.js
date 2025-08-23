@@ -6,7 +6,7 @@ export const postApi = baseApi.injectEndpoints({
       query: (data) => {
         // Check if data is FormData (has append method)
         const isFormData = data && typeof data.append === 'function';
-        
+
         return {
           url: "/users/update-profile",
           method: "PATCH",
@@ -15,7 +15,7 @@ export const postApi = baseApi.injectEndpoints({
           formData: isFormData,
         };
       },
-      invalidatesTags: ['profile'], 
+      invalidatesTags: ["post", 'profile', "comment", "savepost"],
     }),
 
     deleteAccount: builder.mutation({
@@ -24,7 +24,7 @@ export const postApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ['profile'], 
+      invalidatesTags: ['profile'],
     }),
 
     getProfile: builder.query({
