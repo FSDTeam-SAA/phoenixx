@@ -174,7 +174,7 @@ export default function Navbar() {
   const getMatchingWord = (text, query) => {
     if (!query) return null;
     const regex = new RegExp(`(\\b${query}\\w*)`, 'i');
-    const match = text.match(regex);
+    const match = text?.match(regex);
     return match ? match[1] : null;
   };
 
@@ -204,8 +204,9 @@ export default function Navbar() {
         });
       }
 
-      // Match author name (strict word start)
-      if (startsWithWord(post.author.userName, searchQuery)) {
+      // Match author name (strict word start) - check both userName and name
+      if (startsWithWord(post.author.userName, searchQuery) ||
+        startsWithWord(post.author.name, searchQuery)) {
         const authorKey = post.author._id;
         if (!authorMap.has(authorKey)) {
           authorMap.set(authorKey, true);
@@ -409,6 +410,7 @@ export default function Navbar() {
   // 🔍 Highlight Matching Word Only
   // -----------------------------
   const highlightMatch = (text, query) => {
+    if (!text) return <span>Unknown</span>;
     if (!query || query.length < 2) return <span>{text}</span>;
 
     const matchWord = getMatchingWord(text, query);
@@ -439,7 +441,8 @@ export default function Navbar() {
         return <Avatar src={getImageUrl(item.profile)} size={36} />;
       } else {
         // Show first character of the name
-        const initial = item.name ? item.name.charAt(0).toUpperCase() : 'U';
+        const displayName = item.name || item.userName || '';
+        const initial = displayName.charAt(0).toUpperCase() || 'U';
         return (
           <Avatar
             size={36}
@@ -460,7 +463,7 @@ export default function Navbar() {
       } else {
         // Show first character of the first word of the title
         const firstWord = item.title ? item.title.split(' ')[0] : '';
-        const initial = firstWord ? firstWord.charAt(0).toUpperCase() : 'P';
+        const initial = firstWord.charAt(0)?.toUpperCase() || 'P';
         return (
           <Avatar
             size={36}
@@ -487,11 +490,13 @@ export default function Navbar() {
     return (
       <div
         ref={suggestionsRef}
+        role="listbox"
+        aria-label="Search suggestions"
         style={{
           position: 'absolute',
           top: '100%',
           left: 0,
-          width: '92%', // ✅ Match parent container width
+          width: '100%',
           backgroundColor: isDarkMode ? '#1f1f1f' : '#fff',
           borderRadius: '5px',
           boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : '0 4px 12px rgba(0,0,0,0.1)',
@@ -503,7 +508,7 @@ export default function Navbar() {
         {suggestions.length === 0 ? (
           <div
             style={{
-              padding: '2px 16px',
+              padding: '12px 16px',
               textAlign: 'center',
               color: '#888',
               fontStyle: 'italic',
@@ -514,33 +519,51 @@ export default function Navbar() {
         ) : (
           suggestions.map((item, index) => (
             <div
-              key={index}
+              key={`${item.type}-${item.id}`} // More specific key
+              role="option"
+              tabIndex={0}
               onClick={() => handleSuggestionClick(item.type, item.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSuggestionClick(item.type, item.id);
+                }
+              }}
+              className="suggestion-item" // Use CSS class for hover states
               style={{
-                padding: '2px 16px',
+                padding: '8px 16px', // Increased for better touch targets
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
                 cursor: 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = isDarkMode ? '#333' : '#f5f5f5';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+                borderRadius: '3px',
+                margin: '2px',
               }}
             >
               {getAvatarContent(item)}
               <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1 }}>
-                <div style={{ fontWeight: 500, color: isDarkMode ? '#fff' : '#000' }}>
+                <div
+                  style={{
+                    fontWeight: 500,
+                    color: isDarkMode ? '#fff' : '#000',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '70%'
+                  }}
+                >
                   {item.type === 'user'
-                    ? highlightMatch(item.name, searchQuery)
-                    : highlightMatch(item.title, searchQuery)
+                    ? highlightMatch(item.name || item.userName || 'Unknown', searchQuery)
+                    : highlightMatch(item.title || 'Untitled', searchQuery)
                   }
                 </div>
-                <div style={{ fontSize: '12px', color: '#888' }}>
-                  {item.type === 'user' ? `${item.userName}` : 'Post'}
+                <div style={{
+                  fontSize: '12px',
+                  color: '#888',
+                  flexShrink: 0,
+                  marginLeft: '8px'
+                }}>
+                  {item.type === 'user' ? item.userName || 'User' : 'Post'}
                 </div>
               </div>
             </div>
