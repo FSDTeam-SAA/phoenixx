@@ -31,10 +31,10 @@ const SignUp = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    // For username, remove spaces and convert to lowercase
+    // For username, only remove spaces but preserve case
     let processedValue = value;
     if (name === 'username') {
-      processedValue = value.replace(/\s+/g, '').toLowerCase();
+      processedValue = value.replace(/\s+/g, ''); // Only remove spaces, preserve original case
     }
 
     setFormData(prev => ({
@@ -50,7 +50,7 @@ const SignUp = () => {
     }
   };
 
-  // Professional username validation
+  // Professional username validation - Updated to allow mixed case
   const validateUsername = (username) => {
     const errors = [];
 
@@ -68,12 +68,12 @@ const SignUp = () => {
       errors.push('Username must be 20 characters or less');
     }
 
-    // Character validation - only letters, numbers, underscores, and hyphens
+    // Character validation - only letters, numbers, underscores, and hyphens (mixed case allowed)
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       errors.push('Username can only contain letters, numbers, underscores, and hyphens');
     }
 
-    // Must start with a letter
+    // Must start with a letter (case insensitive)
     if (!/^[a-zA-Z]/.test(username)) {
       errors.push('Username must start with a letter');
     }
@@ -88,7 +88,7 @@ const SignUp = () => {
       errors.push('Username cannot have consecutive underscores or hyphens');
     }
 
-    // Reserved words check
+    // Reserved words check - case insensitive comparison
     const reservedWords = ['admin', 'root', 'user', 'guest', 'test', 'null', 'undefined', 'api', 'www', 'mail', 'ftp'];
     if (reservedWords.includes(username.toLowerCase())) {
       errors.push('This username is not available');
@@ -240,13 +240,13 @@ const SignUp = () => {
                     type="text"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="john_doe"
+                    placeholder="JohnDoe or john_doe"
                     className={`w-full pl-10 pr-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
                 </div>
                 {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
                 <p className="mt-2 text-xs text-gray-500">
-                  3-20 characters. Must start with a letter. Only letters, numbers, underscores, and hyphens allowed.
+                  3-20 characters. Must start with a letter. Mixed case allowed. Only letters, numbers, underscores, and hyphens.
                 </p>
               </div>
 

@@ -39,7 +39,7 @@ const ProfileBanner = () => {
     }
   }, [data, isModalOpen, form]);
 
-  // Professional username validation
+  // Professional username validation - Updated to allow mixed case
   const validateUsername = (username) => {
     const errors = [];
 
@@ -57,12 +57,12 @@ const ProfileBanner = () => {
       errors.push('Username must be 20 characters or less');
     }
 
-    // Character validation - only letters, numbers, underscores, and hyphens
+    // Character validation - only letters, numbers, underscores, and hyphens (mixed case allowed)
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       errors.push('Username can only contain letters, numbers, underscores, and hyphens');
     }
 
-    // Must start with a letter
+    // Must start with a letter (case insensitive)
     if (!/^[a-zA-Z]/.test(username)) {
       errors.push('Username must start with a letter');
     }
@@ -77,7 +77,7 @@ const ProfileBanner = () => {
       errors.push('Username cannot have consecutive underscores or hyphens');
     }
 
-    // Reserved words check
+    // Reserved words check - case insensitive comparison
     const reservedWords = ['admin', 'root', 'user', 'guest', 'test', 'null', 'undefined', 'api', 'www', 'mail', 'ftp'];
     if (reservedWords.includes(username.toLowerCase())) {
       errors.push('This username is not available');
@@ -86,12 +86,12 @@ const ProfileBanner = () => {
     return errors;
   };
 
-  // Handle username input with validation
+  // Handle username input with validation - Updated to preserve case
   const handleUsernameChange = (e) => {
     let value = e.target.value;
 
-    // Remove spaces and convert to lowercase for professional format
-    value = value.replace(/\s+/g, '').toLowerCase();
+    // Only remove spaces, preserve the original case
+    value = value.replace(/\s+/g, '');
 
     // Update form value
     form.setFieldValue('name', value);
@@ -412,7 +412,7 @@ const ProfileBanner = () => {
             </Row>
           </Form.Item>
 
-          {/* Username Field with Professional Validation */}
+          {/* Username Field with Professional Validation - Updated placeholder and help text */}
           <Form.Item
             name="name"
             label={
@@ -464,11 +464,11 @@ const ProfileBanner = () => {
                 Username is locked - You can still update your profile picture
               </span> :
               <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                3-20 characters. Must start with a letter. Only letters, numbers, underscores, and hyphens allowed.
+                3-20 characters. Must start with a letter. Mixed case allowed. Only letters, numbers, underscores, and hyphens.
               </span>)}
           >
             <Input
-              placeholder='john_doe'
+              placeholder='JohnDoe or john_doe'
               onChange={handleUsernameChange}
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
               size={isMobile ? 'middle' : 'large'}
