@@ -119,7 +119,7 @@ const ProfileBanner = () => {
       setIsUsernameReadOnly(changesLeft <= 0);
 
       form.setFieldsValue({
-        name: data.data.name || data.data.userName,
+        name: data.data.userName || data.data.name,
         email: data.data.email,
         contact: data.data.contact || '',
       });
@@ -468,7 +468,7 @@ const ProfileBanner = () => {
               </span>)}
           >
             <Input
-              placeholder='john_doe'
+              placeholder='Enetr your username'
               onChange={handleUsernameChange}
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
               size={isMobile ? 'middle' : 'large'}
