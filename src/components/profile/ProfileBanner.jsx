@@ -31,7 +31,7 @@ const ProfileBanner = () => {
 
       if (isModalOpen) {
         form.setFieldsValue({
-          name: data.data.name || data.data.userName,
+          name: data.data.userName || "Enter username",
           email: data.data.email,
           contact: data.data.contact || '',
         });
@@ -468,7 +468,7 @@ const ProfileBanner = () => {
               </span>)}
           >
             <Input
-              placeholder='Enetr your username'
+              placeholder='Enetr username'
 
               onChange={handleUsernameChange}
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
