@@ -205,7 +205,7 @@ export default function Navbar() {
       }
 
       // Match author name (strict word start)
-      if (startsWithWord(post.author.name, searchQuery)) {
+      if (startsWithWord(post.author.userName, searchQuery)) {
         const authorKey = post.author._id;
         if (!authorMap.has(authorKey)) {
           authorMap.set(authorKey, true);

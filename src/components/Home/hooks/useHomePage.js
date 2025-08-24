@@ -18,6 +18,7 @@ export const useHomePage = () => {
 
   // Extract URL parameters
   const urlParams = useMemo(() => extractUrlParams(searchParams), [searchParams]);
+  
 
   // API query params with fixed limit of 30
   const queryParams = useMemo(() => {
