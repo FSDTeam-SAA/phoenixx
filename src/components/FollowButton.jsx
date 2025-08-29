@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '../features/Follow/followApi';
 
+import { SlUserFollowing, SlUserUnfollow } from "react-icons/sl";
+
 const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
 
   const [isFollowing, setIsFollowing] = useState(false);
@@ -90,7 +92,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
     >
 
       {
-        (isFollowing ? "UnFollow" : "Follow")
+        (isFollowing ? <div className='flex items-center gap-2'><SlUserUnfollow />UnFollow</div> : <div className='flex items-center gap-2'><SlUserFollowing />Follow</div>)
       }
 
     </button>

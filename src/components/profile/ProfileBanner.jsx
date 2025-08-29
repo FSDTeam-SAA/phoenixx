@@ -22,7 +22,7 @@ const ProfileBanner = () => {
   const [isUsernameReadOnly, setIsUsernameReadOnly] = useState(false);
 
   // Bio character limit
-  const BIO_MAX_LENGTH = 160;
+  const BIO_MAX_LENGTH = 200;
 
   // Watch bio field for real-time updates
   const bioValue = Form.useWatch('bio', form) || '';
@@ -386,7 +386,7 @@ const ProfileBanner = () => {
             name="email"
             label={
               <div className="flex items-center gap-2">
-                <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username</span>
+                <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Email</span>
                 <Tooltip title="Username cannot be changed">
                   <LockOutlined className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </Tooltip>
