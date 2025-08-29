@@ -10,9 +10,6 @@ export default function RootLayout({ children }) {
             <main className="flex-1">
               {children}
             </main>
-            <footer className="text-sm text-gray-500 text-center pb-10 pt-8 bg-gray-50">
-              © 2025 Mehor. All rights reserved.
-            </footer>
           </div>
         </ClientLayout>
       </body>

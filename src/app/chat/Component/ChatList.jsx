@@ -226,7 +226,7 @@ const ChatList = ({ setIsChatActive, status }) => {
     if (debouncedSearchTerm) {
       return chats.filter(chat => {
         const participant = chat.participants?.find(p => p._id !== getCurrentUserId());
-        return participant?.userName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+        return participant?.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
       });
     } else {
       return [...chats].sort((a, b) => {

@@ -52,6 +52,17 @@ export const commentApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["comment", "post"],
     }),
+
+    reportComment: builder.mutation({
+      query: (body) => ({
+        url: `/reports-comments/create`,
+        method: "POST",
+        body: body,
+      }),
+      invalidatesTags: ["comment", "post"],
+    }),
+
+
   }),
 });
 
@@ -62,4 +73,5 @@ export const {
   useMyCommentPostQuery,
   useReplayCommentMutation,
   useUpdateCommentMutation,
+  useReportCommentMutation
 } = commentApi;

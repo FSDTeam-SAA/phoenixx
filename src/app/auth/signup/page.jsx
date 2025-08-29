@@ -11,46 +11,91 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 const SignUp = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    fullName: '',
     username: '',
     email: '',
     password: '',
-    rememberMe: false
   });
 
   const [errors, setErrors] = useState({
+    fullName: '',
     username: '',
     email: '',
     password: '',
-    rememberMe: ''
   });
 
   const [showPassword, setShowPassword] = useState(false);
-
   const [signUp, { isLoading }] = useSignupMutation();
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
 
-    // For username, only remove spaces but preserve case
     let processedValue = value;
+
+    // For username: remove spaces only, preserve case
     if (name === 'username') {
-      processedValue = value.replace(/\s+/g, ''); // Only remove spaces, preserve original case
+      processedValue = value.replace(/\s+/g, '').toLowerCase();
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : processedValue
+      [name]: processedValue,
     }));
 
+    // Clear error on change
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
 
-  // Professional username validation - Updated to allow mixed case
+  // ✅ Professional Full Name Validation
+  const validateFullName = (name) => {
+    const errors = [];
+
+    if (!name || !name.trim()) {
+      errors.push('Full name is required');
+      return errors;
+    }
+
+    const trimmed = name.trim();
+
+    if (trimmed.length < 2) {
+      errors.push('Full name must be at least 2 characters');
+    }
+
+    if (trimmed.length > 50) {
+      errors.push('Full name must be 50 characters or less');
+    }
+
+    // Only allow letters, spaces, hyphens, apostrophes
+    if (!/^[a-zA-Z\s\-']+$/.test(trimmed)) {
+      errors.push('Full name can only contain letters, spaces, hyphens, and apostrophes');
+    }
+
+    // No consecutive spaces
+    if (/\s{2,}/.test(trimmed)) {
+      errors.push('Full name cannot contain multiple consecutive spaces');
+    }
+
+    // Must have at least two names (first and last)
+    const parts = trimmed.split(/\s+/);
+    if (parts.length < 2) {
+      errors.push('Full name must include both first and last name');
+    }
+
+    // Each name part should start with a capital letter (professional standard)
+    const invalidCaps = parts.filter(part => part && !/^[A-Z]/.test(part));
+    if (invalidCaps.length > 0) {
+      errors.push('Each name should start with a capital letter');
+    }
+
+    return errors;
+  };
+
+  // ✅ Username Validation (unchanged, but kept strict)
   const validateUsername = (username) => {
     const errors = [];
 
@@ -59,7 +104,6 @@ const SignUp = () => {
       return errors;
     }
 
-    // Length validation
     if (username.length < 3) {
       errors.push('Username must be at least 3 characters');
     }
@@ -68,27 +112,22 @@ const SignUp = () => {
       errors.push('Username must be 20 characters or less');
     }
 
-    // Character validation - only letters, numbers, underscores, and hyphens (mixed case allowed)
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       errors.push('Username can only contain letters, numbers, underscores, and hyphens');
     }
 
-    // Must start with a letter (case insensitive)
     if (!/^[a-zA-Z]/.test(username)) {
       errors.push('Username must start with a letter');
     }
 
-    // Cannot end with underscore or hyphen
     if (/[_-]$/.test(username)) {
       errors.push('Username cannot end with underscore or hyphen');
     }
 
-    // Cannot have consecutive special characters
     if (/[_-]{2,}/.test(username)) {
       errors.push('Username cannot have consecutive underscores or hyphens');
     }
 
-    // Reserved words check - case insensitive comparison
     const reservedWords = ['admin', 'root', 'user', 'guest', 'test', 'null', 'undefined', 'api', 'www', 'mail', 'ftp'];
     if (reservedWords.includes(username.toLowerCase())) {
       errors.push('This username is not available');
@@ -97,7 +136,7 @@ const SignUp = () => {
     return errors;
   };
 
-  // Password validation function
+  // ✅ Password Validation
   const validatePassword = (password) => {
     const errors = [];
 
@@ -128,14 +167,21 @@ const SignUp = () => {
     let isValid = true;
     const newErrors = { ...errors };
 
-    // Username validation
+    // Full Name
+    const fullNameErrors = validateFullName(formData.fullName);
+    if (fullNameErrors.length > 0) {
+      newErrors.fullName = fullNameErrors.join(', ');
+      isValid = false;
+    }
+
+    // Username
     const usernameErrors = validateUsername(formData.username);
     if (usernameErrors.length > 0) {
       newErrors.username = usernameErrors.join(', ');
       isValid = false;
     }
 
-    // Email validation
+    // Email
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -144,7 +190,7 @@ const SignUp = () => {
       isValid = false;
     }
 
-    // Password validation
+    // Password
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -166,34 +212,40 @@ const SignUp = () => {
     if (validateForm()) {
       try {
         const response = await signUp({
+          name: formData.fullName.trim(),
           userName: formData.username,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
         }).unwrap();
 
         if (response.success) {
-          router.push(`/auth/verify-otp?email=${formData.email}`)
+          router.push(`/auth/verify-otp?email=${formData.email}`);
         }
+
+        // Reset form
         setFormData({
+          fullName: '',
           username: '',
           email: '',
           password: '',
-          rememberMe: false
         });
-
       } catch (error) {
         console.error('Sign up error:', error);
 
         if (error.data) {
-          if (error.data.message.includes('email')) {
-            setErrors(prev => ({ ...prev, email: error.data.message }));
-          } else if (error.data.message.includes('username')) {
-            setErrors(prev => ({ ...prev, username: error.data.message }));
+          const errorMsg = error.data.message;
+
+          if (errorMsg.includes('email')) {
+            setErrors((prev) => ({ ...prev, email: errorMsg }));
+          } else if (errorMsg.includes('username')) {
+            setErrors((prev) => ({ ...prev, username: errorMsg }));
+          } else if (errorMsg.includes('full name')) {
+            setErrors((prev) => ({ ...prev, fullName: errorMsg }));
           } else {
-            toast.error(error?.data?.message || 'Signup failed. Please try again.');
+            toast.error(error.data.message || 'Signup failed. Please try again.');
           }
         } else {
-          message('Network error. Please try again.');
+          message.error('Network error. Please try again.');
         }
       }
     }
@@ -206,7 +258,7 @@ const SignUp = () => {
   return (
     <div className="">
       <div className="flex h-screen justify-center">
-        {/* Left Section with Background Image and Overlay */}
+        {/* Left Section with Background Image */}
         <div className="hidden md:flex md:w-1/2 justify-center relative">
           <Image
             src="/images/signup.png"
@@ -217,7 +269,7 @@ const SignUp = () => {
           />
         </div>
 
-        {/* Right Section with Sign Up Form */}
+        {/* Right Section - Sign Up Form */}
         <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-gray-50">
           <div className="w-full max-w-md bg-white rounded-lg p-8 shadow-sm">
             <div className="text-center mb-8">
@@ -226,6 +278,35 @@ const SignUp = () => {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
+              {/* Full Name Field */}
+              <div className="mb-4">
+                <label htmlFor="fullName" className="block text-gray-700 mb-2">Full Name</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="John Doe"
+                    className={`w-full pl-10 pr-3 py-2 border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                  />
+                </div>
+                {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
+                {
+                  !errors.fullName && <p className="mt-2 text-xs text-gray-500">
+                    Must include first and last name. Start each name with a capital letter.
+                  </p>
+                }
+
+              </div>
+
+              {/* Username Field */}
               <div className="mb-4">
                 <label htmlFor="username" className="block text-gray-700 mb-2">Username</label>
                 <div className="relative">
@@ -240,16 +321,20 @@ const SignUp = () => {
                     type="text"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="JohnDoe or john_doe"
+                    placeholder="johndoe or john_doe"
                     className={`w-full pl-10 pr-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
                 </div>
                 {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
-                <p className="mt-2 text-xs text-gray-500">
-                  3-20 characters. Must start with a letter. Mixed case allowed. Only letters, numbers, underscores, and hyphens.
-                </p>
+                {
+                  !errors.username && <p className="mt-2 text-xs text-gray-500">
+                    3-20 characters. Start with a letter. Letters, numbers, underscores, hyphens.
+                  </p>
+                }
+
               </div>
 
+              {/* Email Field */}
               <div className="mb-4">
                 <label htmlFor="email" className="block text-gray-700 mb-2">Email</label>
                 <div className="relative">
@@ -271,7 +356,8 @@ const SignUp = () => {
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
               </div>
 
-              <div className="mb-4">
+              {/* Password Field */}
+              <div className="mb-6">
                 <label htmlFor="password" className="block text-gray-700 mb-2">Password</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -293,22 +379,24 @@ const SignUp = () => {
                     onClick={togglePasswordVisibility}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
                   >
-                    {showPassword ? <FaEyeSlash className="h-4 w-4 cursor-pointer" /> : <FaEye className="h-4 w-4 cursor-pointer" />}
+                    {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
                   </button>
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-                <p className="mt-2 text-xs text-gray-500">
-                  Password must be at least 8 characters and include uppercase, lowercase,
-                  number, and special character.
-                </p>
+                {
+                  !errors.password && <p className="mt-2 text-xs text-gray-500">
+                    At least 8 characters: uppercase, lowercase, number, and special character.
+                  </p>
+                }
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full bg-indigo-600 text-white py-2 px-4 cursor-pointer rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none ${isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {isLoading ? 'Signing Up...' : 'Sign Up'}
+                {isLoading ? 'Creating Account...' : 'Sign Up'}
               </button>
             </form>
 

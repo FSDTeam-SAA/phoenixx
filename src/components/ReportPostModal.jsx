@@ -7,14 +7,16 @@ import { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { isAuthenticated } from '../../utils/auth';
 import { ThemeContext } from '../app/ClientLayout';
+import { useReportCommentMutation } from '../features/comments/commentApi';
 
 const { TextArea } = Input;
 
-const ReportPostModal = ({ isOpen, onClose, postId }) => {
+const ReportPostModal = ({ isOpen, onClose, postId, commentId, title }) => {
   const router = useRouter();
   const [form] = Form.useForm();
   const [selectedReason, setSelectedReason] = useState('');
   const [report, { isLoading }] = useReportMutation();
+  const [reportComment, { isLoading: reportCommentLoading }] = useReportCommentMutation();
   const [successMessage, setSuccessMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const { isDarkMode } = useContext(ThemeContext);
@@ -32,40 +34,57 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && postId) {
+    if (isOpen) {
+      // Set the reported URL based on whether it's a post or comment
+      const reportedUrl = postId ? `/posts/${postId}` : `/comments/${commentId}`;
       form.setFieldsValue({
-        reportedUrl: `/posts/${postId}`,
+        reportedUrl,
       });
       // Reset success states when modal opens
       setSuccessMessage('');
       setIsSuccess(false);
     }
-  }, [isOpen, postId, form]);
+  }, [isOpen, postId, commentId, form]);
 
   const handleSubmit = async () => {
     if (!isAuthenticated()) {
       toast.error('please login first then send report');
       return;
-    } else {
-      try {
-        const values = await form.validateFields();
+    }
+
+    try {
+      const values = await form.validateFields();
+
+      if (postId) {
+        // Handle post report
         const reason = {
           reason: values.reportReason,
           description: values.message,
           postId: postId
         };
         const response = await report(reason).unwrap();
-        setSuccessMessage(response?.message || 'Report Send successfully!');
+        setSuccessMessage(response?.message || 'Report submitted successfully!');
         setIsSuccess(true);
-        form.resetFields();
-        setTimeout(() => {
-          handleClose();
-        }, 3000);
-      } catch (error) {
-        setSuccessMessage('Failed to submit report. Please try again later.');
-        setIsSuccess(false);
-        console.error('Report submission failed:', error);
+      } else if (commentId) {
+        // Handle comment report
+        const reason = {
+          reason: values.reportReason,
+          description: values.message,
+          commentId: commentId
+        };
+        const response = await reportComment(reason).unwrap();
+        setSuccessMessage(response?.message || 'Report submitted successfully!');
+        setIsSuccess(true);
       }
+
+      form.resetFields();
+      setTimeout(() => {
+        handleClose();
+      }, 3000);
+    } catch (error) {
+      setSuccessMessage('Failed to submit report. Please try again later.');
+      setIsSuccess(false);
+      console.error('Report submission failed:', error);
     }
   };
 
@@ -82,7 +101,7 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
         <div className="flex items-center gap-3">
           <ExclamationCircleOutlined className="text-red-500 text-2xl" />
           <span className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-            Report Content
+            Report {title}
           </span>
         </div>
       }
@@ -152,6 +171,13 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
               message: ''
             }}
           >
+            <Form.Item
+              name="reportedUrl"
+              hidden
+            >
+              <Input type="hidden" />
+            </Form.Item>
+
             <Form.Item
               name="reportReason"
               label={<span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -223,7 +249,7 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
               <Button
                 type="primary"
                 onClick={handleSubmit}
-                loading={isLoading}
+                loading={isLoading || reportCommentLoading}
                 className="px-6 h-10 bg-primary font-medium"
               >
                 Submit Report

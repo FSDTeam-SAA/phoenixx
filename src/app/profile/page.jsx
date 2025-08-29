@@ -10,6 +10,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiBookmark, FiFile, FiGrid, FiList, FiMessageSquare } from 'react-icons/fi';
 import { ThemeContext } from '../ClientLayout';
+import Loading from '../../components/Loading/Loading';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
@@ -196,15 +197,16 @@ const ProfilePage = () => {
   const getPostsToDisplay = () => {
     switch (activeTab) {
       case 'totalPosts':
-        return userPosts.map(transformPostData);
+        return [...userPosts]?.reverse()?.map(transformPostData);
       case 'savedPosts':
-        return savedPosts
-          .map(transformSavedPostData)
-          .filter(Boolean);
+        return [...savedPosts]
+          ?.reverse()
+          ?.map(transformSavedPostData)
+          ?.filter(Boolean);
       case 'comments':
-        return myComment.map(transformPostData);
+        return [...myComment]?.reverse()?.map(transformPostData);
       default:
-        return userPosts.map(transformPostData);
+        return [...userPosts]?.reverse()?.map(transformPostData);
     }
   };
 
@@ -252,7 +254,7 @@ const ProfilePage = () => {
               style={{
                 backgroundColor: themeStyles.cardBackground,
                 borderColor: themeStyles.borderColor,
-                 padding: screens.xs ? '12px' : '16px'
+                padding: screens.xs ? '12px' : '16px'
               }}
             >
               <Space direction="vertical" size="middle" className="w-full">
@@ -334,14 +336,13 @@ const ProfilePage = () => {
                   borderColor: themeStyles.borderColor
                 }}
               >
-                <p style={{ color: themeStyles.textColor }}>Loading...</p>
+                <p style={{ color: themeStyles.textColor }}><Loading /></p>
               </div>
             ) : postsToDisplay.length > 0 ? (
-              <div className={`${
-                isGridView 
-                  ? 'columns-1 sm:columns-2 lg:columns-2 xl:columns-2 gap-3 sm:gap-4 space-y-3 sm:space-y-4' 
-                  : 'flex flex-col gap-3 sm:gap-4'
-              }`}>
+              <div className={`${isGridView
+                ? 'columns-1 sm:columns-2 lg:columns-2 xl:columns-2 gap-3 sm:gap-4 space-y-3 sm:space-y-4'
+                : 'flex flex-col gap-3 sm:gap-4'
+                }`}>
                 {postsToDisplay.map((post) => (
                   <div
                     key={`${post.isSavedPost ? 'saved-' : ''}${post._id}`}

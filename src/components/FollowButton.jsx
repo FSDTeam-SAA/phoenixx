@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { RiUserFollowFill, RiUserUnfollowLine } from 'react-icons/ri';
 import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '../features/Follow/followApi';
 
 const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
@@ -83,22 +82,17 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
 
   return (
     <button
+
       onClick={handleButtonClick}
       disabled={isLoading}
-      className={`${className} w-full px-4 py-2 bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
+      className={`${className} w-full px-4 py-[7px] font-medium text-white bg-[#1530c7] rounded border-blue-[#1530c7] cursor-pointer border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
       style={{ border: "1px solid #1530c7" }}
     >
-      {isLoading ?
-        <RiUserFollowFill
-          className='text-white'
-          size={20}
-          style={{
-            animation: 'spin 1s linear infinite',
-            transformOrigin: 'center'
-          }}
-        /> :
-        (isFollowing ? <RiUserFollowFill className='text-white' size={20} /> : <RiUserUnfollowLine className='text-white' size={20} />)
+
+      {
+        (isFollowing ? "UnFollow" : "Follow")
       }
+
     </button>
   );
 };

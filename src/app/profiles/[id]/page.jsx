@@ -119,7 +119,7 @@ const ProfileBanner = () => {
             <div className="text-center pb-3 sm:pb-10 px-4">
 
               <h1 className={`${isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'} font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2 transition-colors duration-200`}>
-                {profile?.data?.userName || 'username'}
+                {profile?.data?.name || 'username'}
               </h1>
 
               {profile?.data?.bio && (

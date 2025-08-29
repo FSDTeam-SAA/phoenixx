@@ -156,7 +156,7 @@ const AuthorPostCard = ({
         />
       ) : (
         <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'} flex items-center justify-center text-xs ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-          {author.userName?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
+          {author?.name?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
         </div>
       )
     );
@@ -680,6 +680,7 @@ const AuthorPostCard = ({
         onClose={() => setShowReportModal(false)}
         postId={postData._id}
         isDarkMode={isDarkMode}
+        title={"Post"}
       />
     </>
   );

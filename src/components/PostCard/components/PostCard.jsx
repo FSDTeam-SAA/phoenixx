@@ -9,8 +9,8 @@ import useWindowSize from '../hooks/useWindowSize';
 import ImageModal from './ImageModal';
 import PostCardActions from './PostCardActions';
 import PostCardContent from './PostCardContent';
-import PostCardImageGrid from './PostCardImageGrid';
 import PostCardHeader from './PostCardHeader';
+import PostCardImageGrid from './PostCardImageGrid';
 
 
 const PostCard = ({
@@ -144,6 +144,7 @@ const PostCard = ({
         onClose={() => setShowReportModal(false)}
         postId={postData.id}
         isDarkMode={isDarkMode}
+        title={"Post"}
       />
     </>
   );

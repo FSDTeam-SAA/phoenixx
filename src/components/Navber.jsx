@@ -277,7 +277,8 @@ export default function Navbar() {
         <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'text-black' : ''}`}>
           <Avatar src={getImageUrl(profileData?.data?.profile)} size={44} />
           <Space direction="vertical" size={0}>
-            <Text strong>{profileData?.data?.userName}</Text>
+            <Text strong>{profileData?.data?.name}</Text>
+            <Text>@{profileData?.data?.userName}</Text>
           </Space>
         </Flex>
       ),

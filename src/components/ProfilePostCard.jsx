@@ -138,7 +138,7 @@ const ProfilePostCard = ({
         />
       ) : (
         <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'} flex items-center justify-center text-xs`}>
-          {author.userName?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
+          {author?.name?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
         </div>
       )
     );
@@ -422,6 +422,7 @@ const ProfilePostCard = ({
         onClose={() => setReportModalVisible(false)}
         postId={postData._id}
         isDarkMode={isDarkMode}
+        title={"Post"}
       />
     </>
   );

@@ -1,9 +1,10 @@
 import { getImageUrl } from '../../../../utils/getImageUrl';
 
 const PostCardImageGrid = ({ postData, handleImageClick }) => {
+
   if (!postData.images?.length) return null;
 
-  const { images } = postData;
+  const { images, title } = postData;
 
   if (images.length === 1) {
     return (
@@ -11,7 +12,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
         <div className="h-[250px] flex items-center justify-center bg-gray-100">
           <img
             src={getImageUrl(images[0])}
-            alt="Post content"
+            alt={title}
             className="w-full h-full object-cover object-center cursor-pointer hover:opacity-90 transition-opacity rounded-lg"
             onClick={() => handleImageClick(0)}
           />
@@ -27,7 +28,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
           <div className="w-1/2 h-full flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden relative">
             <img
               src={getImageUrl(images[0])}
-              alt="Post content 1"
+              alt={title}
               className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => handleImageClick(0)}
               style={{
@@ -41,7 +42,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
           <div className="w-1/2 h-full flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden relative">
             <img
               src={getImageUrl(images[1])}
-              alt="Post content 2"
+              alt={title}
               className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => handleImageClick(1)}
               style={{
@@ -64,7 +65,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
           <div className="w-1/2 h-full flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden relative">
             <img
               src={getImageUrl(images[0])}
-              alt="Post content 1"
+              alt={title}
               className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => handleImageClick(0)}
               style={{
@@ -79,7 +80,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
             <div className="w-full h-1/2 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden relative">
               <img
                 src={getImageUrl(images[1])}
-                alt="Post content 2"
+                alt={title}
                 className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => handleImageClick(1)}
                 style={{
@@ -93,7 +94,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
             <div className="w-full h-1/2 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden relative">
               <img
                 src={getImageUrl(images[2])}
-                alt="Post content 3"
+                alt={title}
                 className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => handleImageClick(2)}
                 style={{
@@ -118,7 +119,7 @@ const PostCardImageGrid = ({ postData, handleImageClick }) => {
             <div key={index} className="relative flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
               <img
                 src={getImageUrl(image)}
-                alt={`Post content ${index + 1}`}
+                alt={title}
                 className={`max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity ${index === 3 && images.length > 4 ? 'opacity-80' : ''
                   }`}
                 onClick={() => handleImageClick(index)}

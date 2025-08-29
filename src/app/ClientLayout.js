@@ -21,7 +21,13 @@ export default function ClientLayout({ children }) {
   const pathname = usePathname();
   const isAuthPage = pathname.startsWith('/auth');
 
-  // Theme state management - Initialize with null to prevent hydration mismatch
+
+  // ✅ routes where footer should not appear
+  const noFooterRoutes = ["/auth/login", "/auth/signup", "/auth/forgot"];
+
+  const hideFooter = noFooterRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
   const [isDarkMode, setIsDarkMode] = useState(null);
   const [mounted, setMounted] = useState(false);
 
@@ -174,18 +180,16 @@ export default function ClientLayout({ children }) {
     }
   }, [isDarkMode, mounted]);
 
-  // Show loading state or return null until mounted to prevent hydration mismatch
-  if (!mounted || isDarkMode === null) {
-    return (
-      <html lang="en">
-        <body className="antialiased" cz-shortcut-listen="true">
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            Loading...
-          </div>
-        </body>
-      </html>
-    );
-  }
+  // // Show loading state or return null until mounted to prevent hydration mismatch
+  // if (!mounted || isDarkMode === null) {
+  //   return (
+  //     <html lang="en">
+  //       <body className="antialiased" cz-shortcut-listen="true">
+  //         <ProgressLoading fullscreen />
+  //       </body>
+  //     </html>
+  //   );
+  // }
 
 
   return (
@@ -216,6 +220,12 @@ export default function ClientLayout({ children }) {
                       : 'light-toast bg-white text-gray-900',
                   }}
                 />
+
+                {!hideFooter && (
+                  <footer className="text-sm text-gray-500 text-center pb-10 pt-8 bg-gray-50">
+                    © 2025 Mehor. All rights reserved.
+                  </footer>
+                )}
               </Provider>
             </ConfigProvider>
           </ThemeContext.Provider>

@@ -516,6 +516,7 @@ const PostCard = ({
         onClose={() => setShowReportModal(false)}
         postId={postData.id}
         isDarkMode={isDarkMode}
+        title={"Post"}
       />
     </>
   );

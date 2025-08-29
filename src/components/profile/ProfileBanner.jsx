@@ -1,6 +1,6 @@
 "use client";
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/features/profile/profileApi';
-import { InfoCircleOutlined, LockOutlined, PlusOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, LockOutlined } from '@ant-design/icons';
 import { Alert, Button, Col, Form, Grid, Input, message, Modal, Row, Tooltip, Upload } from 'antd';
 import { useContext, useEffect, useState } from 'react';
 import { getImageUrl } from '../../../utils/getImageUrl';
@@ -18,10 +18,14 @@ const ProfileBanner = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
-  const [usernameError, setUsernameError] = useState('');
-
   const [remainingChanges, setRemainingChanges] = useState(0);
   const [isUsernameReadOnly, setIsUsernameReadOnly] = useState(false);
+
+  // Bio character limit
+  const BIO_MAX_LENGTH = 160;
+
+  // Watch bio field for real-time updates
+  const bioValue = Form.useWatch('bio', form) || '';
 
   useEffect(() => {
     if (data?.data) {
@@ -31,97 +35,29 @@ const ProfileBanner = () => {
 
       if (isModalOpen) {
         form.setFieldsValue({
-          name: data.data.userName || "Enter username",
+          fullName: data.data.name || '',
+          userName: data.data.userName || '',
           email: data.data.email,
           contact: data.data.contact || '',
+          bio: data.data.bio || '',
         });
       }
     }
   }, [data, isModalOpen, form]);
 
-  // Professional username validation - Updated to allow mixed case
-  const validateUsername = (username) => {
-    const errors = [];
-
-    if (!username || !username.trim()) {
-      errors.push('Username is required');
-      return errors;
-    }
-
-    // Length validation
-    if (username.length < 3) {
-      errors.push('Username must be at least 3 characters');
-    }
-
-    if (username.length > 20) {
-      errors.push('Username must be 20 characters or less');
-    }
-
-    // Character validation - only letters, numbers, underscores, and hyphens (mixed case allowed)
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      errors.push('Username can only contain letters, numbers, underscores, and hyphens');
-    }
-
-    // Must start with a letter (case insensitive)
-    if (!/^[a-zA-Z]/.test(username)) {
-      errors.push('Username must start with a letter');
-    }
-
-    // Cannot end with underscore or hyphen
-    if (/[_-]$/.test(username)) {
-      errors.push('Username cannot end with underscore or hyphen');
-    }
-
-    // Cannot have consecutive special characters
-    if (/[_-]{2,}/.test(username)) {
-      errors.push('Username cannot have consecutive underscores or hyphens');
-    }
-
-    // Reserved words check - case insensitive comparison
-    const reservedWords = ['admin', 'root', 'user', 'guest', 'test', 'null', 'undefined', 'api', 'www', 'mail', 'ftp'];
-    if (reservedWords.includes(username.toLowerCase())) {
-      errors.push('This username is not available');
-    }
-
-    return errors;
-  };
-
-  // Handle username input with validation - Updated to preserve case
-  const handleUsernameChange = (e) => {
-    let value = e.target.value;
-
-    // Only remove spaces, preserve the original case
-    value = value.replace(/\s+/g, '');
-
-    // Update form value
-    form.setFieldValue('name', value);
-
-    // Clear previous username errors
-    if (usernameError) {
-      setUsernameError('');
-    }
-
-    // Real-time validation (optional - you can remove this if you prefer validation only on submit)
-    if (value && !isUsernameReadOnly) {
-      const validationErrors = validateUsername(value);
-      if (validationErrors.length > 0) {
-        setUsernameError(validationErrors.join(', '));
-      }
-    }
-  };
-
   const showModal = () => {
     setFileList([]);
-    setUsernameError('');
     if (data?.data) {
       const changesLeft = data.data.maxChangeUserName || 0;
       setRemainingChanges(changesLeft);
       setIsUsernameReadOnly(changesLeft <= 0);
 
       form.setFieldsValue({
-        name: data.data.userName || data.data.name,
+        fullName: data.data.name || '',
+        userName: data.data.userName || '',
         email: data.data.email,
         contact: data.data.contact || '',
+        bio: data.data.bio || '',
       });
     }
     setIsModalOpen(true);
@@ -130,7 +66,6 @@ const ProfileBanner = () => {
 
   const handleCancel = () => {
     setIsModalOpen(false);
-    setUsernameError('');
     document.body.style.overflow = 'unset';
   };
 
@@ -138,102 +73,43 @@ const ProfileBanner = () => {
     try {
       const values = await form.validateFields();
 
-      const currentUsername = data?.data?.userName;
-      const newUsername = values.name;
-      const hasUsernameChanged = currentUsername !== newUsername;
-
-      // Validate username if it has changed and changes are available
-      if (hasUsernameChanged && remainingChanges > 0) {
-        const usernameValidationErrors = validateUsername(newUsername);
-        if (usernameValidationErrors.length > 0) {
-          setUsernameError(usernameValidationErrors.join(', '));
-          return;
-        }
-      }
-
-      // Check if username has changed but no changes remaining
-      if (hasUsernameChanged && remainingChanges <= 0) {
-        setUsernameError("You've reached your username change limit. You can still update your profile picture and contact info!");
-        return;
-      }
-
       const formData = new FormData();
 
-      // Only include username if changes are available AND username has actually changed AND it's valid
-      if (hasUsernameChanged && remainingChanges > 0) {
-        formData.append('userName', values.name);
-      }
-
-      // Always include contact if provided
-      if (values.contact) {
-        formData.append('contact', values.contact);
-      }
+      // Always include fullName and bio if provided
+      if (values.fullName) formData.append('name', values.fullName.trim());
+      if (values.bio) formData.append('bio', values.bio.trim());
 
       // Always include image if provided
       if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append('image', fileList[0].originFileObj);
       }
 
-      // Check what updates are available
+      // Check for updates
       const hasImageUpdate = fileList.length > 0 && fileList[0].originFileObj;
       const hasContactUpdate = values.contact !== (data?.data?.contact || '');
-      const hasUsernameUpdate = hasUsernameChanged && remainingChanges > 0;
+      const hasNameUpdate = values.fullName !== (data?.data?.name || '');
+      const hasBioUpdate = values.bio !== (data?.data?.bio || '');
 
-      if (!hasImageUpdate && !hasContactUpdate && !hasUsernameUpdate) {
-        if (hasUsernameChanged && remainingChanges <= 0) {
-          message.info({
-            content: "Username changes are no longer available. You can still update your profile picture and contact info!",
-            duration: 5,
-          });
-        } else {
-          message.info({
-            content: "No changes detected to update",
-            duration: 3,
-          });
-        }
+      if (!hasImageUpdate && !hasContactUpdate && !hasNameUpdate && !hasBioUpdate) {
+        message.info({
+          content: "No changes detected to update",
+          duration: 3,
+        });
         return;
       }
 
       const response = await updateProfile(formData).unwrap();
 
       if (response.success) {
-        // Only decrement counter if username was actually changed and included in update
-        if (hasUsernameChanged && remainingChanges > 0) {
-          const newRemainingChanges = remainingChanges - 1;
-          setRemainingChanges(newRemainingChanges);
-
-          if (newRemainingChanges <= 0) {
-            setIsUsernameReadOnly(true);
-            message.success({
-              content: "Profile updated successfully! This was your final username change.",
-              duration: 5,
-            });
-          } else {
-            message.success({
-              content: `Profile updated successfully! You have ${newRemainingChanges} username change${newRemainingChanges !== 1 ? 's' : ''} remaining.`,
-              duration: 4,
-            });
-          }
-        } else {
-          message.success("Profile updated successfully!");
-        }
-
+        message.success("Profile updated successfully!");
         setIsModalOpen(false);
-        setUsernameError('');
         document.body.style.overflow = 'unset';
       } else {
         message.error(response.message || "Failed to update profile");
       }
     } catch (error) {
       console.error("Update error:", error);
-
-      if (error.data?.message?.includes('maximum limit')) {
-        setUsernameError("You've reached your username change limit. You can still update other profile information!");
-      } else if (error.data?.message?.includes('username') || error.data?.message?.includes('userName')) {
-        setUsernameError(error.data.message);
-      } else {
-        message.error(error.data?.message || "Failed to update profile");
-      }
+      message.error(error.data?.message || "Failed to update profile");
     }
   };
 
@@ -314,7 +190,7 @@ const ProfileBanner = () => {
                   strokeLinejoin="round"
                 >
                   <path d="M9.99952 10L3.84252 16.162C3.60992 16.3944 3.43819 16.6805 3.34252 16.995L2.02052 21.355C1.9943 21.4415 1.99202 21.5335 2.01392 21.6212C2.03583 21.7089 2.08109 21.789 2.1449 21.853C2.20871 21.917 2.28869 21.9626 2.37631 21.9847C2.46394 22.0069 2.55593 22.0049 2.64252 21.979L7.00052 20.656C7.31399 20.5599 7.59902 20.3882 7.83052 20.156L13.9995 13.982" />
-                  <path d="M12.8291 7.17153L17.1881 2.82553C17.4498 2.5638 17.7605 2.35619 18.1025 2.21455C18.4445 2.0729 18.811 2 19.1811 2C19.5512 2 19.9177 2.0729 20.2597 2.21455C20.6017 2.35619 20.9124 2.5638 21.1741 2.82553C21.4358 3.08725 21.6434 3.39796 21.7851 3.73992C21.9267 4.08188 21.9996 4.44839 21.9996 4.81853C21.9996 5.18866 21.9267 5.55517 21.7851 5.89713C21.6434 6.23909 21.4358 6.5498 21.1741 6.81153L16.8211 11.1645" />
+                  <path d="M12.8291 7.17153L17.1881 2.82553C17.4498 2.5638 17.7605 2.35619 18.1025 2.21455C18.4445 2.0729 18.811 2 19.1811 2C19.5512 2 1.9177 2.0729 20.2597 2.21455C20.6017 2.35619 20.9124 2.5638 21.1741 2.82553C21.4358 3.08725 21.6434 3.39796 21.7851 3.73992C21.9267 4.08188 21.9996 4.44839 21.9996 4.81853C21.9996 5.18866 21.9267 5.55517 21.7851 5.89713C21.6434 6.23909 21.4358 6.5498 21.1741 6.81153L16.8211 11.1645" />
                   <path d="M15 5L19 9" />
                   <path d="M2 2L22 22" />
                 </svg>
@@ -325,8 +201,18 @@ const ProfileBanner = () => {
             {/* User Info */}
             <div className="text-center pb-5">
               <h2 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {data?.data?.userName}
+                {data?.data?.name}
               </h2>
+              {data?.data?.userName && (
+                <p className={`text-base font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  @{data.data.userName}
+                </p>
+              )}
+              {data?.data?.bio && (
+                <p className={`text-base font-serif w-5/12 mx-auto mt-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {data.data.bio}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -339,7 +225,7 @@ const ProfileBanner = () => {
         onCancel={handleCancel}
         footer={null}
         centered
-        width={isMobile ? "90%" : 520}
+        width={isMobile ? "90%" : 700}
         className={isDarkMode ? 'dark-modal' : ''}
         styles={{
           header: {
@@ -347,7 +233,7 @@ const ProfileBanner = () => {
             backgroundColor: isDarkMode ? '#374151' : '#ffffff'
           },
           body: {
-            padding: isMobile ? '16px' : '24px',
+            padding: isMobile ? '16px' : '5px',
             backgroundColor: isDarkMode ? '#374151' : '#ffffff'
           },
           content: {
@@ -400,7 +286,11 @@ const ProfileBanner = () => {
                   {fileList.length === 0 && (
                     <div className={`p-2 sm:p-4 rounded-lg border-2 border-dashed transition-colors hover:border-blue-500 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-gray-50 border-gray-300 text-gray-600'}`}>
                       <div className="flex flex-col items-center justify-center">
-                        <PlusOutlined className={`text-lg mb-2 ${isDarkMode ? 'text-white' : 'text-gray-400'}`} />
+                        <span className="text-lg mb-2">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className={isDarkMode ? 'text-white' : 'text-gray-400'}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </span>
                         <div className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>
                           {isMobile ? 'Upload Photo' : 'Upload Profile Picture'}
                         </div>
@@ -412,98 +302,106 @@ const ProfileBanner = () => {
             </Row>
           </Form.Item>
 
-          {/* Username Field with Professional Validation - Updated placeholder and help text */}
+          {/* Full Name */}
           <Form.Item
-            name="name"
-            label={
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username*</span>
-                  {isUsernameReadOnly && (
-                    <Tooltip title="Username changes are no longer available">
-                      <LockOutlined className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                    </Tooltip>
-                  )}
-                </div>
-                {remainingChanges >= 0 && !isUsernameReadOnly && (
-                  <span className={`text-xs pl-2 font-medium ${remainingChanges === 0 ? 'text-red-500' :
-                    remainingChanges === 1 ? 'text-orange-500' : 'text-blue-500'
-                    }`}>
-                    {remainingChanges} change{remainingChanges !== 1 ? 's' : ''} left
-                  </span>
-                )}
-              </div>
-            }
+            name="fullName"
+            label={<span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Full Name</span>}
             rules={[
-              { required: true, message: 'Please enter your username' },
-              { min: 3, message: 'Username must be at least 3 characters' },
-              { max: 20, message: 'Username must be 20 characters or less' },
+              { required: true, message: 'Please enter your full name' },
+              { min: 2, message: 'Full name must be at least 2 characters' },
+              { max: 50, message: 'Full name must be 50 characters or less' },
               {
-                pattern: /^[a-zA-Z0-9_-]+$/,
-                message: 'Username can only contain letters, numbers, underscores, and hyphens'
-              },
-              {
-                pattern: /^[a-zA-Z]/,
-                message: 'Username must start with a letter'
+                pattern: /^[a-zA-Z\s\-']+$/,
+                message: 'Full name can only contain letters, spaces, hyphens, and apostrophes'
               },
               {
                 validator: (_, value) => {
-                  if (!value || isUsernameReadOnly) return Promise.resolve();
-
-                  const validationErrors = validateUsername(value);
-                  if (validationErrors.length > 0) {
-                    return Promise.reject(new Error(validationErrors.join(', ')));
+                  if (!value) return Promise.resolve();
+                  const parts = value.trim().split(/\s+/);
+                  if (parts.length < 2) {
+                    return Promise.reject(new Error('Enter both first and last name'));
+                  }
+                  const invalidCaps = parts.filter(part => part && !/^[A-Z]/.test(part));
+                  if (invalidCaps.length > 0) {
+                    return Promise.reject(new Error('Each name should start with a capital letter'));
                   }
                   return Promise.resolve();
                 }
               }
             ]}
-            validateStatus={usernameError ? 'error' : ''}
-            help={usernameError || (isUsernameReadOnly ?
-              <span className={isDarkMode ? 'text-blue-300' : 'text-blue-600'}>
-                Username is locked - You can still update your profile picture
-              </span> :
-              <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                3-20 characters. Must start with a letter. Mixed case allowed. Only letters, numbers, underscores, and hyphens.
-              </span>)}
           >
             <Input
-              placeholder='Enetr username'
-
-              onChange={handleUsernameChange}
-              className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
+              placeholder="John Doe"
               size={isMobile ? 'middle' : 'large'}
-              style={{
-                backgroundColor: isUsernameReadOnly ?
-                  (isDarkMode ? '#4B5563' : '#f9fafb') :
-                  (isDarkMode ? '#4B5563' : '#ffffff'),
-                color: isUsernameReadOnly ?
-                  (isDarkMode ? '#9CA3AF' : '#6B7280') :
-                  (isDarkMode ? '#ffffff' : '#111827'),
-                borderColor: isDarkMode ? '#6B7280' : '#d1d5db'
-              }}
-              readOnly={isUsernameReadOnly}
-              suffix={isUsernameReadOnly && <LockOutlined className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />}
+              className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
             />
           </Form.Item>
 
-          {/* Email Field */}
+          {/* Username (Read Only) */}
           <Form.Item
-            name="email"
-            label={<span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Email</span>}
+            name="userName"
+            label={
+              <div className="flex items-center gap-2">
+                <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username</span>
+                <Tooltip title="Username cannot be changed">
+                  <LockOutlined className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </Tooltip>
+              </div>
+            }
           >
             <Input
               disabled
               className={isDarkMode ? 'bg-gray-600 text-gray-300 border-gray-500' : 'bg-gray-100 text-gray-500 border-gray-300'}
               size={isMobile ? 'middle' : 'large'}
-              style={{
-                backgroundColor: isDarkMode ? '#4B5563' : '#f3f4f6',
-                color: isDarkMode ? '#d1d5db' : '#6b7280',
-                borderColor: isDarkMode ? '#6B7280' : '#d1d5db'
-              }}
             />
           </Form.Item>
 
+          {/* Bio */}
+          <Form.Item
+            name="bio"
+            label={<span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Bio</span>}
+            extra={
+              <span
+                className={
+                  bioValue?.length > BIO_MAX_LENGTH - 10
+                    ? 'text-red-500'
+                    : isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }
+              >
+                {BIO_MAX_LENGTH - (bioValue?.length || 0)} characters left
+              </span>
+            }
+          >
+            <Input.TextArea
+              placeholder="Tell us about yourself..."
+              maxLength={BIO_MAX_LENGTH}
+              autoSize={{ minRows: 2, maxRows: 4 }}
+              className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
+              size={isMobile ? 'middle' : 'large'}
+            />
+          </Form.Item>
+
+          {/* Email (Read Only) */}
+          <Form.Item
+            name="email"
+            label={
+              <div className="flex items-center gap-2">
+                <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Username</span>
+                <Tooltip title="Username cannot be changed">
+                  <LockOutlined className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                </Tooltip>
+              </div>
+            }
+
+          >
+            <Input
+              disabled
+              className={isDarkMode ? 'bg-gray-600 text-gray-300 border-gray-500' : 'bg-gray-100 text-gray-500 border-gray-300'}
+              size={isMobile ? 'middle' : 'large'}
+            />
+          </Form.Item>
+
+          {/* Update Button */}
           <Form.Item>
             <Button
               type="primary"
@@ -525,45 +423,15 @@ const ProfileBanner = () => {
         </Form>
       </Modal>
 
-      {/* Custom styles for dark mode */}
+      {/* Dark Mode Styles */}
       <style jsx>{`
-        .dark-modal .ant-modal-content {
-          background-color: #374151 !important;
-        }
-        .dark-modal .ant-modal-header {
-          background-color: #374151 !important;
-          border-bottom: 1px solid #4B5563 !important;
-        }
-        .dark-modal .ant-modal-close {
-          color: #ffffff !important;
-        }
-        .dark-modal .ant-modal-close:hover {
-          color: #d1d5db !important;
-        }
-        .dark-form .ant-form-item-label > label {
-          color: #ffffff !important;
-        }
-        .dark-form .ant-form-item-explain-error {
-          color: #f87171 !important;
-        }
-        .dark-form .ant-upload.ant-upload-select-picture-card {
-          background-color: #4B5563 !important;
-          border-color: #6B7280 !important;
-        }
-        .dark-form .ant-upload-list-picture-card .ant-upload-list-item {
-          background-color: #4B5563 !important;
-          border-color: #6B7280 !important;
-        }
-        .dark-form .ant-alert {
-          background-color: rgba(59, 130, 246, 0.1) !important;
-          border-color: #1d4ed8 !important;
-        }
-        .dark-form .ant-alert-message {
-          color: #dbeafe !important;
-        }
-        .dark-form .ant-alert-description {
-          color: #bfdbfe !important;
-        }
+        .dark-modal .ant-modal-content { background-color: #374151 !important; }
+        .dark-modal .ant-modal-header { background-color: #374151 !important; border-bottom: 1px solid #4B5563 !important; }
+        .dark-modal .ant-modal-close { color: #ffffff !important; }
+        .dark-form .ant-form-item-label > label { color: #ffffff !important; }
+        .dark-form .ant-upload { background-color: #4B5563 !important; border-color: #6B7280 !important; }
+        .dark-form .ant-alert { background-color: rgba(59, 130, 246, 0.1) !important; border-color: #1d4ed8 !important; }
+        .dark-form .ant-alert-message { color: #dbeafe !important; }
       `}</style>
     </div>
   );

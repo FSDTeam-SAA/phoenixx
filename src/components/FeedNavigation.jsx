@@ -2,6 +2,7 @@
 import { AppstoreOutlined, DownOutlined } from '@ant-design/icons';
 import { Button, Dropdown } from 'antd';
 import { useContext, useEffect, useState } from 'react';
+import { FiList } from 'react-icons/fi';
 import { RiArrowUpDownLine } from "react-icons/ri";
 import { ThemeContext } from '../app/ClientLayout';
 
@@ -63,7 +64,9 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
         className={`cursor-pointer flex items-center gap-1 p-1.5 rounded-lg transition-all duration-200
           ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} active:scale-95`}
       >
-        <AppstoreOutlined className={`mr-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'} text-xl`} />
+        {clickCount === 1 && <FiList className={`mr-1  text-xl`} />}
+
+        {clickCount === 2 && <AppstoreOutlined className={`mr-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'} text-xl`} />}
         <span className={`font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} text-base`}>
           Your Feeds
         </span>

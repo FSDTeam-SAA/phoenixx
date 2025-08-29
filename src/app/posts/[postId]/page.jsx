@@ -66,6 +66,7 @@ const PostDetailsPage = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [login_user_id, setLoginUserId] = useState(null);
   const [collapsedReplies, setCollapsedReplies] = useState({});
+  const [reportingCommentId, setReportingCommentId] = useState(null); // Track which comment is being reported
 
   const post = postDetails?.data;
   const comments = post?.comments || [];
@@ -99,7 +100,6 @@ const PostDetailsPage = () => {
   }, []);
 
   const handleImageClick = useCallback((index) => {
-    console.log('Image clicked, index:', index); // Debug log
     setCurrentImageIndex(index);
     setShowImageModal(true);
   }, []);
@@ -140,30 +140,24 @@ const PostDetailsPage = () => {
     const sorted = [...commentsToSort];
 
     if (commentSort === 'recent') {
-      // Sort by creation date, newest first
       return sorted.sort((a, b) => {
-        // Handle "Just now" comments
         const aDate = a.createdAt === "Just now" ? new Date() : new Date(a.createdAt);
         const bDate = b.createdAt === "Just now" ? new Date() : new Date(b.createdAt);
-        return bDate - aDate; // Newest first
+        return bDate - aDate;
       });
     } else if (commentSort === 'relevant') {
-      // Sort by relevance (likes count first, then recency)
       return sorted.sort((a, b) => {
         const bLikes = b.likes?.length || 0;
         const aLikes = a.likes?.length || 0;
 
-        // First sort by likes count
         if (bLikes !== aLikes) return bLikes - aLikes;
 
-        // If likes are equal, sort by recency
         const aDate = a.createdAt === "Just now" ? new Date() : new Date(a.createdAt);
         const bDate = b.createdAt === "Just now" ? new Date() : new Date(b.createdAt);
-        return bDate - aDate; // Newer comments are more relevant if likes are equal
+        return bDate - aDate;
       });
     }
 
-    // Default to relevant sorting
     return sorted;
   };
 
@@ -200,7 +194,7 @@ const PostDetailsPage = () => {
     const url = `${window.location.origin}/posts/${postId}`;
     navigator.clipboard.writeText(url)
       .then(() => toast.success("URL copied to clipboard"))
-      .catch(() => toast.success("Failed to copy URL"));
+      .catch(() => toast.error("Failed to copy URL"));
   };
 
   const handleCommentButtonClick = () => {
@@ -216,80 +210,15 @@ const PostDetailsPage = () => {
     return textArea.value;
   };
 
-  // const cleanPostContent = (content) => {
-  //   if (!content) return '';
-
-  //   // Remove Froala "Powered by" footer
-  //   const withoutFroala = content.replace(
-  //     /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
-  //     ''
-  //   );
-
-  //   // Convert empty paragraphs to line breaks to preserve spacing
-  //   let processedContent = withoutFroala.replace(/<p[^>]*>\s*<\/p>/gi, '<br><br>');
-
-  //   // Preserve lists - convert to text with proper indentation
-  //   processedContent = processedContent.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, inner) => {
-  //     const items = inner.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
-  //       return `\n1. ${liContent.replace(/<[^>]+>/g, '').trim()}`;
-  //     });
-  //     return items;
-  //   });
-
-  //   processedContent = processedContent.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, inner) => {
-  //     const items = inner.replace(/<li[^>]*>(.*?)<\/li>/gis, (liMatch, liContent) => {
-  //       return `\n• ${liContent.replace(/<[^>]+>/g, '').trim()}`;
-  //     });
-  //     return items;
-  //   });
-
-  //   // Handle basic formatting
-  //   processedContent = processedContent.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**');
-  //   processedContent = processedContent.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**');
-  //   processedContent = processedContent.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*');
-  //   processedContent = processedContent.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
-  //   processedContent = processedContent.replace(/<u[^>]*>(.*?)<\/u>/gi, '_$1_');
-
-  //   // Convert paragraph breaks to double line breaks for spacing
-  //   processedContent = processedContent.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
-  //   processedContent = processedContent.replace(/<\/?p[^>]*>/gi, '');
-
-  //   // Convert other block elements to line breaks
-  //   processedContent = processedContent.replace(/<\/(div|h[1-6]|section|article)>/gi, '\n');
-  //   processedContent = processedContent.replace(/<(div|h[1-6]|section|article)[^>]*>/gi, '');
-
-  //   // Convert <br> tags to actual line breaks
-  //   processedContent = processedContent.replace(/<br\s*\/?>/gi, '\n');
-
-  //   // Remove any remaining HTML tags (except those we've explicitly handled)
-  //   processedContent = processedContent.replace(/<[^>]+>/g, '');
-
-  //   // Decode HTML entities
-  //   const decoded = decodeHtmlEntities(processedContent);
-
-  //   // Clean up excessive line breaks (more than 4 consecutive)
-  //   const withPreservedSpacing = decoded.replace(/\n{5,}/g, '\n\n\n\n');
-
-  //   return withPreservedSpacing.trim();
-  // };
-
-
-
-
-
-
   const cleanPostContent = (content) => {
     if (!content) return '';
 
-    // Only remove Froala "Powered by" footer, keep everything else
     let processedContent = content.replace(
       /<p[^>]*>Powered by <a[^>]*>Froala Editor<\/a><\/p>/gi,
       ''
     );
 
-    // Convert empty paragraphs to <br> tags to show as line breaks
     processedContent = processedContent.replace(/<p[^>]*>\s*<\/p>/gi, '<br>');
-
     return processedContent.trim();
   };
 
@@ -314,7 +243,7 @@ const PostDetailsPage = () => {
         postId,
         author: {
           _id: login_user_id,
-          userName: profile?.data?.userName || "You",
+          userName: profile?.data?.name || "You",
           profile: profile?.data?.profile
         },
         content: commentText,
@@ -458,7 +387,10 @@ const PostDetailsPage = () => {
 
   const handlePostMenuClick = ({ key }) => {
     if (key === 'save') handleSaveUnsave();
-    else if (key === 'report') setShowReportModal(true);
+    else if (key === 'report') {
+      setReportingCommentId(null);
+      setShowReportModal(true);
+    }
   };
 
   const renderCommentMenu = (comment) => {
@@ -489,7 +421,15 @@ const PostDetailsPage = () => {
           </>
         )}
         {!isCurrentUserComment && (
-          <Menu.Item key="report">Report Comment</Menu.Item>
+          <Menu.Item
+            key="report"
+            onClick={() => {
+              setReportingCommentId(comment._id);
+              setShowReportModal(true);
+            }}
+          >
+            Report Comment
+          </Menu.Item>
         )}
       </Menu>
     );
@@ -501,7 +441,6 @@ const PostDetailsPage = () => {
     const isEditing = editingCommentId === comment._id;
     const isCommentLiked = comment.likes?.includes(login_user_id);
     const commentAuthor = comment.author || { userName: "Unknown" };
-    // console.log(commentAuthor)
     const authorImage = commentAuthor.profile || commentAuthor.avatar;
     const wordCount = countWords(editCommentText);
     const replyWordCount = countWords(replyText);
@@ -515,7 +454,7 @@ const PostDetailsPage = () => {
             {authorImage ? (
               <Avatar src={getImageUrl(authorImage)} size={40} />
             ) : (
-              <Avatar size={40}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
+              <Avatar size={40}>{commentAuthor.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
             )}
           </div>
 
@@ -525,7 +464,7 @@ const PostDetailsPage = () => {
             <div className="flex items-start justify-between -mb-1">
               <div>
                 <span onClick={() => router.push(`/profiles/${commentAuthor._id}`)} className={`font-medium cursor-pointer text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                  {commentAuthor.userName}
+                  {commentAuthor.name}
                 </span>
                 <span className={`text-xs ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {formatDate(comment.createdAt)}
@@ -538,11 +477,19 @@ const PostDetailsPage = () => {
                   trigger={['click']}
                   placement="bottomRight"
                 >
-                  {isCurrentUserComment && <Button
-                    type="text"
-                    icon={<EllipsisOutlined className={isDarkMode ? 'text-gray-300' : ''} />}
-                    className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                  />}
+                  {isCurrentUserComment ? (
+                    <Button
+                      type="text"
+                      icon={<EllipsisOutlined className={isDarkMode ? 'text-gray-300' : ''} />}
+                      className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    />
+                  ) : (
+                    <Button
+                      type="text"
+                      icon={<EllipsisOutlined className={isDarkMode ? 'text-gray-300' : ''} />}
+                      className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                    />
+                  )}
                 </Dropdown>
               </div>
             </div>
@@ -667,7 +614,6 @@ const PostDetailsPage = () => {
               <button
                 className={`flex items-center cursor-pointer ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}
                 onClick={() => {
-                  // Toggle showing replies for this comment
                   setShowRepliesFor(prevState => ({
                     ...prevState,
                     [comment._id]: !prevState[comment._id]
@@ -820,7 +766,7 @@ const PostDetailsPage = () => {
                   />
                 ) : (
                   <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'} flex items-center justify-center text-xs`}>
-                    {post?.author?.userName?.charAt(0).toUpperCase() || 'A'}
+                    {post?.author?.name?.charAt(0).toUpperCase() || 'A'}
                   </div>
                 )}
                 <div className="flex flex-col justify-start items-start">
@@ -850,26 +796,11 @@ const PostDetailsPage = () => {
               </h2>
             )}
 
-            {/* <div
-              className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}
-              dangerouslySetInnerHTML={{ __html: cleanPostContent(post.content) }}
-            /> */}
-
-            {/* <div
-              className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}
-              style={{ whiteSpace: 'pre-line' }}
-            >
-              {cleanPostContent(post.content)}
-            </div> */}
-
             <div
               dangerouslySetInnerHTML={{
                 __html: cleanPostContent(post.content)
               }}
             />
-
-
-
 
             {renderImageGrid}
 
@@ -1006,8 +937,13 @@ const PostDetailsPage = () => {
 
       <ReportPostModal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        postId={postId}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportingCommentId(null);
+        }}
+        postId={reportingCommentId ? null : postId}
+        commentId={reportingCommentId}
+        title={"Comment"}
       />
     </div>
   );
