@@ -325,7 +325,7 @@ const ProfilePage = () => {
                 <span className={`${screens.xs ? 'text-sm' : 'text-base'} -mt-1 font-semibold`}>
                   {isGridView ? 'List View' : 'Grid View'}
                 </span>
-              </Button>
+              </Button> 
             </div>
 
             {isLoading ? (

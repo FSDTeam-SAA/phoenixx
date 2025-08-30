@@ -9,6 +9,7 @@ import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import { isAuthenticated } from '../../utils/auth';
 import { getImageUrl } from '../../utils/getImageUrl';
+import { setPosts } from '../../utils/postCache';
 import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import ImageModal from './PostCard/components/ImageModal';
@@ -103,8 +104,13 @@ const PostCard = ({
       return;
     } else {
       router.push(`/posts/${postData.id}`);
+      // <Link key={postData._id} href={`/posts/${postData.title}`}>
+      //   {postData.title}
+      // </Link>
     }
   }, [postData.id, router]);
+
+  setPosts(postData);
 
   const handleCommentClick = useCallback(() => {
     if (!isAuthenticated()) {
@@ -420,7 +426,7 @@ const PostCard = ({
           </Dropdown>
         </div>
 
-        {postData.title && (
+        {/* {postData.title && (
           <h2
             onClick={handlePostDetails}
             className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'
@@ -431,7 +437,7 @@ const PostCard = ({
           >
             {postData.title}
           </h2>
-        )}
+        )} */}
 
         {renderContent}
 

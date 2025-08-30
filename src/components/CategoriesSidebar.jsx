@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { UnorderedListOutlined } from '@ant-design/icons';
 import { ChevronDown } from 'lucide-react';
@@ -9,6 +10,10 @@ import { baseURL } from '../../utils/BaseURL';
 import { ThemeContext } from '../app/ClientLayout';
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
+
+
+
+  // console.log(selectCategory)
   const [expandedCategories, setExpandedCategories] = useState({});
   const { isDarkMode } = useContext(ThemeContext);
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
@@ -21,28 +26,31 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     return { categories: reversedCategories, totalPosts: total };
   }, [categoryData]);
 
-  const toggleCategory = (categoryId) => {
+  const toggleCategory = (categorySlug) => {
+    console.log(categorySlug)
     setExpandedCategories(prev => ({
       ...prev,
-      [categoryId]: !prev[categoryId]
+      [categorySlug]: !prev[categorySlug]
     }));
   };
 
-  const selectCategory = (categoryId) => {
-    const category = categories.find(item => item.category._id === categoryId);
+
+  const selectCategory = (categorySlug) => {
+    const category = categories.find(item => item.category.slug === categorySlug);
+    // console.log(categories)
+
+    // Always select the category first
+    onSelectCategory(categorySlug, "");
+
+    // If it has subcategories, toggle the expansion
     const hasSubcategories = category?.subcategories?.length > 0;
-
-    onSelectCategory(categoryId, "");
-
     if (hasSubcategories) {
-      setTimeout(() => {
-        toggleCategory(categoryId);
-      }, 0);
+      toggleCategory(categorySlug);  // Pass the slug, not the object
     }
   };
 
-  const selectSubcategory = (categoryId, subcategoryId) => {
-    onSelectCategory(categoryId, subcategoryId);
+  const selectSubcategory = (categorySlug, subcategorySlug) => {
+    onSelectCategory(categorySlug, subcategorySlug);
   };
 
   const handleShowAllPosts = () => {
@@ -51,8 +59,9 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   const getCategoryIconContainerStyle = (isSelected) => {
+
     if (isSelected) {
-      return 'shadow-sm';
+      return isDarkMode ? 'bg-blue-500' : 'bg-blue-100';
     }
     return isDarkMode ? 'bg-gray-700' : 'bg-gray-100';
   };
@@ -167,13 +176,14 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
           const category = item.category;
           const subcategories = item.subcategories || [];
           const hasSubcategories = subcategories.length > 0;
-          const isExpanded = expandedCategories[category._id];
-          const isSelected = selectedCategory === category._id && !selectedSubCategory;
+          const isExpanded = expandedCategories[category.slug];
+          // Fixed: Check if category is selected (either directly or when no subcategory is selected)
+          const isSelected = selectedCategory === category.slug && !selectedSubCategory;
 
           return (
             <div key={category._id}>
               <div
-                onClick={() => selectCategory(category._id)}
+                onClick={() => selectCategory(category.slug)}
                 className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${getItemStyle(isSelected)}`}
               >
                 <div className="flex items-center space-x-3">
@@ -206,14 +216,14 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                 >
                   <div className="ml-4 space-y-1">
                     {subcategories.map((subcategory) => {
-                      const isSubSelected = selectedSubCategory === subcategory._id && selectedCategory === category._id;
+                      const isSubSelected = selectedSubCategory === subcategory.slug && selectedCategory === category.slug;
 
                       return (
                         <div
                           key={subcategory._id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            selectSubcategory(category._id, subcategory._id);
+                            selectSubcategory(category.slug, subcategory.slug);
                           }}
                           className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-all duration-200 ${getItemStyle(isSubSelected)}`}
                         >

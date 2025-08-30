@@ -57,6 +57,7 @@ const HomePage = () => {
 
   const { posts, pagination } = data || { posts: [], pagination: {} };
 
+
   return (
     <div className={isDarkMode ? 'dark-mode' : 'light-mode'}>
       <Banner />

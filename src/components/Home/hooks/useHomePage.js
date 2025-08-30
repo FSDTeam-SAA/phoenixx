@@ -18,7 +18,6 @@ export const useHomePage = () => {
 
   // Extract URL parameters
   const urlParams = useMemo(() => extractUrlParams(searchParams), [searchParams]);
-  
 
   // API query params with fixed limit of 30
   const queryParams = useMemo(() => {
@@ -28,8 +27,12 @@ export const useHomePage = () => {
     return params;
   }, [urlParams]);
 
+
+  // const queryParams = {limit : 30, page : 1, sort : "newest" , categorySlug:"general" , subCategorySlug: "etc"} 
+
   // API calls
   const { data: apiData, isLoading, error, refetch } = useGetPostQuery(queryParams);
+
   const [likePost, { isLoading: likePostLoading }] = useLikePostMutation();
 
   // Process API data
@@ -48,6 +51,8 @@ export const useHomePage = () => {
     };
   }, [apiData, urlParams, currentUser.id]);
 
+  console.log(data)
+
   // URL update helper
   const updateUrlParams = useCallback((params) => {
     const newParams = new URLSearchParams(searchParams.toString());
@@ -58,14 +63,22 @@ export const useHomePage = () => {
   }, [searchParams, router, pathname]);
 
   // Event handlers
-  const handleCategorySelect = useCallback((categoryId, subCategoryId = null) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    newParams.delete('category');
-    newParams.delete('subcategory');
+  const handleCategorySelect = useCallback((categorySlug, subCategorySlug = null) => {
+    console.log(categorySlug);
 
-    if (categoryId) newParams.set('category', categoryId);
-    if (subCategoryId) newParams.set('subcategory', subCategoryId);
-    newParams.set('page', '1');
+    // Create a new URLSearchParams object to ensure proper ordering
+    const newParams = new URLSearchParams();
+
+    // Add categorySlug and subCategorySlug FIRST
+    if (categorySlug) newParams.set('categorySlug', categorySlug);
+    if (subCategorySlug) newParams.set('subCategorySlug', subCategorySlug);
+
+    // Then add all other existing parameters (except old category/subcategory params)
+    for (const [key, value] of searchParams.entries()) {
+      if (key !== 'categorySlug' && key !== 'subCategorySlug') {
+        newParams.set(key, value);
+      }
+    }
 
     router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
   }, [searchParams, router, pathname]);

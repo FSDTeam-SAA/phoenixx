@@ -36,6 +36,12 @@ const PostDetailsPage = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+
+
+
+
+
+
   const commentInputRef = useRef(null);
 
   const {

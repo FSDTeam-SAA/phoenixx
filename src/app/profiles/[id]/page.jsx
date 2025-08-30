@@ -122,6 +122,12 @@ const ProfileBanner = () => {
                 {profile?.data?.name || 'username'}
               </h1>
 
+              {profile?.data?.userName && (
+                <p className={`text-base font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  @{profile.data.userName}
+                </p>
+              )}
+
               {profile?.data?.bio && (
                 <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'} mt-3 max-w-2xl mx-auto transition-colors duration-200`}>
                   {profile.data.bio}

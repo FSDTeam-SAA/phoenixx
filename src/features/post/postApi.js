@@ -12,15 +12,15 @@ export const postApi = baseApi.injectEndpoints({
     }),
 
     getPost: builder.query({
-      query: ({ searchTerm, limit, page, category, subCategory } = {}) => ({
+      query: ({ searchTerm, limit, page, categorySlug, subCategorySlug } = {}) => ({
         url: "/posts",
         method: "GET",
         params: {
           searchTerm,
           limit,
           page,
-          category,
-          subCategory
+          categorySlug,
+          subCategorySlug
         }
       }),
       providesTags: ["post"],

@@ -1,7 +1,8 @@
 "use client";
-import BlogPostForm from '@/app/new/page';
+
 import { Modal } from 'antd';
 import { useEffect } from 'react';
+import BlogPostForm from '../app/create-new-post/page';
 
 const EditPostModal = ({ visible, onClose, postData, refetchPosts, myCommentPostRefetch }) => {
   // Disable body scroll when modal is open

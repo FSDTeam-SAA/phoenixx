@@ -68,13 +68,13 @@ const ProfilePostCard = ({
   }
 
   const handlePostDetails = () => {
-    const postId = postData._id;
-    router.push(`/posts/${postId}`);
+    const postSlug = postData.slug;
+    router.push(`/posts/${postSlug}`);
   };
 
   const handleCommentClick = () => {
-    const postId = postData._id;
-    router.push(`/posts/${postId}#comments`);
+    const postSlug = postData?.slug;
+    router.push(`/posts/${postSlug}#comments`);
   };
 
   const handleLike = () => onLike?.(postData._id);

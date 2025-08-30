@@ -1,7 +1,6 @@
 "use client";
 
 import CustomBanner from '@/components/CustomBanner';
-import { Spin } from 'antd';
 import { useContext } from 'react';
 import { usePrivacyPolicyQuery } from '../../features/About/AboutApi';
 import { ThemeContext } from '../ClientLayout';

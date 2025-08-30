@@ -33,7 +33,10 @@ const { useBreakpoint } = Grid;
 const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, refetchPosts, myCommentPostRefetch }) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(null);
+  console.log(category)
   const [subcategory, setSubcategory] = useState(null);
+  const [categorySlug, setCategorySlug] = useState(null);
+  const [subCategorySlug, setSubCategorySlug] = useState(null);
   const [description, setDescription] = useState('');
   const [wordCount, setWordCount] = useState(0);
   const [fileList, setFileList] = useState([]);
@@ -53,6 +56,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   // API hooks
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
   const { data: categoryData } = useCategoriesQuery();
+
   const { data: subcategoryData, isLoading: isSubcategoriesLoading } = useSubCategoriesQuery(category, {
     skip: !category,
     refetchOnMountOrArgChange: true,
@@ -178,7 +182,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const categoryOptions = useMemo(() => (
     categoryData?.data?.result?.map(item => ({
       value: item.category._id,
-      label: item.category.name
+      label: item.category.name,
+      slug: item.category.slug
     })) || []
   ), [categoryData]);
 
@@ -186,7 +191,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     if (!category || !subcategoryData?.data?.length) return [];
     return subcategoryData.data.map(sub => ({
       value: sub._id,
-      label: sub.name
+      label: sub.name,
+      slug: sub.slug
     }));
   }, [category, subcategoryData]);
 
@@ -455,6 +461,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   };
 
   const handleCategoryChange = (value) => {
+    const findSlug = categoryOptions.find(cate => cate.value === value)
+    setCategorySlug(findSlug?.slug)
     setCategory(value);
     setSubcategory(null);
     if (formErrors.category) {
@@ -463,6 +471,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   };
 
   const handleSubcategoryChange = (value) => {
+    const findSlug = getSubcategories.find(cate => cate.value === value)
+    setSubCategorySlug(findSlug?.slug)
     setSubcategory(value);
     if (formErrors.subcategory) {
       setFormErrors(prev => ({ ...prev, subcategory: null }));
@@ -565,7 +575,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       const formData = new FormData();
       formData.append('title', title);
       formData.append('category', category);
+      formData.append('categorySlug', categorySlug);
       if (subcategory) formData.append('subCategory', subcategory);
+      if (subCategorySlug) formData.append('subCategorySlug', subCategorySlug);
       formData.append('content', description);
 
       // Add images for both create and edit cases

@@ -4,10 +4,11 @@ import Navbar from "@/components/Navber";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, theme } from "antd";
 import { usePathname } from "next/navigation";
-import { createContext, useEffect, useState } from 'react';
+import { createContext, Suspense, useEffect, useState } from 'react';
 import { Toaster } from "react-hot-toast";
 import { Provider } from "react-redux";
 import { store } from "../../utils/store";
+import Loading from '../components/Loading/Loading';
 import "./globals.css";
 
 // Create Theme Context with more functionality
@@ -181,15 +182,17 @@ export default function ClientLayout({ children }) {
   }, [isDarkMode, mounted]);
 
   // // Show loading state or return null until mounted to prevent hydration mismatch
-  // if (!mounted || isDarkMode === null) {
-  //   return (
-  //     <html lang="en">
-  //       <body className="antialiased" cz-shortcut-listen="true">
-  //         <ProgressLoading fullscreen />
-  //       </body>
-  //     </html>
-  //   );
-  // }
+  if (!mounted || isDarkMode === null) {
+    return (
+      <html lang="en">
+        <body className="antialiased" cz-shortcut-listen="true">
+          <Suspense fallback={<Loading />}>
+            Loading...
+          </Suspense>
+        </body>
+      </html>
+    );
+  }
 
 
   return (

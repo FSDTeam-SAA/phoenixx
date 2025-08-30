@@ -100,8 +100,8 @@ const AuthorPostCard = ({
       router.push('/auth/login');
       return;
     } else {
-      const postId = postData._id;
-      router.push(`/posts/${postId}`);
+      const postSlug = postData.slug;
+      router.push(`/posts/${postSlug}`);
     }
   };
 
@@ -110,8 +110,8 @@ const AuthorPostCard = ({
       router.push('/auth/login');
       return;
     } else {
-      const postId = postData._id;
-      router.push(`/posts/${postId}#comments`);
+      const postSlug = postData.slug;
+      router.push(`/posts/${postSlug}#comments`);
     }
   };
 

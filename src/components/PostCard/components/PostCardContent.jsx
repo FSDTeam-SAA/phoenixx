@@ -1,3 +1,4 @@
+
 const PostCardContent = ({
   postData,
   isDarkMode,
@@ -62,6 +63,9 @@ const PostCardContent = ({
         }}
       >
         {postData.title}
+        {/* <Link key={postData._id} href={`/posts/${postData.title}`}>
+        {postData.title}
+       </Link> */}
       </h2>
     )
   );

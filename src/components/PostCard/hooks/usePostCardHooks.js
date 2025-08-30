@@ -54,7 +54,7 @@ export const usePostCardHooks = (postData, onLike, onRepost, currentUser) => {
       router.push(`/auth/login`);
       return;
     } else {
-      router.push(`/posts/${postData.id}`);
+      router.push(`/posts/${postData.slug}`);
     }
   }, [postData.id, router]);
 
@@ -63,7 +63,7 @@ export const usePostCardHooks = (postData, onLike, onRepost, currentUser) => {
       router.push(`/auth/login`);
       return;
     } else {
-      router.push(`/posts/${postData.id}#comments`);
+      router.push(`/posts/${postData.slug}#comments`);
     }
   }, [postData.id, router]);
 

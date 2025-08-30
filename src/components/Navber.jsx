@@ -802,7 +802,7 @@ export default function Navbar() {
               {screens.md ? (
                 <>
                   <Button
-                    onClick={() => handleNavigation('/new')}
+                    onClick={() => handleNavigation('/create-new-post')}
                     type="primary"
                     icon={<PlusOutlined />}
                     style={{
@@ -905,7 +905,7 @@ export default function Navbar() {
             mode="inline"
             theme={isDarkMode ? "dark" : "light"}
             items={[
-              { key: 'new-post', icon: <PlusOutlined />, label: 'New Post', onClick: () => handleNavigation("/new") },
+              { key: 'new-post', icon: <PlusOutlined />, label: 'New Post', onClick: () => handleNavigation("/create-new-post") },
               { key: 'messages', icon: <MessageOutlined />, label: 'Messages', onClick: () => handleChatNavigation('/chat') },
               { key: 'notifications', icon: <IoNotificationsSharp />, label: 'Notifications', onClick: () => handleNotificationNavigate('/notification') },
               { type: 'divider' },

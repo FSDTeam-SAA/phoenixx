@@ -1,10 +1,10 @@
 // components/AccountTabs.jsx
 "use client";
-import React, { useState, useContext } from 'react';
-import { Tabs } from 'antd';
-import CustomBanner from '@/components/CustomBanner';
 import ChangePasswordForm from '@/components/ChangePasswordForm';
 import CloseAccountSection from '@/components/CloseAccountSection';
+import CustomBanner from '@/components/CustomBanner';
+import { Tabs } from 'antd';
+import { useContext, useState } from 'react';
 import { ThemeContext } from '../ClientLayout';
 
 const AccountTabs = () => {

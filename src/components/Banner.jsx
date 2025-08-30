@@ -7,7 +7,6 @@ import 'swiper/css/pagination';
 import { Autoplay, EffectFade, Navigation, Pagination } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { baseURL } from '../../utils/BaseURL';
-import './Banner.css';
 
 const CarouselBanner = () => {
   const { data, isLoading, isError } = useSilderQuery();
@@ -32,8 +31,8 @@ const CarouselBanner = () => {
   if (!slides.length) return null;
 
   return (
-    <div className="w-full px-4">
-      <div className="w-full h-40 sm:h-52 md:h-64 lg:h-72 rounded-xl overflow-hidden">
+    <div className="w-full px-4 py-2">
+      <div className="w-full h-28 sm:h-52 md:h-64 lg:h-72 rounded-xl overflow-hidden">
         <Swiper
           ref={swiperRef}
           spaceBetween={0}
@@ -41,10 +40,9 @@ const CarouselBanner = () => {
           centeredSlides={true}
           loop={slides.length > 1}
           autoplay={{
-            delay: 5000,
+            delay: 10000,
             disableOnInteraction: false,
           }}
-          
           modules={[Autoplay, Pagination, Navigation, EffectFade]}
           effect="fade"
           fadeEffect={{ crossFade: true }}
@@ -57,11 +55,11 @@ const CarouselBanner = () => {
         >
           {slides.map((item, index) => (
             <SwiperSlide key={item.id || index}>
-              <div className="w-full h-full relative">
+              <div className="w-full h-full relative bg-gray-100">
                 <img
                   src={`${baseURL}${item.image}`}
                   alt={`Banner ${index + 1}`}
-                  className="w-full h-full object-cover object-center rounded-xl"
+                  className="w-full h-full object-contain sm:object-cover object-center rounded-xl"
                   loading="lazy"
                   decoding="async"
                 />
