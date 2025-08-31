@@ -51,7 +51,7 @@ const SignUp = () => {
     }
   };
 
-  // ✅ Professional Full Name Validation
+  // ✅ Professional Full Name Validation (Max 20 characters)
   const validateFullName = (name) => {
     const errors = [];
 
@@ -66,8 +66,8 @@ const SignUp = () => {
       errors.push('Full name must be at least 2 characters');
     }
 
-    if (trimmed.length > 50) {
-      errors.push('Full name must be 50 characters or less');
+    if (trimmed.length > 20) {
+      errors.push('Full name must be 20 characters or less');
     }
 
     // Only allow letters, spaces, hyphens, apostrophes
@@ -86,7 +86,7 @@ const SignUp = () => {
       errors.push('Full name must include both first and last name');
     }
 
-    // Each name part should start with a capital letter (professional standard)
+    // Each name part should start with a capital letter
     const invalidCaps = parts.filter(part => part && !/^[A-Z]/.test(part));
     if (invalidCaps.length > 0) {
       errors.push('Each name should start with a capital letter');
@@ -95,7 +95,7 @@ const SignUp = () => {
     return errors;
   };
 
-  // ✅ Username Validation (unchanged, but kept strict)
+  // ✅ Username Validation
   const validateUsername = (username) => {
     const errors = [];
 
@@ -120,7 +120,7 @@ const SignUp = () => {
       errors.push('Username must start with a letter');
     }
 
-    if (/[_-]$/.test(username)) {
+    if (/_-]$/.test(username)) {
       errors.push('Username cannot end with underscore or hyphen');
     }
 
@@ -298,12 +298,11 @@ const SignUp = () => {
                   />
                 </div>
                 {errors.fullName && <p className="mt-1 text-sm text-red-600">{errors.fullName}</p>}
-                {
-                  !errors.fullName && <p className="mt-2 text-xs text-gray-500">
-                    Must include first and last name. Start each name with a capital letter.
+                {!errors.fullName && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Must include first and last name. Start each with a capital letter. Max 20 characters.
                   </p>
-                }
-
+                )}
               </div>
 
               {/* Username Field */}
@@ -326,12 +325,11 @@ const SignUp = () => {
                   />
                 </div>
                 {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
-                {
-                  !errors.username && <p className="mt-2 text-xs text-gray-500">
+                {!errors.username && (
+                  <p className="mt-2 text-xs text-gray-500">
                     3-20 characters. Start with a letter. Letters, numbers, underscores, hyphens.
                   </p>
-                }
-
+                )}
               </div>
 
               {/* Email Field */}
@@ -383,11 +381,11 @@ const SignUp = () => {
                   </button>
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-                {
-                  !errors.password && <p className="mt-2 text-xs text-gray-500">
+                {!errors.password && (
+                  <p className="mt-2 text-xs text-gray-500">
                     At least 8 characters: uppercase, lowercase, number, and special character.
                   </p>
-                }
+                )}
               </div>
 
               {/* Submit Button */}

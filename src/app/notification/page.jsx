@@ -28,7 +28,10 @@ export default function NotificationPage() {
   }, {
     refetchOnMountOrArgChange: true
   });
+
+
   const { notifications } = useSelector((state) => state);
+  console.log(notifications)
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
   const limit = notifications?.meta?.limit || 10;
@@ -94,6 +97,8 @@ export default function NotificationPage() {
         return <DefaultIcon />;
     }
   };
+
+
   const handleItemClick = async (notification) => {
     console.log("Notification clicked:", notification);
     if (notification.type === "new_follower") {

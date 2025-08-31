@@ -14,7 +14,6 @@ const PostCardHeader = ({
   isSaving
 }) => {
 
-
   const router = useRouter();
 
   const renderAuthorAvatar = () => (
@@ -36,7 +35,7 @@ const PostCardHeader = ({
   return (
     <div className="flex justify-between items-center mb-3">
       <div
-        onClick={() => router.push(`profiles/${postData?.author?.id}`)}
+        onClick={() => router.push(`profiles/${postData?.author?.username}`)}
         className="flex items-center gap-2 cursor-pointer"
       >
         {renderAuthorAvatar()}
