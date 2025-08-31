@@ -282,24 +282,32 @@ const AuthorPostCard = ({
   };
 
   const renderTags = () => {
-    const tags = postData.tags || [];
     return (
-      tags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {tags.map((tag, index) => (
-            <span
-              key={index}
-              className={`${isDarkMode ? 'bg-primary text-blue-200' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}
-              style={{
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word'
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )
+      <div className='space-x-2'>
+
+        {postData?.categorySlug && (
+          <span
+            className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
+              ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+              }`}
+          >
+            {postData?.categorySlug}
+          </span>
+        )}
+
+
+        {postData?.subCategorySlug && (
+          <span
+            className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
+              ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+              : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
+              }`}
+          >
+            {postData?.subCategorySlug}
+          </span>
+        )}
+      </div>
     );
   };
 
@@ -654,22 +662,53 @@ const AuthorPostCard = ({
 
         {renderImageGrid}
 
+        <div className='sm:hidden block'>
+          <div className='sm:hidden  flex justify-center items-center text-center gap-2 py-2'>
+
+            {postData?.categorySlug && (
+              <span
+                className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
+                  ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+                  }`}
+              >
+                {postData?.categorySlug}
+              </span>
+            )}
+
+
+            {postData?.subCategorySlug && (
+              <span
+                className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
+                  ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
+                  }`}
+              >
+                {postData?.subCategorySlug}
+              </span>
+            )}
+          </div>
+        </div>
+
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
             <button onClick={handleLike} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
               {isLikedByUser ?
-                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} `} /> :
+                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-white hover:text-red-400' : 'text-gray-500 hover:text-red-500'
+                  }`} />
               }
               <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
             </button>
 
             <button onClick={handleCommentClick} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
-              <Image src={isDarkMode ? "/icons/commentdark.png" : "/icons/message.png"} width={20} height={20} alt="message icons" />
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{commentsCount}</span>
+              <Image src={isDarkMode ? "/icons/comment.png" : "/icons/message.png"} width={20} height={20} alt="message icons" />
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? '' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
-            {renderTags()}
+            <div className='sm:block hidden'>
+              {renderTags()}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

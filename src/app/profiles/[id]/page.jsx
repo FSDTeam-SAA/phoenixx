@@ -25,6 +25,7 @@ const ProfileBanner = () => {
   const [createChat] = useCreateChatMutation();
   const [likePost] = useLikePostMutation();
   const { data, isLoading: getbuyUserLoading, refetch } = useGetByUserIdQuery(id);
+
   const { data: profile, isLoading: profileLoading } = useGetProfileByIdQuery(id);
   const { isDarkMode } = useContext(ThemeContext);
   const [loading, setLoading] = useState(false);

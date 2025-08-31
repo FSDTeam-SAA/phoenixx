@@ -9,7 +9,7 @@ const PostCardTags = ({ postData, isDarkMode }) => {
             {tag.category && (
               <span
                 className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white border border-blue-500'
+                  ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
                   : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
                   }`}
               >
@@ -19,8 +19,8 @@ const PostCardTags = ({ postData, isDarkMode }) => {
             {tag.subcategory && (
               <span
                 className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
-                  ? 'bg-gradient-to-r from-blue-300 to-blue-600 text-white border border-blue-600'
-                  : 'bg-gradient-to-r from-blue-500 to-blue-900 text-white border border-blue-500'
+                  ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
                   }`}
               >
                 {tag.subcategory}

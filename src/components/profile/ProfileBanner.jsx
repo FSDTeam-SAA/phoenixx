@@ -14,6 +14,7 @@ const ProfileBanner = () => {
 
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const isSmallMobile = screens.xs;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
@@ -127,13 +128,13 @@ const ProfileBanner = () => {
     },
     fileList,
     maxCount: 1,
-    listType: screens.xs ? 'picture' : 'picture-card',
+    listType: isSmallMobile ? 'picture' : 'picture-card',
     accept: 'image/*'
   };
 
   if (profileLoading) {
     return (
-      <div className={`pt-20 pb-10 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'}`}>
+      <div className={`pt-16 md:pt-20 pb-8 md:pb-10 flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'}`}>
         <Loading />
       </div>
     );
@@ -141,22 +142,22 @@ const ProfileBanner = () => {
 
   if (error) {
     return (
-      <div className={`pt-20 pb-10 flex items-center justify-center ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-[#EBEBFF] text-gray-800'}`}>
+      <div className={`pt-16 md:pt-20 pb-8 md:pb-10 flex items-center justify-center ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-[#EBEBFF] text-gray-800'}`}>
         Error loading profile
       </div>
     );
   }
 
   return (
-    <div className={`pt-20 pb-10 ${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'}`}>
+    <div className={`pt-16 md:pt-20 pb-8 md:pb-10 ${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'}`}>
       <div className="container mx-auto px-4">
         <div className={`rounded-lg shadow-md ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
           {/* Banner Content */}
-          <div className="relative pt-10 pb-4 px-4 sm:px-6">
+          <div className="relative pt-8 md:pt-10 pb-4 px-4 sm:px-6">
             {/* Profile Picture */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 -top-12">
+            <div className="absolute left-1/2 transform -translate-x-1/2 -top-10 md:-top-12">
               <div className="relative">
-                <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
                   <img
                     src={getImageUrl(data?.data?.profile)}
                     alt="User"
@@ -167,11 +168,11 @@ const ProfileBanner = () => {
             </div>
 
             {/* Edit Button */}
-            <div className={`flex ${isMobile ? 'justify-center mt-4' : 'justify-end'}`}>
+            <div className={`flex ${isMobile ? 'justify-center mt-8 md:mt-4' : 'justify-end'}`}>
               <button
                 onClick={showModal}
                 className={`
-                  ${isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'} 
+                  ${isSmallMobile ? 'px-3 py-1.5 text-xs' : isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2 text-base'} 
                   bg-[#1C37E0] hover:bg-[#1530C7] transition-colors cursor-pointer
                   text-white flex items-center justify-center gap-2
                   rounded-md shadow-sm border-none
@@ -180,8 +181,8 @@ const ProfileBanner = () => {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width={isMobile ? "18" : "20"}
-                  height={isMobile ? "18" : "20"}
+                  width={isSmallMobile ? "16" : isMobile ? "18" : "20"}
+                  height={isSmallMobile ? "16" : isMobile ? "18" : "20"}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -199,17 +200,17 @@ const ProfileBanner = () => {
             </div>
 
             {/* User Info */}
-            <div className="text-center pb-5">
-              <h2 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <div className="text-center pb-5 pt-4 md:pt-0">
+              <h2 className={`text-lg sm:text-xl md:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 {data?.data?.name}
               </h2>
               {data?.data?.userName && (
-                <p className={`text-base font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <p className={`text-sm md:text-base font-medium mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   @{data.data.userName}
                 </p>
               )}
               {data?.data?.bio && (
-                <p className={`text-base font-serif w-5/12 mx-auto mt-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                <p className={`text-sm md:text-base font-serif w-full md:w-10/12 lg:w-8/12 xl:w-6/12 mx-auto mt-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   {data.data.bio}
                 </p>
               )}
@@ -225,7 +226,7 @@ const ProfileBanner = () => {
         onCancel={handleCancel}
         footer={null}
         centered
-        width={isMobile ? "90%" : 700}
+        width={isSmallMobile ? "95%" : isMobile ? "90%" : 700}
         className={isDarkMode ? 'dark-modal' : ''}
         styles={{
           header: {
@@ -233,7 +234,7 @@ const ProfileBanner = () => {
             backgroundColor: isDarkMode ? '#374151' : '#ffffff'
           },
           body: {
-            padding: isMobile ? '16px' : '5px',
+            padding: isSmallMobile ? '12px' : isMobile ? '16px' : '24px',
             backgroundColor: isDarkMode ? '#374151' : '#ffffff'
           },
           content: {
@@ -281,7 +282,7 @@ const ProfileBanner = () => {
                 </Col>
               )}
 
-              <Col xs={24} sm={16} md={18}>
+              <Col xs={24} sm={fileList.length === 0 ? 16 : 24} md={fileList.length === 0 ? 18 : 24}>
                 <Upload {...uploadProps}>
                   {fileList.length === 0 && (
                     <div className={`p-2 sm:p-4 rounded-lg border-2 border-dashed transition-colors hover:border-blue-500 ${isDarkMode ? 'bg-gray-600 border-gray-500 text-white' : 'bg-gray-50 border-gray-300 text-gray-600'}`}>
@@ -291,8 +292,8 @@ const ProfileBanner = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                           </svg>
                         </span>
-                        <div className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>
-                          {isMobile ? 'Upload Photo' : 'Upload Profile Picture'}
+                        <div className={`text-xs sm:text-sm text-center ${isDarkMode ? 'text-white' : 'text-gray-600'}`}>
+                          {isSmallMobile ? 'Upload' : isMobile ? 'Upload Photo' : 'Upload Profile Picture'}
                         </div>
                       </div>
                     </div>
@@ -332,7 +333,7 @@ const ProfileBanner = () => {
           >
             <Input
               placeholder="John Doe"
-              size={isMobile ? 'middle' : 'large'}
+              size={isSmallMobile ? 'small' : isMobile ? 'middle' : 'large'}
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
             />
           </Form.Item>
@@ -352,7 +353,7 @@ const ProfileBanner = () => {
             <Input
               disabled
               className={isDarkMode ? 'bg-gray-600 text-gray-300 border-gray-500' : 'bg-gray-100 text-gray-500 border-gray-300'}
-              size={isMobile ? 'middle' : 'large'}
+              size={isSmallMobile ? 'small' : isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -377,7 +378,7 @@ const ProfileBanner = () => {
               maxLength={BIO_MAX_LENGTH}
               autoSize={{ minRows: 2, maxRows: 4 }}
               className={isDarkMode ? 'bg-gray-600 text-white border-gray-500 placeholder-gray-400' : 'bg-white text-gray-900 border-gray-300'}
-              size={isMobile ? 'middle' : 'large'}
+              size={isSmallMobile ? 'small' : isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -387,17 +388,16 @@ const ProfileBanner = () => {
             label={
               <div className="flex items-center gap-2">
                 <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Email</span>
-                <Tooltip title="Username cannot be changed">
+                <Tooltip title="Email cannot be changed">
                   <LockOutlined className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                 </Tooltip>
               </div>
             }
-
           >
             <Input
               disabled
               className={isDarkMode ? 'bg-gray-600 text-gray-300 border-gray-500' : 'bg-gray-100 text-gray-500 border-gray-300'}
-              size={isMobile ? 'middle' : 'large'}
+              size={isSmallMobile ? 'small' : isMobile ? 'middle' : 'large'}
             />
           </Form.Item>
 
@@ -408,11 +408,11 @@ const ProfileBanner = () => {
               block
               onClick={handleUpdate}
               loading={updateProfileLoading}
-              size={isMobile ? 'middle' : 'large'}
+              size={isSmallMobile ? 'small' : isMobile ? 'middle' : 'large'}
               style={{
                 backgroundColor: '#1C37E0',
                 borderColor: '#1C37E0',
-                height: isMobile ? '40px' : '44px',
+                height: isSmallMobile ? '36px' : isMobile ? '40px' : '44px',
                 marginTop: '8px'
               }}
               className="hover:bg-[#1530C7] hover:border-[#1530C7] transition-colors"

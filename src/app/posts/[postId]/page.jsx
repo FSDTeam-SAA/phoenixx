@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaChevronDown, FaChevronUp, FaEye, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp, FaHeart, FaRegHeart } from "react-icons/fa";
 // API hooks
 import {
   useCreateCommentMutation,
@@ -24,6 +24,7 @@ import ReportPostModal from '@/components/ReportPostModal';
 // Utils
 import { useGetProfileQuery } from '@/features/profile/profileApi';
 import { getImageUrl } from '../../../../utils/getImageUrl';
+import { PostSEEDark, PostSEELight } from '../../../../utils/svgImage';
 import Loading from '../../../components/Loading/Loading';
 import ImageModal from '../../../components/PostCard/components/ImageModal';
 import { ThemeContext } from '../../ClientLayout';
@@ -75,6 +76,8 @@ const PostDetailsPage = () => {
   const [reportingCommentId, setReportingCommentId] = useState(null); // Track which comment is being reported
 
   const post = postDetails?.data;
+
+  console.log(post)
   // console.log(post?._id)
   const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
@@ -199,7 +202,7 @@ const PostDetailsPage = () => {
   };
 
   const handleShare = () => {
-    
+
     const url = `https://mehor.com/posts/${post.slug}`;
 
     // Check if Clipboard API is available
@@ -849,13 +852,39 @@ const PostDetailsPage = () => {
             />
 
             {renderImageGrid}
+            <div className='sm:hidden  flex justify-center items-center text-center gap-2 py-2'>
 
+                {post.categorySlug && (
+                  <span
+                    className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
+                      ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+                      }`}
+                  >
+                    {post.categorySlug}
+                  </span>
+                )}
+
+
+              {post.subCategorySlug && (
+                <span
+                  className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
+                    ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
+                    }`}
+                >
+                  {post.subCategorySlug}
+                </span>
+              )}
+            </div>
             <div className="flex justify-between items-center">
+
               <div className="flex items-center gap-4 sm:gap-6">
                 <button onClick={() => handleLike(post._id)} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
                   {isLiked ?
                     <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                    <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-white hover:text-red-400' : 'text-gray-500 hover:text-red-500'
+                      }`} />
                   }
                   <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{post.likes?.length || 0}</span>
                 </button>
@@ -869,20 +898,44 @@ const PostDetailsPage = () => {
                   }}
                   className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
                 >
-                  <MessageOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400' : ''}`} />
+                  <Image src={isDarkMode ? "/icons/comment.png" : "/icons/message.png"} width={20} height={20} alt="message icons" />
                   <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{comments.length}</span>
+
+
                 </button>
 
-                {post.category && (
-                  <span className={`${isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}>
-                    {post.category?.name || "General"}
-                  </span>
-                )}
+                <div className='sm:block hidden space-x-2'>
+                  {post.categorySlug && (
+                    <span
+                      className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
+                        ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+                        : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+                        }`}
+                    >
+                      {post.categorySlug}
+                    </span>
+                  )}
+
+                  {post.subCategorySlug && (
+                    <span
+                      className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
+                        ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+                        : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
+                        }`}
+                    >
+                      {post.subCategorySlug}
+                    </span>
+                  )}
+                </div>
+
+
+
+
               </div>
 
               <div className="flex items-center gap-3">
                 <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  <FaEye className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                  {isDarkMode ? <PostSEEDark /> : <PostSEELight />}
                   <span>{post.views || 0}</span>
                 </div>
 

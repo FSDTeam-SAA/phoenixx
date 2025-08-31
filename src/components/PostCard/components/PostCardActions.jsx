@@ -44,7 +44,7 @@ const PostCardActions = ({
               <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500 transition-colors ${isLiking ? 'animate-pulse' : ''
                 }`} />
             ) : (
-              <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-500 hover:text-red-500'
+              <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-white hover:text-red-400' : 'text-gray-500 hover:text-red-500'
                 } transition-colors`} />
             )}
             <span className={`ml-1.5 ${isMobile ? 'text-xs' : 'text-sm'
@@ -57,13 +57,13 @@ const PostCardActions = ({
           {/* Comment Button */}
           <button
             onClick={handleCommentClick}
-            className={`flex items-center cursor-pointer p-1.5 sm:p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            className={`flex items-center cursor-pointer p-1.5 text-white sm:p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
               }`}
             aria-label="View comments"
           >
             <div className="relative w-4 h-4 sm:w-5 sm:h-5">
               <Image
-                src={isDarkMode ? "/icons/commentdark.png" : "/icons/message.png"}
+                src={isDarkMode ? "/icons/comment.png" : "/icons/message.png"}
                 fill
                 sizes="(max-width: 640px) 16px, 20px"
                 alt="comment icon"
@@ -71,7 +71,7 @@ const PostCardActions = ({
               />
             </div>
             <span className={`ml-1.5 ${isMobile ? 'text-xs' : 'text-sm'
-              } ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              } ${isDarkMode ? '' : 'text-gray-700'
               }`}>
               {postData.stats.comments?.toLocaleString() || 0}
             </span>
