@@ -1,21 +1,21 @@
 import moment from 'moment';
 
-// Extract URL parameters with defaults - FIXED
+// Extract URL parameters with defaults - UPDATED to handle new parameter names
 export const extractUrlParams = (searchParams) => ({
   search: searchParams.get("search") || "",
   page: parseInt(searchParams.get("page") || "1"),
-  categorySlug: searchParams.get("categorySlug") || "",
-  subCategorySlug: searchParams.get("subCategorySlug") || "",
+  category: searchParams.get("category") || "", // Changed from categorySlug
+  subCategory: searchParams.get("subCategory") || "", // Changed from subCategorySlug
   sort: searchParams.get("sort") || "newest",
   limit: parseInt(searchParams.get("limit") || "10")
 });
 
-// Create API query params from URL params - FIXED
-// Update your createQueryParams function
+// Create API query params from URL params - UPDATED to map parameter names
 export const createQueryParams = (urlParams) => ({
   ...(urlParams.search && { searchTerm: urlParams.search }),
-  ...(urlParams.categorySlug && { categorySlug: urlParams.categorySlug }), // Change to what backend expects
-  ...(urlParams.subCategorySlug && { subCategorySlug: urlParams.subCategorySlug }), // Change to what backend expects
+  // Map URL params to API params
+  ...(urlParams.category && { categorySlug: urlParams.category }), // Map category -> categorySlug
+  ...(urlParams.subCategory && { subCategorySlug: urlParams.subCategory }), // Map subCategory -> subCategorySlug
   sort: urlParams.sort,
   page: urlParams.page,
   limit: urlParams.limit
@@ -139,14 +139,14 @@ export const formatPostData = (post, currentUserId) => {
   };
 };
 
-// Get category display name - NEEDS UPDATE (if you're using this)
+// Get category display name - UPDATED to use new parameter names
 export const getCategoryName = (posts, urlParams) => {
-  if (urlParams.subCategorySlug) {
-    const post = posts.find(p => p.subCategory?.slug === urlParams.subCategorySlug);
+  if (urlParams.subCategory) { // Changed from subCategorySlug
+    const post = posts.find(p => p.subCategory?.slug === urlParams.subCategory);
     return post?.subCategory?.name || "Selected Subcategory";
   }
-  if (urlParams.categorySlug) {
-    const post = posts.find(p => p.category?.slug === urlParams.categorySlug);
+  if (urlParams.category) { // Changed from categorySlug
+    const post = posts.find(p => p.category?.slug === urlParams.category);
     return post?.category?.name || "Selected Category";
   }
   return "All Posts";

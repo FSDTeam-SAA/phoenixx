@@ -75,6 +75,7 @@ const PostDetailsPage = () => {
   const [reportingCommentId, setReportingCommentId] = useState(null); // Track which comment is being reported
 
   const post = postDetails?.data;
+  // console.log(post?._id)
   const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
   const isLiked = post?.likes?.includes(login_user_id);
@@ -167,13 +168,14 @@ const PostDetailsPage = () => {
     return sorted;
   };
 
-  const handleLike = async () => {
+  const handleLike = async (id) => {
+
     if (!login_user_id) {
       return message.warning("Please login to like this post");
     }
 
     try {
-      await likePost(postId).unwrap();
+      await likePost(id).unwrap();
       refetch();
       message.success("Post like status updated");
     } catch (error) {
@@ -197,11 +199,48 @@ const PostDetailsPage = () => {
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}/posts/${postId}`;
-    navigator.clipboard.writeText(url)
-      .then(() => toast.success("URL copied to clipboard"))
-      .catch(() => toast.error("Failed to copy URL"));
+    
+    const url = `https://mehor.com/posts/${post.slug}`;
+
+    // Check if Clipboard API is available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        toast.success("Link copied successfully");
+      }).catch(() => {
+        toast.error("Failed to copy link");
+      });
+    } else {
+      // Fallback for unsupported browsers
+      fallbackCopyToClipboard(url);
+    }
   };
+
+  // Fallback function using older method
+  const fallbackCopyToClipboard = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+      toast.success("Link copied successfully");
+    } catch (err) {
+      toast.error("Failed to copy link");
+    } finally {
+      document.body.removeChild(textArea);
+    }
+  };
+
+
+
+
+
+
 
   const handleCommentButtonClick = () => {
     if (commentInputRef.current) {
@@ -229,6 +268,7 @@ const PostDetailsPage = () => {
   };
 
   const handleCommentSubmit = async (e) => {
+    console.log(post?._id)
     e.preventDefault();
     if (!login_user_id) {
       return message.warning("Please login to add a comment");
@@ -246,7 +286,7 @@ const PostDetailsPage = () => {
     try {
       const tempComment = {
         _id: `temp-${Date.now()}`,
-        postId,
+        postId: post?._id,
         author: {
           _id: login_user_id,
           userName: profile?.data?.name || "You",
@@ -261,7 +301,7 @@ const PostDetailsPage = () => {
       };
 
       const response = await createComment({
-        postId,
+        postId: post?._id,
         content: commentText
       }).unwrap();
 
@@ -306,7 +346,7 @@ const PostDetailsPage = () => {
       await replayComment({
         id: parentCommentId,
         body: {
-          postId,
+          postId: post?._id,
           content: replyText
         }
       }).unwrap();
@@ -812,7 +852,7 @@ const PostDetailsPage = () => {
 
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4 sm:gap-6">
-                <button onClick={handleLike} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
+                <button onClick={() => handleLike(post._id)} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
                   {isLiked ?
                     <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
                     <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />

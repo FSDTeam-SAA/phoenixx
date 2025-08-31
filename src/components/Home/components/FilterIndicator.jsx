@@ -38,24 +38,24 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters, onSortChange }) => 
 
   return (
     <Card className="mb-4 shadow-md">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <span className={`${isDarkMode ? 'text-white' : 'text-gray-800'} mr-2`}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:flex-wrap gap-2 sm:gap-0">
+          <span className={`${isDarkMode ? 'text-white' : 'text-gray-800'} mr-2 whitespace-nowrap`}>
             Viewing:
           </span>
-          <span className="font-medium text-blue-600">
+          <span className="font-medium text-blue-600 break-words max-w-full">
             {displayName}
           </span>
           {sortDisplay && (
-            <span className="ml-2 text-gray-500">
+            <span className="text-gray-500 text-sm sm:text-base sm:ml-2 whitespace-nowrap">
               {sortDisplay}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4">
 
+        <div className="flex items-center gap-4 self-stretch sm:self-auto justify-start sm:justify-start">
           <span
-            className='text-blue-600 font-medium cursor-pointer'
+            className='text-blue-600 font-medium cursor-pointer hover:underline text-sm sm:text-base whitespace-nowrap'
             onClick={onClearFilters}
           >
             Clear All Filters

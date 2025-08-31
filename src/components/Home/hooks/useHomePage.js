@@ -16,19 +16,16 @@ export const useHomePage = () => {
     }
   }, []);
 
-  // Extract URL parameters
+  // Extract URL parameters (now using category/subCategory)
   const urlParams = useMemo(() => extractUrlParams(searchParams), [searchParams]);
 
-  // API query params with fixed limit of 30
+  // API query params with fixed limit of 30 (maps category -> categorySlug, subCategory -> subCategorySlug)
   const queryParams = useMemo(() => {
     const params = createQueryParams(urlParams);
     // Always set limit to 30 for posts per page
     params.limit = 30;
     return params;
   }, [urlParams]);
-
-
-  // const queryParams = {limit : 30, page : 1, sort : "newest" , categorySlug:"general" , subCategorySlug: "etc"} 
 
   // API calls
   const { data: apiData, isLoading, error, refetch } = useGetPostQuery(queryParams);
@@ -62,20 +59,20 @@ export const useHomePage = () => {
     router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
   }, [searchParams, router, pathname]);
 
-  // Event handlers
-  const handleCategorySelect = useCallback((categorySlug, subCategorySlug = null) => {
-    console.log(categorySlug);
+  // Event handlers - UPDATED to use new parameter names
+  const handleCategorySelect = useCallback((categoryValue, subCategoryValue = null) => {
+    console.log(categoryValue);
 
     // Create a new URLSearchParams object to ensure proper ordering
     const newParams = new URLSearchParams();
 
-    // Add categorySlug and subCategorySlug FIRST
-    if (categorySlug) newParams.set('categorySlug', categorySlug);
-    if (subCategorySlug) newParams.set('subCategorySlug', subCategorySlug);
+    // Add category and subCategory FIRST (using new parameter names)
+    if (categoryValue) newParams.set('category', categoryValue); // Changed from categorySlug
+    if (subCategoryValue) newParams.set('subCategory', subCategoryValue); // Changed from subCategorySlug
 
     // Then add all other existing parameters (except old category/subcategory params)
     for (const [key, value] of searchParams.entries()) {
-      if (key !== 'categorySlug' && key !== 'subCategorySlug') {
+      if (key !== 'category' && key !== 'subCategory') { // Updated parameter names
         newParams.set(key, value);
       }
     }

@@ -10,7 +10,6 @@ import toast from 'react-hot-toast';
 import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
 import { isAuthenticated } from '../../utils/auth';
-import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
 import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
@@ -126,11 +125,40 @@ const AuthorPostCard = ({
 
   const handleShare = () => {
     const postId = postData?._id;
-    navigator.clipboard.writeText(`${baseURL}/posts/${postId}`).then(() => {
+    const url = `https://mehor.com/posts/${postData.slug}`;
+
+    // Check if Clipboard API is available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        toast.success("Link copied successfully");
+      }).catch(() => {
+        toast.error("Failed to copy link");
+      });
+    } else {
+      // Fallback for unsupported browsers
+      fallbackCopyToClipboard(url);
+    }
+  };
+
+  // Fallback function using older method
+  const fallbackCopyToClipboard = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
       toast.success("Link copied successfully");
-    }).catch(() => {
+    } catch (err) {
       toast.error("Failed to copy link");
-    });
+    } finally {
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleOptionSelect = ({ key }) => {

@@ -61,7 +61,7 @@ const HomePage = () => {
   return (
     <div className={isDarkMode ? 'dark-mode' : 'light-mode'}>
       <Banner />
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 sm:py-6 py-2">
         {/* Add a minimum height container to prevent layout jumps */}
         <div className="min-h-[800px]">
           {isDesktop ? (

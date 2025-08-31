@@ -46,7 +46,7 @@ const DesktopLayout = ({
         <CategoriesSidebar
           onSelectCategory={handleCategorySelect}
           selectedCategory={urlParams.category}
-          selectedSubCategory={urlParams.subcategory}
+          selectedSubCategory={urlParams.subCategory}
         />
       </aside>
 

@@ -6,7 +6,7 @@ import { FiList } from 'react-icons/fi';
 import { RiArrowUpDownLine } from "react-icons/ri";
 import { ThemeContext } from '../app/ClientLayout';
 
-const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
+const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort, devices }) => {
   const [clickCount, setClickCount] = useState(1);
   const { isDarkMode } = useContext(ThemeContext);
 
@@ -58,10 +58,10 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   };
 
   return (
-    <div className={`flex justify-between items-center py-4 w-full select-none ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`flex ${devices === "mobile" ? "justify-end" : "justify-between"} justify-between items-center py-4 w-full select-none ${isDarkMode ? 'dark' : ''}`}>
       <div
         onClick={handleFeedsClick}
-        className={`cursor-pointer flex items-center gap-1 p-1.5 rounded-lg transition-all duration-200
+        className={`${devices === "mobile" ? "hidden" : "block"} cursor-pointer flex items-center gap-1 p-1.5 rounded-lg transition-all duration-200
           ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} active:scale-95`}
       >
         {clickCount === 1 && <FiList className={`mr-1  text-xl`} />}

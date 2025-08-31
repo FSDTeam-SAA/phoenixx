@@ -20,19 +20,12 @@ const CarouselBanner = () => {
     );
   }
 
-  if (isError) {
-    return (
-      <div className="w-full h-40 sm:h-52 md:h-64 lg:h-72 bg-red-100 flex items-center justify-center rounded-xl text-sm text-red-700 mx-4 sm:mx-4 md:mx-10">
-        Failed to load banner
-      </div>
-    );
-  }
-
-  if (!slides.length) return null;
+  if (isError || !slides.length) return null;
 
   return (
     <div className="w-full px-4 py-2">
-      <div className="w-full h-28 sm:h-52 md:h-64 lg:h-72 rounded-xl overflow-hidden">
+      {/* Fixed-height container for consistent layout */}
+      <div className="w-full h-full rounded-xl overflow-hidden bg-gray-100">
         <Swiper
           ref={swiperRef}
           spaceBetween={0}
@@ -55,11 +48,11 @@ const CarouselBanner = () => {
         >
           {slides.map((item, index) => (
             <SwiperSlide key={item.id || index}>
-              <div className="w-full h-full relative bg-gray-100">
+              <div className="w-full h-full flex items-center justify-center">
                 <img
                   src={`${baseURL}${item.image}`}
                   alt={`Banner ${index + 1}`}
-                  className="w-full h-full object-contain sm:object-cover object-center rounded-xl"
+                  className="w-full h-full object-contain object-center rounded-xl"
                   loading="lazy"
                   decoding="async"
                 />

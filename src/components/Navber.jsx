@@ -229,6 +229,7 @@ export default function Navbar() {
     setShowSuggestions(true);
   }, [searchQuery, postData]);
 
+
   const handleNavigation = async (path) => {
     if (isAccountSuspended) return;
     if (!isAuthenticated()) {
@@ -343,13 +344,17 @@ export default function Navbar() {
   };
 
   const handleInputChange = (e) => {
-    if (isAccountSuspended) return;
-    const value = e.target.value;
+    const value = e.target.value.replace(/@/g, '');
     setSearchQuery(value);
-    if (!value) {
-      router.push('/');
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === '@') {
+      e.preventDefault();
+      // Optional: add visual feedback here
     }
   };
+
 
   const handleKeyDown = (e) => {
     if (isAccountSuspended) return;
@@ -629,10 +634,12 @@ export default function Navbar() {
             fontSize: '14px'
           }}
           onChange={handleInputChange}
+          onKeyPress={handleKeyPress}
           onPressEnter={handleKeyDown}
           allowClear={{
             clearIcon: <CloseOutlined onClick={handleClear} style={{ color: isDarkMode ? '#888' : '#aaa' }} />
           }}
+          aria-label="Search topics"
         />
         <Button
           type="primary"

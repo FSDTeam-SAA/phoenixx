@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { UnorderedListOutlined } from '@ant-design/icons';
 import { ChevronDown } from 'lucide-react';
@@ -10,8 +9,6 @@ import { baseURL } from '../../utils/BaseURL';
 import { ThemeContext } from '../app/ClientLayout';
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
-
-
 
   // console.log(selectCategory)
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -33,7 +30,6 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
       [categorySlug]: !prev[categorySlug]
     }));
   };
-
 
   const selectCategory = (categorySlug) => {
     const category = categories.find(item => item.category.slug === categorySlug);
@@ -59,7 +55,6 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   const getCategoryIconContainerStyle = (isSelected) => {
-
     if (isSelected) {
       return isDarkMode ? 'bg-blue-500' : 'bg-blue-100';
     }
@@ -177,8 +172,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
           const subcategories = item.subcategories || [];
           const hasSubcategories = subcategories.length > 0;
           const isExpanded = expandedCategories[category.slug];
-          // Fixed: Check if category is selected (either directly or when no subcategory is selected)
-          const isSelected = selectedCategory === category.slug && !selectedSubCategory;
+          // Fixed: Category should be active when selected, regardless of subcategory
+          const isSelected = selectedCategory === category.slug;
 
           return (
             <div key={category._id}>
@@ -200,7 +195,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
                 {hasSubcategories && (
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform duration-700 ease-out ${isSelected ? (isDarkMode ? 'text-white' : 'text-blue-700') : (isDarkMode ? 'text-gray-400' : 'text-gray-500')} ${isExpanded ? 'rotate-180' : ''}`}
+                    className={`w-4 h-4 transition-transform duration-300 ease-out ${isSelected ? (isDarkMode ? 'text-white' : 'text-blue-700') : (isDarkMode ? 'text-gray-400' : 'text-gray-500')} ${isExpanded ? 'rotate-180' : ''}`}
                   />
                 )}
               </div>
@@ -208,10 +203,9 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
               {/* Subcategories */}
               {hasSubcategories && (
                 <div
-                  className={`overflow-hidden transition-all duration-700 ease-out ${isExpanded ? 'opacity-100 mt-2 pb-2' : 'opacity-0 mt-0'}`}
+                  className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'mt-2' : 'mt-0'}`}
                   style={{
-                    maxHeight: isExpanded ? `${subcategories.length * 48 + 22}px` : '0px',
-                    transition: 'max-height 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 700ms cubic-bezier(0.4, 0, 0.2, 1), margin-top 1000ms cubic-bezier(0.4, 0, 0.2, 1)'
+                    maxHeight: isExpanded ? `${subcategories.length * 48 + 16}px` : '0px',
                   }}
                 >
                   <div className="ml-4 space-y-1">

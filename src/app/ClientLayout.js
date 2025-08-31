@@ -185,9 +185,9 @@ export default function ClientLayout({ children }) {
   if (!mounted || isDarkMode === null) {
     return (
       <html lang="en">
-        <body className="antialiased" cz-shortcut-listen="true">
+        <body className="antialiased h-screen flex justify-center items-center" cz-shortcut-listen="true">
           <Suspense fallback={<Loading />}>
-            Loading...
+            <Loading />
           </Suspense>
         </body>
       </html>
