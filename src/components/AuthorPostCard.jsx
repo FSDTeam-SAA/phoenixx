@@ -8,13 +8,14 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AiOutlineEllipsis } from 'react-icons/ai';
-import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
+import { FaRegBookmark } from "react-icons/fa";
 import { isAuthenticated } from '../../utils/auth';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
+import { DarkModeCommentIcon, DarkModeHeartIcon, LightModeCommentIcon, LightModeHeartIcon, PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
+
 
 const AuthorPostCard = ({
   postData,
@@ -122,6 +123,7 @@ const AuthorPostCard = ({
       onLike?.(postData._id)
     }
   };
+
 
   const handleShare = () => {
     const postId = postData?._id;
@@ -284,7 +286,6 @@ const AuthorPostCard = ({
   const renderTags = () => {
     return (
       <div className='space-x-2'>
-
         {postData?.categorySlug && (
           <span
             className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
@@ -295,7 +296,6 @@ const AuthorPostCard = ({
             {postData?.categorySlug}
           </span>
         )}
-
 
         {postData?.subCategorySlug && (
           <span
@@ -664,7 +664,6 @@ const AuthorPostCard = ({
 
         <div className='sm:hidden block'>
           <div className='sm:hidden  flex justify-center items-center text-center gap-2 py-2'>
-
             {postData?.categorySlug && (
               <span
                 className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
@@ -675,7 +674,6 @@ const AuthorPostCard = ({
                 {postData?.categorySlug}
               </span>
             )}
-
 
             {postData?.subCategorySlug && (
               <span
@@ -693,17 +691,21 @@ const AuthorPostCard = ({
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
             <button onClick={handleLike} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
-              {isLikedByUser ?
-                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} `} /> :
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-white hover:text-red-400' : 'text-gray-500 hover:text-red-500'
-                  }`} />
-              }
+              <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
+                {isDarkMode ? (
+                  <DarkModeHeartIcon filled={isLikedByUser} />
+                ) : (
+                  <LightModeHeartIcon filled={isLikedByUser} />
+                )}
+              </div>
               <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
             </button>
 
             <button onClick={handleCommentClick} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
-              <Image src={isDarkMode ? "/icons/comment.png" : "/icons/message.png"} width={20} height={20} alt="message icons" />
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? '' : 'text-gray-700'}`}>{commentsCount}</span>
+              <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
+                {isDarkMode ? <DarkModeCommentIcon /> : <LightModeCommentIcon />}
+              </div>
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
             <div className='sm:block hidden'>

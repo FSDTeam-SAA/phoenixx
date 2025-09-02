@@ -169,5 +169,76 @@ const ImageUplaod = () => {
 }
 
 
-export { DarkEdit, ImageUplaod, LightEdit, Manufacturing, Marketing, Message, MessageDark, MessageLight, NotificationDark, NotificationLight, PostSEEDark, PostSEELight, Selling };
+const LightModeHeartIcon = ({ filled = false }) => {
+  if (filled) {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M14.8327 10.6667C16.0743 9.45 17.3327 7.99167 17.3327 6.08333C17.3327 4.86776 16.8498 3.70197 15.9903 2.84243C15.1307 1.98289 13.9649 1.5 12.7493 1.5C11.2827 1.5 10.2493 1.91667 8.99935 3.16667C7.74935 1.91667 6.71602 1.5 5.24935 1.5C4.03377 1.5 2.86798 1.98289 2.00844 2.84243C1.1489 3.70197 0.666016 4.86776 0.666016 6.08333C0.666016 8 1.91602 9.45833 3.16602 10.6667L8.99935 16.5L14.8327 10.6667Z" fill="#EF4444" stroke="#EF4444" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M14.8327 10.6667C16.0743 9.45 17.3327 7.99167 17.3327 6.08333C17.3327 4.86776 16.8498 3.70197 15.9903 2.84243C15.1307 1.98289 13.9649 1.5 12.7493 1.5C11.2827 1.5 10.2493 1.91667 8.99935 3.16667C7.74935 1.91667 6.71602 1.5 5.24935 1.5C4.03377 1.5 2.86798 1.98289 2.00844 2.84243C1.1489 3.70197 0.666016 4.86776 0.666016 6.08333C0.666016 8 1.91602 9.45833 3.16602 10.6667L8.99935 16.5L14.8327 10.6667Z" stroke="#535353" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+
+
+const DarkModeHeartIcon = ({ filled = false }) => {
+  if (filled) {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M14.8327 10.6667C16.0743 9.45 17.3327 7.99167 17.3327 6.08333C17.3327 4.86776 16.8498 3.70197 15.9903 2.84243C15.1307 1.98289 13.9649 1.5 12.7493 1.5C11.2827 1.5 10.2493 1.91667 8.99935 3.16667C7.74935 1.91667 6.71602 1.5 5.24935 1.5C4.03377 1.5 2.86798 1.98289 2.00844 2.84243C1.1489 3.70197 0.666016 4.86776 0.666016 6.08333C0.666016 8 1.91602 9.45833 3.16602 10.6667L8.99935 16.5L14.8327 10.6667Z" fill="#EF4444" stroke="#EF4444" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M14.8327 10.6667C16.0743 9.45 17.3327 7.99167 17.3327 6.08333C17.3327 4.86776 16.8498 3.70197 15.9903 2.84243C15.1307 1.98289 13.9649 1.5 12.7493 1.5C11.2827 1.5 10.2493 1.91667 8.99935 3.16667C7.74935 1.91667 6.71602 1.5 5.24935 1.5C4.03377 1.5 2.86798 1.98289 2.00844 2.84243C1.1489 3.70197 0.666016 4.86776 0.666016 6.08333C0.666016 8 1.91602 9.45833 3.16602 10.6667L8.99935 16.5L14.8327 10.6667Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+
+const LightModeCommentIcon = () => {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M17.5 12.5C17.5 12.942 17.3244 13.366 17.0118 13.6785C16.6993 13.9911 16.2754 14.1667 15.8333 14.1667H5.83333L2.5 17.5V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H15.8333C16.2754 2.5 16.6993 2.67559 17.0118 2.98816C17.3244 3.30072 17.5 3.72464 17.5 4.16667V12.5Z" stroke="#535353" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.832 6.66602H5.83203" stroke="#535353" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M14.1654 10H5.83203" stroke="#535353" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  )
+}
+
+const DarkModeCommentIcon = () => {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <path d="M17.5 12.5C17.5 12.942 17.3244 13.366 17.0118 13.6785C16.6993 13.9911 16.2754 14.1667 15.8333 14.1667H5.83333L2.5 17.5V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H15.8333C16.2754 2.5 16.6993 2.67559 17.0118 2.98816C17.3244 3.30072 17.5 3.72464 17.5 4.16667V12.5Z" stroke="white" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.832 6.66602H5.83203" stroke="white" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M14.1654 10H5.83203" stroke="white" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  )
+}
+
+
+
+export {
+  DarkEdit, DarkModeCommentIcon, DarkModeHeartIcon,
+  ImageUplaod,
+  LightEdit, LightModeCommentIcon, LightModeHeartIcon,
+  Manufacturing,
+  Marketing,
+  Message,
+  MessageDark,
+  MessageLight,
+  NotificationDark,
+  NotificationLight,
+  PostSEEDark,
+  PostSEELight,
+  Selling
+};
 

@@ -31,7 +31,7 @@ export default function NotificationPage() {
 
 
   const { notifications } = useSelector((state) => state);
-  console.log(notifications)
+  
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
   const limit = notifications?.meta?.limit || 10;

@@ -10,7 +10,7 @@ import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
 import { FiFlag } from "react-icons/fi";
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
+import { DarkModeCommentIcon, DarkModeHeartIcon, LightModeCommentIcon, LightModeHeartIcon, PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
 
@@ -404,11 +404,13 @@ const ProfilePostCard = ({
               onClick={handleLike}
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
-              {isLikedByUser ?
-                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-white hover:text-red-400' : 'text-gray-500 hover:text-red-500'
-                  }`} />
-              }
+             <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
+                {isDarkMode ? (
+                  <DarkModeHeartIcon filled={isLikedByUser} />
+                ) : (
+                  <LightModeHeartIcon filled={isLikedByUser} />
+                )}
+              </div>
               <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
             </button>
 
@@ -416,12 +418,7 @@ const ProfilePostCard = ({
               onClick={handleCommentClick}
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
-              <Image
-                src={isDarkMode ? "/icons/comment.png" : "/icons/message.png"}
-                width={20}
-                height={20}
-                alt="message icons"
-              />
+               {isDarkMode ? <DarkModeCommentIcon /> : <LightModeCommentIcon />}
               <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? '' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
