@@ -6,11 +6,11 @@ import { useMyCommentPostQuery } from '@/features/comments/commentApi';
 import { useDeletePostMutation, useLikePostMutation, useMyPostQuery } from '@/features/post/postApi';
 import { Button, Card, Form, Grid, Input, message, Modal, Space } from 'antd';
 import { formatDistanceToNow } from 'date-fns';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiBookmark, FiFile, FiGrid, FiList, FiMessageSquare } from 'react-icons/fi';
-import { ThemeContext } from '../ClientLayout';
 import Loading from '../../components/Loading/Loading';
+import { ThemeContext } from '../ClientLayout';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
@@ -92,7 +92,8 @@ const ProfilePage = () => {
   const transformPostData = (post) => ({
     ...post,
     createdAt: formatDate(post.createdAt),
-    isSavedPost: false
+    isSavedPost: false,
+    uniqueId: `post-${post._id}`
   });
 
   // Transform saved post data
@@ -104,7 +105,8 @@ const ProfilePage = () => {
       _id: savedPost.postId._id, // Original post ID
       savedPostId: savedPost._id, // Saved post record ID for unsaving
       savedAt: formatDate(savedPost.createdAt),
-      isSavedPost: true // Flag to identify as a saved post
+      isSavedPost: true, // Flag to identify as a saved post
+      uniqueId: `saved-${savedPost._id}`
     };
   };
 
@@ -193,25 +195,24 @@ const ProfilePage = () => {
     setIsGridView(!isGridView);
   };
 
-  // Get posts based on active tab
-  const getPostsToDisplay = () => {
+  // Use useMemo to prevent unnecessary recalculations and duplication
+  const postsToDisplay = useMemo(() => {
     switch (activeTab) {
       case 'totalPosts':
-        return [...userPosts]?.reverse()?.map(transformPostData);
+        return [...userPosts].reverse().map(transformPostData);
       case 'savedPosts':
         return [...savedPosts]
-          ?.reverse()
-          ?.map(transformSavedPostData)
-          ?.filter(Boolean);
+          .reverse()
+          .map(transformSavedPostData)
+          .filter(Boolean);
       case 'comments':
-        return [...myComment]?.reverse()?.map(transformPostData);
+        return [...myComment].reverse().map(transformPostData);
       default:
-        return [...userPosts]?.reverse()?.map(transformPostData);
+        return [...userPosts].reverse().map(transformPostData);
     }
-  };
+  }, [activeTab, userPosts, savedPosts, myComment]);
 
-  const postsToDisplay = getPostsToDisplay();
-  const isLoading = isPostsLoading || (activeTab === 'savedPosts' && isSavePostsLoading);
+  const isLoading = isPostsLoading || (activeTab === 'savedPosts' && isSavePostsLoading) || (activeTab === 'comments' && myCommentPostLoading);
 
   // Tab configuration
   const tabs = [
@@ -227,11 +228,9 @@ const ProfilePage = () => {
     textColor: isDarkMode ? 'var(--text-color)' : 'inherit',
     borderColor: isDarkMode ? 'var(--border-color)' : '#e5e7eb',
     hoverBg: isDarkMode ? 'var(--hover-bg)' : '#f9fafb',
-    activeTabBg: isDarkMode ? 'var(--active-tab-bg)' : '#e0e7ff',
-    activeTabText: isDarkMode ? 'var(--active-tab-text)' : '#4338ca',
-    iconColor: isDarkMode ? 'var(--icon-color)' : '#6b7280',
     activeTabBg: isDarkMode ? 'rgba(59, 130, 246, 0.2)' : '#e0e7ff',
     activeTabText: isDarkMode ? '#93c5fd' : '#4338ca',
+    iconColor: isDarkMode ? 'var(--icon-color)' : '#6b7280',
   };
 
   return (
@@ -325,7 +324,7 @@ const ProfilePage = () => {
                 <span className={`${screens.xs ? 'text-sm' : 'text-base'} -mt-1 font-semibold`}>
                   {isGridView ? 'List View' : 'Grid View'}
                 </span>
-              </Button> 
+              </Button>
             </div>
 
             {isLoading ? (
@@ -343,9 +342,9 @@ const ProfilePage = () => {
                 ? 'columns-1 sm:columns-2 lg:columns-2 xl:columns-2 gap-3 sm:gap-4 space-y-3 sm:space-y-4'
                 : 'flex flex-col gap-3 sm:gap-4'
                 }`}>
-                {postsToDisplay.map((post) => (
+                {postsToDisplay.map((post, index) => (
                   <div
-                    key={`${post.isSavedPost ? 'saved-' : ''}${post._id}`}
+                    key={`${activeTab}-${post.uniqueId}-${index}`}
                     className={isGridView ? 'break-inside-avoid mb-3 sm:mb-4' : ''}
                   >
                     <ProfilePostCard

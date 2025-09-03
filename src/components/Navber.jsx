@@ -57,6 +57,8 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAccountSuspended, setIsAccountSuspended] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  console.log(suggestions)
+
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -198,7 +200,7 @@ export default function Navbar() {
       if (startsWithWord(post.title, searchQuery)) {
         matchedPosts.push({
           type: 'post',
-          id: post._id,
+          id: post.slug,
           title: post.title,
           image: post.images?.[0] || null,
         });
@@ -207,7 +209,7 @@ export default function Navbar() {
       // Match author name (strict word start) - check both userName and name
       if (startsWithWord(post.author.userName, searchQuery) ||
         startsWithWord(post.author.name, searchQuery)) {
-        const authorKey = post.author._id;
+        const authorKey = post.author.slug;
         if (!authorMap.has(authorKey)) {
           authorMap.set(authorKey, true);
           matchedAuthors.push({
@@ -392,7 +394,7 @@ export default function Navbar() {
   // -----------------------------
   // 🎯 Suggestion Item Click
   // -----------------------------
-  const handleSuggestionClick = (type, id) => {
+  const handleSuggestionClick = (type, userName, id) => {
     setShowSuggestions(false);
 
     if (type === 'user') {
@@ -400,7 +402,7 @@ export default function Navbar() {
         router.push('/auth/login');
         return;
       } else {
-        router.push(`/profiles/${id}`);
+        router.push(`/profiles/${userName}`);
       }
     } else if (type === 'post') {
       if (!isAuthenticated()) {
@@ -524,11 +526,12 @@ export default function Navbar() {
           </div>
         ) : (
           suggestions.map((item, index) => (
+
             <div
               key={`${item.type}-${item.id}`} // More specific key
               role="option"
               tabIndex={0}
-              onClick={() => handleSuggestionClick(item.type, item.id)}
+              onClick={() => handleSuggestionClick(item.type, item.userName, item.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
