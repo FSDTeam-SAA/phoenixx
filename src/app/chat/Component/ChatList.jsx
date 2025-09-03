@@ -255,13 +255,15 @@ const ChatList = ({ setIsChatActive, status }) => {
   }, []);
 
   const handleSelectChat = async (chatId) => {
-    if (actionStates[chatId]?.loading) return;
-    setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
+    console.log(chatId)
+
+    if (actionStates[chatId._id]?.loading) return;
+    setActionStates(prev => ({ ...prev, [chatId._id]: { loading: true, action: 'select' } }));
 
     try {
       setLocalChats(prevChats =>
         prevChats.map(chat => {
-          if (chat._id === chatId) {
+          if (chat._id === chatId._id) {
             return {
               ...chat,
               unreadCount: 0,
@@ -272,10 +274,10 @@ const ChatList = ({ setIsChatActive, status }) => {
         })
       );
 
-      router.push(`/chat/${chatId}`);
+      router.push(`/chat/${chatId?.participants[0]?.userName}/${chatId._id}`);
       if (setIsChatActive) setIsChatActive(true);
 
-      const response = await markAsRead(chatId).unwrap();
+      const response = await markAsRead(chatId._id).unwrap();
       if (response.success) {
         refetch();
         chatRefetch()
@@ -286,7 +288,7 @@ const ChatList = ({ setIsChatActive, status }) => {
       console.error('Error marking as read:', error);
       chatRefetch();
     } finally {
-      setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
+      setActionStates(prev => ({ ...prev, [chatId._id]: { loading: false, action: '' } }));
     }
   };
 
@@ -534,7 +536,7 @@ const ChatList = ({ setIsChatActive, status }) => {
                   transition={{ duration: 0.2 }}
                 >
                   <div
-                    onClick={() => !isActionLoading && handleSelectChat(chat._id)}
+                    onClick={() => !isActionLoading && handleSelectChat(chat)}
                     className={`flex items-center gap-4 p-4 rounded-lg relative group ${isActiveChat
                       ? (isDarkMode ? 'bg-gray-700' : 'bg-blue-50')
                       : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50')

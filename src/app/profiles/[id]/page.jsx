@@ -22,6 +22,7 @@ const ProfileBanner = () => {
 
   const router = useRouter();
   const { id } = useParams();
+
   const [createChat] = useCreateChatMutation();
   const [likePost] = useLikePostMutation();
   const { data, isLoading: getbuyUserLoading, refetch } = useGetByUserIdQuery(id);
@@ -47,8 +48,9 @@ const ProfileBanner = () => {
     } else {
       try {
         const response = await createChat({ participant: id }).unwrap();
+        console.log(response)
         if (response.success) {
-          router.push(`/chat/${response?.data?._id}`)
+          router.push(`/chat/${response.data.participantName}/${response?.data?._id}`)
           setLoading(true)
         }
       } catch (error) {

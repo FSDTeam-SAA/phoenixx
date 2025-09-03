@@ -49,7 +49,7 @@ export const MessageBody = ({
       )}
 
       {!isLoading && messages.length === 0 && (
-        <div className="flex justify-center items-center h-full">
+        <div className="flex justify-center items-center h-[400px]">
           <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
             No messages yet. Start the conversation!
           </p>

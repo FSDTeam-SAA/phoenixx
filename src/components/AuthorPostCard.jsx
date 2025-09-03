@@ -11,7 +11,7 @@ import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaRegBookmark } from "react-icons/fa";
 import { isAuthenticated } from '../../utils/auth';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { DarkModeCommentIcon, DarkModeHeartIcon, LightModeCommentIcon, LightModeHeartIcon, PostSEEDark, PostSEELight } from '../../utils/svgImage';
+import { DarkModeCommentIcon, DarkModeHeartIcon, DarkModeSeeIcon, LightModeCommentIcon, LightModeHeartIcon, LightModeSeeIcon, PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
@@ -715,12 +715,12 @@ const AuthorPostCard = ({
 
           <div className="flex items-center gap-3">
             <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {isDarkMode ? <PostSEEDark /> : <PostSEELight />}
+               {isDarkMode ? <DarkModeSeeIcon /> : <LightModeSeeIcon />}
               <span>{postData?.views}</span>
             </div>
 
             <button onClick={handleShare} className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}>
-              <Image src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"} width={20} height={20} alt="share button" />
+              <Image src={isDarkMode ? "/icons/action/darkShare.png" : "/icons/action/lightShare.png"} width={20} height={20} alt="share button" />
             </button>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { baseApi } from "../../../utils/apiBaseQuery";
 export const followApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     subscriptions: builder.query({
-      query: ({ subscriberId }) => ({
+      query: (subscriberId) => ({
         url: `/follow/subscriptions/${subscriberId}`,
         method: "GET",
         headers: {

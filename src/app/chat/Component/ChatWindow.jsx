@@ -27,7 +27,6 @@ const ChatWindow = ({ id }) => {
   const router = useRouter();
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
-  console.log(chatUser)
   const isOnline = useOnlineStatus();
 
   const { messages, pinnedMessages, isLoading, hasMore, page, currentChatId } = useSelector((state) => state.message);
@@ -458,7 +457,7 @@ const ChatWindow = ({ id }) => {
     <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
       {/* Header */}
       {chatUser?.participants?.map(item => (
-        <div onClick={() => router.push(`/profiles/${item._id}`)} key={item._id} className={`flex z-10 items-center cursor-pointer space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div onClick={() => router.push(`/profiles/${item?.userName}`)} key={item._id} className={`flex z-10 items-center cursor-pointer space-x-4 p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="relative">
             <Avatar
               src={getImageUrl(item?.profile)}
@@ -701,7 +700,7 @@ const ChatWindow = ({ id }) => {
         )}
 
         {!isLoading && !isFetching && messages.length === 0 && (
-          <div className="flex justify-center items-center h-full">
+          <div className="flex justify-center items-center h-[400px]">
             <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
               No messages yet. Start the conversation!
             </p>

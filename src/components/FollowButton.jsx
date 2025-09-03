@@ -4,7 +4,9 @@ import { useFollowMutation, useSubscriptionsQuery, useUnFollowMutation } from '.
 
 import { SlUserFollowing, SlUserUnfollow } from "react-icons/sl";
 
-const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
+const FollowButton = ({ subscribedToId, className = "" }) => {
+
+  // subscribedToId = Tsunami_400 
 
   const [isFollowing, setIsFollowing] = useState(false);
 
@@ -12,7 +14,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
     data: subscriptionsData,
     isLoading: subscriptionsLoading,
     error: subscriptionsError
-  } = useSubscriptionsQuery({ subscriberId });
+  } = useSubscriptionsQuery(subscribedToId);
 
   const [follow, { isLoading: followLoading }] = useFollowMutation();
   const [unfollow, { isLoading: unfollowLoading }] = useUnFollowMutation();
@@ -36,11 +38,12 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
 
   // Redirect to login page
   const redirectToLogin = () => {
-    // You can customize this URL based on your routing setup
     window.location.href = '/auth/login';
     // Or if you're using React Router, you might use:
     // navigate('/login');
   };
+
+
 
   const handleButtonClick = () => {
     // Check if user is logged in first
@@ -49,8 +52,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
       redirectToLogin();
       return;
     }
-
-    // Proceed with follow/unfollow action
+    // // Proceed with follow/unfollow action
     if (isFollowing) {
       unfollowUser();
     } else {
@@ -60,7 +62,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
 
   const followUser = async () => {
     try {
-      await follow({ subscriberId, subscribedToId }).unwrap();
+      await follow({ userName: subscribedToId }).unwrap();
       setIsFollowing(true);
       toast.success("Following Successfully")
     } catch (error) {
@@ -71,7 +73,7 @@ const FollowButton = ({ subscriberId, subscribedToId, className = "" }) => {
 
   const unfollowUser = async () => {
     try {
-      await unfollow({ subscriberId, subscribedToId }).unwrap();
+      await unfollow({ userName: subscribedToId }).unwrap();
       setIsFollowing(false);
       toast.success("Unfollowing Successfully")
     } catch (error) {

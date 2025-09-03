@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AiOutlineEllipsis } from 'react-icons/ai';
-import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
+import { FaRegBookmark } from "react-icons/fa";
 import { FiFlag } from "react-icons/fi";
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { DarkModeCommentIcon, DarkModeHeartIcon, LightModeCommentIcon, LightModeHeartIcon, PostSEEDark, PostSEELight } from '../../utils/svgImage';
+import { DarkModeCommentIcon, DarkModeHeartIcon, DarkModeSeeIcon, LightModeCommentIcon, LightModeHeartIcon, LightModeSeeIcon } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
 
@@ -404,7 +404,7 @@ const ProfilePostCard = ({
               onClick={handleLike}
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
-             <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
+              <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
                 {isDarkMode ? (
                   <DarkModeHeartIcon filled={isLikedByUser} />
                 ) : (
@@ -418,7 +418,7 @@ const ProfilePostCard = ({
               onClick={handleCommentClick}
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
-               {isDarkMode ? <DarkModeCommentIcon /> : <LightModeCommentIcon />}
+              {isDarkMode ? <DarkModeCommentIcon /> : <LightModeCommentIcon />}
               <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? '' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
@@ -429,7 +429,7 @@ const ProfilePostCard = ({
 
           <div className="flex items-center gap-3">
             <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {isDarkMode ? <PostSEEDark /> : <PostSEELight />}
+              {isDarkMode ? <DarkModeSeeIcon /> : <LightModeSeeIcon />}
               <span>{postData?.views}</span>
             </div>
 
@@ -438,7 +438,7 @@ const ProfilePostCard = ({
               className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}
             >
               <Image
-                src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"}
+                src={isDarkMode ? "/icons/action/darkShare.png" : "/icons/action/lightShare.png"}
                 width={20}
                 height={20}
                 alt="share button"
