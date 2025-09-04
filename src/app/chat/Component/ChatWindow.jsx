@@ -14,7 +14,7 @@ import { MdClose, MdReply } from 'react-icons/md';
 import { TbPinned } from 'react-icons/tb';
 import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
-import { ImageUplaod } from '../../../../utils/svgImage';
+import { DarkImageUpload, LightImageUpoload } from '../../../../utils/svgImage';
 import useOnlineStatus from '../../../../utils/useOnlineStatus';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
 import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
@@ -1105,7 +1105,7 @@ const ChatWindow = ({ id }) => {
                 >
                   <Button
                     type="text"
-                    icon={<ImageUplaod />}
+                    icon={isDarkMode ? <DarkImageUpload /> : <LightImageUpoload />}
                     className={`mx-2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
                   />
                 </Upload>

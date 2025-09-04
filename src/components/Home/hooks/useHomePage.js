@@ -48,7 +48,6 @@ export const useHomePage = () => {
     };
   }, [apiData, urlParams, currentUser.id]);
 
-  console.log(data)
 
   // URL update helper
   const updateUrlParams = useCallback((params) => {

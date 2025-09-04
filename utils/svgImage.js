@@ -169,6 +169,32 @@ const ImageUplaod = () => {
 }
 
 
+const LightImageUpoload = () => {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M18.2218 2.87695H4.79506C3.73572 2.87695 2.87695 3.73572 2.87695 4.79506V18.2218C2.87695 19.2811 3.73572 20.1399 4.79506 20.1399H18.2218C19.2811 20.1399 20.1399 19.2811 20.1399 18.2218V4.79506C20.1399 3.73572 19.2811 2.87695 18.2218 2.87695Z" stroke="#535353" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M8.63099 10.5491C9.69033 10.5491 10.5491 9.69033 10.5491 8.63099C10.5491 7.57165 9.69033 6.71289 8.63099 6.71289C7.57165 6.71289 6.71289 7.57165 6.71289 8.63099C6.71289 9.69033 7.57165 10.5491 8.63099 10.5491Z" stroke="#535353" stroke-width="1.9181" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M20.1397 14.3845L17.18 11.4249C16.8204 11.0653 16.3326 10.8633 15.8239 10.8633C15.3153 10.8633 14.8275 11.0653 14.4679 11.4249L5.75391 20.1388" stroke="#535353" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  )
+};
+
+
+
+const DarkImageUpload = () => {
+  return (
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <path d="M18.2218 2.87695H4.79506C3.73572 2.87695 2.87695 3.73572 2.87695 4.79506V18.2218C2.87695 19.2811 3.73572 20.1399 4.79506 20.1399H18.2218C19.2811 20.1399 20.1399 19.2811 20.1399 18.2218V4.79506C20.1399 3.73572 19.2811 2.87695 18.2218 2.87695Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M8.63099 10.5491C9.69033 10.5491 10.5491 9.69033 10.5491 8.63099C10.5491 7.57165 9.69033 6.71289 8.63099 6.71289C7.57165 6.71289 6.71289 7.57165 6.71289 8.63099C6.71289 9.69033 7.57165 10.5491 8.63099 10.5491Z" stroke="white" stroke-width="1.9181" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20.1397 14.3845L17.18 11.4249C16.8204 11.0653 16.3326 10.8633 15.8239 10.8633C15.3153 10.8633 14.8275 11.0653 14.4679 11.4249L5.75391 20.1388" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+  )
+}
+
+
+
+
+
 const LightModeHeartIcon = ({ filled = false }) => {
   if (filled) {
     return (
@@ -281,6 +307,8 @@ export {
   NotificationLight,
   PostSEEDark,
   PostSEELight,
-  Selling
+  Selling,
+  LightImageUpoload,
+  DarkImageUpload
 };
 
