@@ -61,9 +61,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     }
   }, [apiData?.data?.chats]);
 
-  // Split the socket setup into two useEffects:
-
-  // First useEffect for socket connection (doesn't depend on id)
   useEffect(() => {
     const loggedInUserId = getCurrentUserId();
     if (!loggedInUserId) return;
@@ -88,6 +85,16 @@ const ChatList = ({ setIsChatActive, status }) => {
         }
         return prevChats;
       });
+    });
+
+    socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
+      console.log("Chat deleted for user:", data);
+      setLocalChats(prevChats =>
+        prevChats.filter(chat => chat._id !== data.chatId)
+      );
+      if (id === data.chatId) {
+        router.push('/chat');
+      }
     });
 
     socket.on(`chatMuteStatus::${loggedInUserId}`, (data) => {
@@ -119,6 +126,33 @@ const ChatList = ({ setIsChatActive, status }) => {
                 : (chat.blockedUsers || []).filter(block =>
                   !(block.blocker === loggedInUserId && block.blocked === data.targetUserId)
                 )
+            };
+          }
+          return chat;
+        })
+      );
+    });
+
+    socket.on(`newMessage::${loggedInUserId}`, (messageData) => {
+      console.log("New message received:", messageData);
+
+      setLocalChats(prevChats =>
+        prevChats.map(chat => {
+          if (chat._id === messageData.chatId) {
+            const isCurrentlyViewingChat = id === messageData.chatId;
+            const isOwnMessage = messageData?.sender?._id === loggedInUserId || messageData?.message?.sender === loggedInUserId;
+
+            let newUnreadCount = chat.unreadCount || 0;
+
+            if (!isOwnMessage && !isCurrentlyViewingChat) {
+              newUnreadCount = newUnreadCount + 1;
+            }
+
+            return {
+              ...chat,
+              lastMessage: messageData.message || messageData,
+              unreadCount: newUnreadCount,
+              updatedAt: new Date().toISOString()
             };
           }
           return chat;
@@ -173,8 +207,10 @@ const ChatList = ({ setIsChatActive, status }) => {
     return () => {
       if (socketRef.current) {
         socketRef.current.off(`newChat::${loggedInUserId}`);
+        socketRef.current.off(`chatDeletedForUser::${loggedInUserId}`);
         socketRef.current.off(`chatMuteStatus::${loggedInUserId}`);
         socketRef.current.off(`userBlockStatus::${loggedInUserId}`);
+        socketRef.current.off(`newMessage::${loggedInUserId}`);
         socketRef.current.off(`messageRead::${loggedInUserId}`);
         socketRef.current.off(`unreadCountUpdate::${loggedInUserId}`);
         socketRef.current.off(`chatListUpdate::${loggedInUserId}`);
@@ -182,57 +218,7 @@ const ChatList = ({ setIsChatActive, status }) => {
         socketRef.current.off('disconnect');
       }
     };
-  }, [getCurrentUserId, chatRefetch]); // Remove refetch and id from dependencies
-
-  // Second useEffect specifically for handling newMessage and chatDeletedForUser (depends on id)
-  useEffect(() => {
-    const loggedInUserId = getCurrentUserId();
-    if (!loggedInUserId || !socketRef.current) return;
-
-    const socket = socketRef.current;
-
-    socket.on(`newMessage::${loggedInUserId}`, (messageData) => {
-      console.log("New message received:", messageData);
-
-      setLocalChats(prevChats =>
-        prevChats.map(chat => {
-          if (chat._id === messageData.chatId) {
-            const isCurrentlyViewingChat = id === messageData.chatId;
-            const isOwnMessage = messageData?.sender?._id === loggedInUserId || messageData?.message?.sender === loggedInUserId;
-
-            let newUnreadCount = chat.unreadCount || 0;
-
-            if (!isOwnMessage && !isCurrentlyViewingChat) {
-              newUnreadCount = newUnreadCount + 1;
-            }
-
-            return {
-              ...chat,
-              lastMessage: messageData.message || messageData,
-              unreadCount: newUnreadCount,
-              updatedAt: new Date().toISOString()
-            };
-          }
-          return chat;
-        })
-      );
-    });
-
-    socket.on(`chatDeletedForUser::${loggedInUserId}`, (data) => {
-      console.log("Chat deleted for user:", data);
-      setLocalChats(prevChats =>
-        prevChats.filter(chat => chat._id !== data.chatId)
-      );
-      if (id === data.chatId) {
-        router.push('/chat');
-      }
-    });
-
-    return () => {
-      socket.off(`newMessage::${loggedInUserId}`);
-      socket.off(`chatDeletedForUser::${loggedInUserId}`);
-    };
-  }, [id, getCurrentUserId, router]); // This useEffect depends on id
+  }, [getCurrentUserId, refetch, id, router]);
 
   const chatsToShow = useMemo(() => {
     const chats = localChats || [];

@@ -157,7 +157,7 @@ const ProfileBanner = () => {
             {/* Profile Picture */}
             <div className="absolute left-1/2 transform -translate-x-1/2 -top-10 md:-top-12">
               <div className="relative">
-                <div className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
+                <div className={`w-16 h-16 sm:w-22 sm:h-22 md:w-32 md:h-32 rounded-full overflow-hidden border-4 ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
                   <img
                     src={getImageUrl(data?.data?.profile)}
                     alt="User"

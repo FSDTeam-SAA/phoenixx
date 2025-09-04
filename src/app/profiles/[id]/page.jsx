@@ -77,7 +77,7 @@ const ProfileBanner = () => {
               {/* Profile Image - Positioned differently based on screen size */}
               <div className={`${isMobile ? 'mx-auto -top-12' : 'absolute left-1/2 -translate-x-1/2 -top-16'} relative`}>
                 <div className="relative">
-                  <div className={`${isMobile ? 'w-20 h-20' : 'w-24 h-24'} rounded-full overflow-hidden border-4 shadow-lg ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
+                  <div className={`${isMobile ? 'w-20 h-20' : 'w-32 h-32'} rounded-full overflow-hidden border-4 shadow-lg ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
                     <img
                       src={getImageUrl(profile?.data?.profile)}
                       alt={`${profile?.data?.name || 'User'}'s profile`}

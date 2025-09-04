@@ -68,7 +68,9 @@ const ProfilePage = () => {
 
   // Data preparation
   const userPosts = postsData?.data || [];
+  console.log(userPosts)
   const savedPosts = savePostData?.data || [];
+  // console.log(savedPosts)
   const myComment = myCommentPost?.data || [];
 
   // Activity stats
@@ -201,10 +203,7 @@ const ProfilePage = () => {
       case 'totalPosts':
         return [...userPosts].reverse().map(transformPostData);
       case 'savedPosts':
-        return [...savedPosts]
-          .reverse()
-          .map(transformSavedPostData)
-          .filter(Boolean);
+        return [...savedPosts].reverse().map(transformSavedPostData).filter(Boolean);
       case 'comments':
         return [...myComment].reverse().map(transformPostData);
       default:

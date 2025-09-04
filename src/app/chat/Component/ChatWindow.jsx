@@ -14,7 +14,7 @@ import { MdClose, MdReply } from 'react-icons/md';
 import { TbPinned } from 'react-icons/tb';
 import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
-import { DarkImageUpload, LightImageUpoload } from '../../../../utils/svgImage';
+import { DarkEmoji, DarkImageUpload, LightEmoji, LightImageUpoload } from '../../../../utils/svgImage';
 import useOnlineStatus from '../../../../utils/useOnlineStatus';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
 import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
@@ -32,8 +32,12 @@ const ChatWindow = ({ id }) => {
   const { messages, pinnedMessages, isLoading, hasMore, page, currentChatId } = useSelector((state) => state.message);
   const { refetch } = useMessageRefetch();
 
-  const { data: allMessage, isFetching } = useGetAllMessagesQuery(
+  const { data: allMessage, isFetching ,  refetch: refetchMessages } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
+    {
+      refetchOnMountOrArgChange: true,
+      skip: !id, // ID না থাকলে skip করবে
+    }
   );
 
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
@@ -94,6 +98,12 @@ const ChatWindow = ({ id }) => {
       setShowEmojiPicker(false);
       setShowReactionPicker({ messageId: null, show: false, position: null });
       form.resetFields();
+        refetchMessages();
+      
+      // Redux স্টেট রিসেট করুন
+      dispatch(setCurrentChatId(id));
+      dispatch(resetMessages());
+      setInitialLoad(true);
       setShowAllPinnedMessages(false);
       setUserScrolled(false);
       lastMessageCountRef.current = 0;
@@ -102,6 +112,17 @@ const ChatWindow = ({ id }) => {
       }
     }
   }, [id, dispatch, form, currentChatId]);
+
+
+  useEffect(() => {
+    if (allMessage && !isFetching) {
+      setTimeout(() => {
+        scrollToBottom('auto');
+      }, 100);
+    }
+  }, [allMessage, isFetching]);
+
+
 
   // Improved scroll handler with better top detection
   useEffect(() => {
@@ -1080,7 +1101,7 @@ const ChatWindow = ({ id }) => {
                   <Button
                     ref={emojiButtonRef}
                     type="text"
-                    icon={<BsEmojiSmile size={20} />}
+                    icon={isDarkMode ? <DarkEmoji /> : <LightEmoji />}
                     className={`absolute top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
                     onClick={toggleEmojiPicker}
                   />

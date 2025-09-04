@@ -148,6 +148,27 @@ const ProfilePostCard = ({
     const content = cleanPostContent(postData.content) || '';
     const plainContent = content.replace(/<[^>]+>/g, '');
 
+    // If in grid view, show limited content
+    if (isGridView) {
+      return (
+        <div className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} text-sm`}>
+          {plainContent.split(' ').length > 15 ? (
+            <>
+              {plainContent.split(' ').slice(0, 15).join(' ')}...
+              <button
+                className={`${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} cursor-pointer font-medium ml-1`}
+                onClick={handlePostDetails}
+              >
+                See more
+              </button>
+            </>
+          ) : (
+            plainContent
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}>
         {plainContent.split(' ').length > 20 ? (
@@ -174,19 +195,22 @@ const ProfilePostCard = ({
           <img
             src={getImageUrl(postData.images[0])}
             alt="Post content"
-            className={`w-full ${isGridView ? 'max-h-[250px]' : 'max-h-[500px]'} object-cover`}
+            className={`w-full ${isGridView ? 'max-h-[250px]' : 'max-h-[500px]'} object-cover cursor-pointer`}
+            onClick={handlePostDetails}
           />
         ) : postData.images.length === 2 ? (
           <div className={`flex gap-1 ${isGridView ? 'h-[200px]' : 'h-[350px]'}`}>
             <img
               src={getImageUrl(postData.images[0])}
               alt="Post content 1"
-              className="w-1/2 h-full object-cover"
+              className="w-1/2 h-full object-cover cursor-pointer"
+              onClick={handlePostDetails}
             />
             <img
               src={getImageUrl(postData.images[1])}
               alt="Post content 2"
-              className="w-1/2 h-full object-cover"
+              className="w-1/2 h-full object-cover cursor-pointer"
+              onClick={handlePostDetails}
             />
           </div>
         ) : postData.images.length === 3 ? (
@@ -195,19 +219,22 @@ const ProfilePostCard = ({
               <img
                 src={getImageUrl(postData.images[0])}
                 alt="Post content 1"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover cursor-pointer"
+                onClick={handlePostDetails}
               />
             </div>
             <div className="w-1/2 flex flex-col gap-1">
               <img
                 src={getImageUrl(postData.images[1])}
                 alt="Post content 2"
-                className="w-full h-1/2 object-cover"
+                className="w-full h-1/2 object-cover cursor-pointer"
+                onClick={handlePostDetails}
               />
               <img
                 src={getImageUrl(postData.images[2])}
                 alt="Post content 3"
-                className="w-full h-1/2 object-cover"
+                className="w-full h-1/2 object-cover cursor-pointer"
+                onClick={handlePostDetails}
               />
             </div>
           </div>
@@ -218,10 +245,11 @@ const ProfilePostCard = ({
                 <img
                   src={getImageUrl(image)}
                   alt={`Post content ${index + 1}`}
-                  className={`w-full h-full object-cover ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''}`}
+                  className={`w-full h-full object-cover cursor-pointer ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''}`}
+                  onClick={handlePostDetails}
                 />
                 {index === 3 && postData.images.length > 4 && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold cursor-pointer" onClick={handlePostDetails}>
                     +{postData.images.length - 4}
                   </div>
                 )}
@@ -235,30 +263,33 @@ const ProfilePostCard = ({
 
   const renderTags = () => {
     return (
-      <div className='space-x-2'>
-
-        {postData?.categorySlug && (
-          <span
-            className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
-              ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
-              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
-              }`}
-          >
-            {postData?.categorySlug}
-          </span>
-        )}
-
-
-        {postData?.subCategorySlug && (
-          <span
-            className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
-              ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
-              : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
-              }`}
-          >
-            {postData?.subCategorySlug}
-          </span>
-        )}
+      <div className="flex-shrink-0 max-w-full">
+        <div className="flex space-x-2">
+          {postData?.categorySlug && (
+            <span
+              className={`text-xs py-1 px-2 rounded-full truncate ${isDarkMode
+                ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+                : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+                }`}
+              style={{ maxWidth: isGridView ? '100px' : '280px' }}
+              title={postData?.categorySlug} // Show full text on hover
+            >
+              {postData?.categorySlug}
+            </span>
+          )}
+          {postData?.subCategorySlug && (
+            <span
+              className={`text-xs py-1 px-2 rounded-full truncate ${isDarkMode
+                ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+                : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
+                }`}
+              style={{ maxWidth: isGridView ? '100px' : '280px' }}
+              title={postData?.subCategorySlug} // Show full text on hover
+            >
+              {postData?.subCategorySlug}
+            </span>
+          )}
+        </div>
       </div>
     );
   };
@@ -325,15 +356,15 @@ const ProfilePostCard = ({
 
   return (
     <>
-      <div className={`rounded-lg shadow mb-4 h-fit ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+      <div className={`rounded-lg shadow mb-4 h-fit ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${isGridView ? 'p-3' : isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             {renderAuthorAvatar()}
             <div className="flex flex-col items-start">
-              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+              <span className={`font-medium ${isGridView ? 'text-xs' : isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                 {author.name ? author.name : author.username || author.userName}
               </span>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span className={`${isGridView ? 'text-xs' : isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {postData.isSavedPost
                   ? `Saved ${postData.savedAt}`
                   : (postData.createdAt || postData.timePosted || "Just now")}
@@ -352,7 +383,7 @@ const ProfilePostCard = ({
             overlayClassName={isDarkMode ? 'dark-dropdown-overlay' : ''}
           >
             <button className={`font-bold p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} cursor-pointer`}>
-              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`} />
+              <AiOutlineEllipsis className={`${isGridView ? 'w-4 h-4' : isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`} />
             </button>
           </Dropdown>
         </div>
@@ -360,7 +391,7 @@ const ProfilePostCard = ({
         {postData.title && (
           <h2
             onClick={handlePostDetails}
-            className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-white hover:text-blue-300' : 'text-black hover:text-blue-800'} font-bold mb-3`}
+            className={`${isGridView ? 'text-base' : isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-white hover:text-blue-300' : 'text-black hover:text-blue-800'} font-bold mb-3`}
           >
             {postData.title}
           </h2>
@@ -370,33 +401,33 @@ const ProfilePostCard = ({
 
         {renderImageGrid}
 
-        <div className='sm:hidden block'>
-          <div className='sm:hidden  flex justify-center items-center text-center gap-2 py-2'>
-
-            {postData?.categorySlug && (
-              <span
-                className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
-                  ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
-                  : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
-                  }`}
-              >
-                {postData?.categorySlug}
-              </span>
-            )}
-
-
-            {postData?.subCategorySlug && (
-              <span
-                className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
-                  ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
-                  }`}
-              >
-                {postData?.subCategorySlug}
-              </span>
-            )}
+        {/* Mobile view tags - only show in list view */}
+        {!isGridView && (
+          <div className='sm:hidden block mb-3'>
+            <div className='flex justify-center items-center text-center gap-2 py-2'>
+              {postData?.categorySlug && (
+                <span
+                  className={`text-xs py-1 px-2 rounded-full ${isDarkMode
+                    ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+                    : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+                    }`}
+                >
+                  {postData?.categorySlug}
+                </span>
+              )}
+              {postData?.subCategorySlug && (
+                <span
+                  className={`text-xs py-1 px-2 rounded-full ${isDarkMode
+                    ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
+                    }`}
+                >
+                  {postData?.subCategorySlug}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -404,14 +435,14 @@ const ProfilePostCard = ({
               onClick={handleLike}
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
-              <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
+              <div className={`${isGridView ? 'w-4 h-4' : isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
                 {isDarkMode ? (
                   <DarkModeHeartIcon filled={isLikedByUser} />
                 ) : (
                   <LightModeHeartIcon filled={isLikedByUser} />
                 )}
               </div>
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
+              <span className={`ml-1 ${isGridView ? 'text-xs' : isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
             </button>
 
             <button
@@ -419,16 +450,19 @@ const ProfilePostCard = ({
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
               {isDarkMode ? <DarkModeCommentIcon /> : <LightModeCommentIcon />}
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? '' : 'text-gray-700'}`}>{commentsCount}</span>
+              <span className={`ml-1 -mt-[1px] ${isGridView ? 'text-xs' : isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? '' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
-            <div className='sm:block hidden'>
-              {renderTags()}
-            </div>
+            {/* Desktop view tags - only show in list view */}
+            {(
+              <div className=''>
+                {renderTags()}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <div className={`flex items-center gap-1 ${isGridView ? 'text-xs' : isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               {isDarkMode ? <DarkModeSeeIcon /> : <LightModeSeeIcon />}
               <span>{postData?.views}</span>
             </div>
@@ -439,8 +473,8 @@ const ProfilePostCard = ({
             >
               <Image
                 src={isDarkMode ? "/icons/action/darkShare.png" : "/icons/action/lightShare.png"}
-                width={20}
-                height={20}
+                width={isGridView ? 16 : 20}
+                height={isGridView ? 16 : 20}
                 alt="share button"
               />
             </button>
