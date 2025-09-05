@@ -28,7 +28,7 @@ const ProfilePage = () => {
 
   const { data: myCommentPost, isLoading: myCommentPostLoading, refetch: myCommentPostRefetch } = useMyCommentPostQuery();
 
-  const [deletePost] = useDeletePostMutation();
+  const [deletePost, { isLoading: deleteLoading }] = useDeletePostMutation();
   const [savepost, { isLoading: isUnsaving }] = useSavepostMutation();
 
   // State management
@@ -137,6 +137,8 @@ const ProfilePage = () => {
       refetchPosts();
       setIsDeleteModalOpen(false);
       setPostToDelete(null);
+      refetchSavedPosts();
+
     } catch (error) {
       message.error('Failed to delete post');
     } finally {
@@ -157,7 +159,6 @@ const ProfilePage = () => {
     try {
       await likePost(postId).unwrap();
       refetchPosts();
-      // Also refetch saved posts if we're in that tab to keep likes in sync
       if (activeTab === 'savedPosts') {
         refetchSavedPosts();
       }
