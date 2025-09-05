@@ -225,7 +225,7 @@ export default function ClientLayout({ children }) {
                 />
 
                 {!hideFooter && (
-                  <footer className="text-sm text-gray-500 text-center pb-10 pt-8 bg-gray-50">
+                  <footer className={`text-sm  text-center pb-10 pt-8 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-500"}`}>
                     © 2025 Mehor. All rights reserved.
                   </footer>
                 )}

@@ -265,28 +265,28 @@ const ProfilePostCard = ({
     return (
       <div className="flex-shrink-0 max-w-full">
         <div className="flex space-x-2">
-          {postData?.categorySlug && (
+          {(postData?.categorySlug || postData?.category?.slug) && (
             <span
               className={`text-xs py-1 px-2 rounded-full truncate ${isDarkMode
                 ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
                 : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
                 }`}
               style={{ maxWidth: isGridView ? '100px' : '280px' }}
-              title={postData?.categorySlug} // Show full text on hover
+              title={postData?.categorySlug || postData?.category?.slug} // Show full text on hover
             >
-              {postData?.categorySlug}
+              {postData?.categorySlug || postData?.category?.slug}
             </span>
           )}
-          {postData?.subCategorySlug && (
+          {postData?.subCategorySlug || postData?.subCategory?.slug && (
             <span
               className={`text-xs py-1 px-2 rounded-full truncate ${isDarkMode
                 ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
                 : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
                 }`}
               style={{ maxWidth: isGridView ? '100px' : '280px' }}
-              title={postData?.subCategorySlug} // Show full text on hover
+              title={postData?.subCategorySlug || postData?.subCategory?.slug} // Show full text on hover
             >
-              {postData?.subCategorySlug}
+              {postData?.subCategorySlug || postData?.subCategory?.slug}
             </span>
           )}
         </div>
@@ -295,59 +295,69 @@ const ProfilePostCard = ({
   };
 
   const menuItems = isOwnPost ? [
-    {
-      key: 'delete',
-      label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
-          <span>✕</span>
-          <span className={isDarkMode ? 'text-gray-200' : ''}>Delete Post</span>
-        </div>
-      ),
-    },
-    {
-      key: 'edit',
-      label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
-          <Image
-            src={isDarkMode ? "/icons/DarkEdit.png" : "/icons/LightEdit.png"}
-            width={17}
-            height={17}
-            alt="Edit post"
-          />
-          <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>Edit Post</span>
-        </div>
-      ),
-    }
-  ] : postData.isSavedPost ? [
-    {
-      key: 'unsave',
-      label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
-          <FaRegBookmark className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <span className={isDarkMode ? 'text-gray-200' : ''}>Unsave Post</span>
-        </div>
-      ),
-    },
-    {
-      key: 'report',
-      label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
-          <FiFlag className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <span className={isDarkMode ? 'text-gray-200' : ''}>Report Post</span>
-        </div>
-      ),
-    }
-  ] : [
-    {
-      key: 'report',
-      label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
-          <FiFlag className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <span className={isDarkMode ? 'text-gray-200' : ''}>Report Post</span>
-        </div>
-      ),
-    }
-  ];
+  {
+    key: 'delete',
+    label: (
+      <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
+        <span>✕</span>
+        <span className={isDarkMode ? 'text-gray-200' : ''}>Delete Post</span>
+      </div>
+    ),
+  },
+  {
+    key: 'edit',
+    label: (
+      <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
+        <Image
+          src={isDarkMode ? "/icons/DarkEdit.png" : "/icons/LightEdit.png"}
+          width={17}
+          height={17}
+          alt="Edit post"
+        />
+        <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>Edit Post</span>
+      </div>
+    ),
+  },
+  // Add unsave option if it's a saved post
+  ...(postData.isSavedPost ? [{
+    key: 'unsave',
+    label: (
+      <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+        <FaRegBookmark className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+        <span className={isDarkMode ? 'text-gray-200' : ''}>Unsave Post</span>
+      </div>
+    ),
+  }] : [])
+] : postData.isSavedPost ? [
+  {
+    key: 'unsave',
+    label: (
+      <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+        <FaRegBookmark className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+        <span className={isDarkMode ? 'text-gray-200' : ''}>Unsave Post</span>
+      </div>
+    ),
+  },
+  {
+    key: 'report',
+    label: (
+      <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+        <FiFlag className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+        <span className={isDarkMode ? 'text-gray-200' : ''}>Report Post</span>
+      </div>
+    ),
+  }
+] : [
+  {
+    key: 'report',
+    label: (
+      <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+        <FiFlag className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+        <span className={isDarkMode ? 'text-gray-200' : ''}>Report Post</span>
+      </div>
+    ),
+  }
+];
 
   const author = postData.author || {};
   const commentsCount = postData.comments?.length || 0;

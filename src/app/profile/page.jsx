@@ -68,7 +68,6 @@ const ProfilePage = () => {
 
   // Data preparation
   const userPosts = postsData?.data || [];
-  console.log(userPosts)
   const savedPosts = savePostData?.data || [];
   // console.log(savedPosts)
   const myComment = myCommentPost?.data || [];
