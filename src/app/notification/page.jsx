@@ -31,7 +31,7 @@ export default function NotificationPage() {
 
 
   const { notifications } = useSelector((state) => state);
-  
+
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
   const limit = notifications?.meta?.limit || 10;
@@ -100,7 +100,7 @@ export default function NotificationPage() {
 
 
   const handleItemClick = async (notification) => {
-    console.log("Notification clicked:", notification);
+    // console.log("Notification clicked:", notification);
     if (notification.type === "new_follower") {
       router.push(`/profiles/${notification?.followerId}`)
     } else {
@@ -110,7 +110,7 @@ export default function NotificationPage() {
       try {
         const response = await markSingleAsRead(notification.id).unwrap();
         if (response.success) {
-          router.push(`/posts/${response?.data?.postId}`);
+          // router.push(`/posts/${response?.data?.postId}`);
           toast.success("Notification marked as read");
         }
       } catch (error) {
@@ -158,8 +158,8 @@ export default function NotificationPage() {
   const apiNotifications = notifications?.notification || [];
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
-    followerId: notification.followerId,
-    postId: notification.postId,
+    followerId: notification.userName,
+    postId: notification.postSlug,
     commentId: notification.commentId,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
     description: notification.message,
@@ -167,6 +167,8 @@ export default function NotificationPage() {
     type: notification.type,
     time: formatNotificationTime(notification.createdAt)
   })) || [];
+
+  // console.log(transformedNotifications)
   const unreadCount = transformedNotifications.filter(item => !item.read).length;
   // Define dynamic classes based on dark mode
   const contentClass = isDarkMode ? "bg-gray-800 text-gray-200" : "bg-white";

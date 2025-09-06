@@ -36,13 +36,6 @@ const PostDetailsPage = () => {
   const { isDarkMode } = useContext(ThemeContext); // Get dark mode state from context
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-
-
-
-
-
-
   const commentInputRef = useRef(null);
 
   const {
@@ -63,6 +56,7 @@ const PostDetailsPage = () => {
   const { data: profile } = useGetProfileQuery();
   const [showRepliesFor, setShowRepliesFor] = useState({});
 
+
   const [commentText, setCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
@@ -74,11 +68,9 @@ const PostDetailsPage = () => {
   const [login_user_id, setLoginUserId] = useState(null);
   const [collapsedReplies, setCollapsedReplies] = useState({});
   const [reportingCommentId, setReportingCommentId] = useState(null); // Track which comment is being reported
+  const isOwnPost = postDetails?.data?.author?._id === login_user_id;
 
   const post = postDetails?.data;
-
-  console.log(post)
-  // console.log(post?._id)
   const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
   const isLiked = post?.likes?.includes(login_user_id);
@@ -187,13 +179,13 @@ const PostDetailsPage = () => {
     }
   };
 
-  const handleSaveUnsave = async () => {
+  const handleSaveUnsave = async (value) => {
     if (!login_user_id) {
       return message.warning("Please login to save this post");
     }
 
     try {
-      const response = await savepost({ postId }).unwrap();
+      const response = await savepost({ postId: postDetails?.data?._id }).unwrap();
       toast.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
     } catch (error) {
       console.error('Save/Unsave error:', error);
@@ -408,7 +400,22 @@ const PostDetailsPage = () => {
     }
   };
 
-  const postMenuItems = [
+  const postMenuItems = isOwnPost ? [
+    {
+      key: 'save',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <Image
+            src={isDarkMode ? "/icons/savedark.png" : "/icons/savelight.png"}
+            height={13}
+            width={13}
+            alt="save"
+          />
+          <span>{isSaved ? "Unsave post" : "Save post"}</span>
+        </div>
+      ),
+    }
+  ] : [
     {
       key: 'save',
       label: (
@@ -435,7 +442,8 @@ const PostDetailsPage = () => {
   ];
 
   const handlePostMenuClick = ({ key }) => {
-    if (key === 'save') handleSaveUnsave();
+
+    if (key === 'save') handleSaveUnsave(key);
     else if (key === 'report') {
       setReportingCommentId(null);
       setShowReportModal(true);
@@ -484,8 +492,13 @@ const PostDetailsPage = () => {
     );
   };
 
-  const renderComment = (comment) => {
+
+  const renderComment = (comment, nestingLevel = 0) => {
     if (!comment) return null;
+
+    // Limit nesting to 3 levels
+    if (nestingLevel >= 3) return null;
+
     const isCurrentUserComment = comment.author?._id === login_user_id;
     const isEditing = editingCommentId === comment._id;
     const isCommentLiked = comment.likes?.includes(login_user_id);
@@ -495,9 +508,9 @@ const PostDetailsPage = () => {
     const replyWordCount = countWords(replyText);
 
     return (
-      <div key={comment._id} className="w-full mb-4">
+      <div key={comment._id} className="w-full mb-4 max-w-full">
         {/* Main Comment */}
-        <div className={`flex w-full ${isDarkMode ? 'dark-mode' : ''}`}>
+        <div className={`flex w-full max-w-full ${isDarkMode ? 'dark-mode' : ''}`}>
           {/* User Avatar */}
           <div onClick={() => router.push(`/profiles/${commentAuthor._id}`)} className="mr-4 cursor-pointer flex-shrink-0">
             {authorImage ? (
@@ -508,11 +521,11 @@ const PostDetailsPage = () => {
           </div>
 
           {/* Comment Content */}
-          <div className="flex-1 w-full">
+          <div className="flex-1 min-w-0 max-w-full overflow-hidden">
             {/* Comment Header */}
-            <div className="flex items-start justify-between -mb-1">
-              <div>
-                <span onClick={() => router.push(`/profiles/${commentAuthor._id}`)} className={`font-medium cursor-pointer text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+            <div className="flex items-start justify-between -mb-1 w-full">
+              <div className="flex-1 min-w-0">
+                <span onClick={() => router.push(`/profiles/${commentAuthor._id}`)} className={`font-medium cursor-pointer text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'} truncate`}>
                   {commentAuthor.name}
                 </span>
                 <span className={`text-xs ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -520,7 +533,7 @@ const PostDetailsPage = () => {
                 </span>
               </div>
 
-              <div className="ml-auto">
+              <div className="ml-2 flex-shrink-0">
                 <Dropdown
                   overlay={renderCommentMenu(comment)}
                   trigger={['click']}
@@ -545,12 +558,12 @@ const PostDetailsPage = () => {
 
             {/* Comment Text */}
             {isEditing ? (
-              <div className="my-2">
+              <div className="my-2 w-full">
                 <Input.TextArea
                   value={editCommentText}
                   onChange={(e) => setEditCommentText(e.target.value)}
                   autoSize={{ minRows: 2, maxRows: 6 }}
-                  className={`${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''} ${wordCount > 100 ? 'border-red-500' : ''
+                  className={`w-full ${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''} ${wordCount > 100 ? 'border-red-500' : ''
                     }`}
                 />
                 <div className="flex justify-between items-center mt-1">
@@ -583,13 +596,13 @@ const PostDetailsPage = () => {
                 </div>
               </div>
             ) : (
-              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 whitespace-pre-wrap break-words overflow-wrap-anywhere`}>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 whitespace-pre-wrap break-words w-full`}>
                 {comment.content}
               </p>
             )}
 
             {/* Comment Actions */}
-            <div className="flex items-center mt-1">
+            <div className="flex items-center mt-1 w-full">
               <button
                 className={`flex items-center cursor-pointer mr-4 px-2 py-1 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'}`}
                 onClick={() => handleCommentLike(comment._id)}
@@ -603,24 +616,27 @@ const PostDetailsPage = () => {
                 <span className={`text-xs ${isDarkMode ? 'text-gray-300' : ''}`}>{comment.likes?.length || 0}</span>
               </button>
 
-              <button
-                className={`flex items-center cursor-pointer px-2 py-1 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'}`}
-                onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
-              >
-                <MessageOutlined className="mr-1" />
-                <span className={`text-xs ${isDarkMode ? 'text-gray-300' : ''}`}>Reply</span>
-              </button>
+              {/* Only show reply button if we're not at the maximum nesting level */}
+              {nestingLevel < 2 && (
+                <button
+                  className={`flex items-center cursor-pointer px-2 py-1 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'}`}
+                  onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
+                >
+                  <MessageOutlined className="mr-1" />
+                  <span className={`text-xs ${isDarkMode ? 'text-gray-300' : ''}`}>Reply</span>
+                </button>
+              )}
             </div>
 
-            {/* Reply Input */}
-            {replyingTo === comment._id && (
-              <div className="mt-3">
+            {/* Reply Input - Only show if we're not at the maximum nesting level */}
+            {replyingTo === comment._id && nestingLevel < 2 && (
+              <div className="mt-3 w-full">
                 <Input.TextArea
                   placeholder="Write your reply..."
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   autoSize={{ minRows: 1, maxRows: 4 }}
-                  className={`${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''} ${replyWordCount > 100 ? 'border-red-500' : ''
+                  className={`w-full ${isDarkMode ? 'bg-gray-700 text-gray-200 border-gray-600' : ''} ${replyWordCount > 100 ? 'border-red-500' : ''
                     }`}
                 />
                 <div className="flex justify-between items-center mt-1">
@@ -656,8 +672,8 @@ const PostDetailsPage = () => {
           </div>
         </div>
 
-        {/* Replies Toggle Button */}
-        {comment.replies?.length > 0 && (
+        {/* Replies Toggle Button - Only show if we're not at the maximum nesting level */}
+        {comment.replies?.length > 0 && nestingLevel < 2 && (
           <>
             <div className="ml-12 mt-1 mb-2">
               <button
@@ -683,11 +699,11 @@ const PostDetailsPage = () => {
               </button>
             </div>
 
-            {/* Show Replies only when toggled */}
-            {showRepliesFor[comment._id] && (
-              <div className={` mt-2 pl-3`}>
+            {/* Show Replies only when toggled and if we're not at the maximum nesting level */}
+            {showRepliesFor[comment._id] && nestingLevel < 2 && (
+              <div className="ml-12 mt-2 max-w-full">
                 {sortComments(comment.replies).map(reply =>
-                  renderComment(reply)
+                  renderComment(reply, nestingLevel + 1)
                 )}
               </div>
             )}
@@ -696,6 +712,7 @@ const PostDetailsPage = () => {
       </div>
     );
   };
+
 
   if (isLoading) {
     return (
@@ -806,7 +823,7 @@ const PostDetailsPage = () => {
         <div className="mb-6">
           <div className={`rounded-lg ${isDarkMode ? 'bg-gray-800 shadow-dark' : 'bg-white shadow'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
             <div className="flex justify-between items-center mb-3">
-              <div onClick={() => router.push(`/profiles/${post?.author?._id}`)} className="flex items-center gap-2">
+              <div onClick={() => router.push(`/profiles/${post?.author?.userName}`)} className="flex items-center gap-2">
                 {post.author?.profile ? (
                   <img
                     src={getImageUrl(post.author.profile)}
@@ -854,16 +871,16 @@ const PostDetailsPage = () => {
             {renderImageGrid}
             <div className='sm:hidden  flex justify-center items-center text-center gap-2 py-2'>
 
-                {post.categorySlug && (
-                  <span
-                    className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
-                      ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
-                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
-                      }`}
-                  >
-                    {post.categorySlug}
-                  </span>
-                )}
+              {post.categorySlug && (
+                <span
+                  className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
+                    ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
+                    : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
+                    }`}
+                >
+                  {post.categorySlug}
+                </span>
+              )}
 
 
               {post.subCategorySlug && (
@@ -1018,7 +1035,7 @@ const PostDetailsPage = () => {
               />
             </Card>
           ) : (
-            sortComments(comments).map(comment => renderComment(comment))
+            sortComments(comments).map(comment => renderComment(comment, 0)) // <-- Add the ", 0" here
           )}
         </div>
       </main>

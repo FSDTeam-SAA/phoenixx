@@ -120,7 +120,7 @@ const SignUp = () => {
       errors.push('Username must start with a letter');
     }
 
-    if (/_-]$/.test(username)) {
+    if (/[_-]$/.test(username)) {
       errors.push('Username cannot end with underscore or hyphen');
     }
 
@@ -256,23 +256,23 @@ const SignUp = () => {
   };
 
   return (
-    <div className="">
-      <div className="flex h-screen justify-center">
-        {/* Left Section with Background Image */}
-        <div className="hidden md:flex md:w-1/2 justify-center relative">
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex flex-col md:flex-row h-screen">
+        {/* Left Section with Background Image - Hidden on mobile */}
+        <div className="hidden md:flex md:w-1/2 relative">
           <Image
             src="/images/signup.png"
             alt="People smiling"
-            layout="fill"
-            objectFit="cover"
+            fill
+            className="object-cover"
             priority
           />
         </div>
 
         {/* Right Section - Sign Up Form */}
-        <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-gray-50">
-          <div className="w-full max-w-md bg-white rounded-lg p-8 shadow-sm">
-            <div className="text-center mb-8">
+        <div className="w-full md:w-1/2 flex items-center justify-center p-4 md:p-8 bg-gray-50">
+          <div className="w-full max-w-md bg-white rounded-lg p-6 md:p-8 shadow-sm">
+            <div className="text-center mb-6 md:mb-8">
               <h2 className="text-2xl font-semibold">Sign Up</h2>
               <p className="text-gray-600 mt-1">Create your account</p>
             </div>
@@ -376,6 +376,7 @@ const SignUp = () => {
                     type="button"
                     onClick={togglePasswordVisibility}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <FaEyeSlash className="h-4 w-4" /> : <FaEye className="h-4 w-4" />}
                   </button>

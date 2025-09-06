@@ -95,15 +95,7 @@ const SocketComponent = () => {
 
     socket.on(`notification::${loggedInUserId}`, (notification) => {
       if (!notification) return;
-      dispatch(addNotification({
-        _id: notification._id || Date.now().toString(),
-        message: notification.message,
-        postId: notification.postId || '',
-        commentId: notification.commentId || '',
-        type: notification.type || 'info',
-        read: false,
-        createdAt: notification.createdAt || new Date().toISOString()
-      }));
+      dispatch(addNotification(notification));
     });
 
     socket.onAny((event, ...args) => {

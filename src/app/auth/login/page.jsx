@@ -1,12 +1,13 @@
 "use client";
 import { useLoginMutation } from '@/features/auth/authApi';
-import { decodedUser, saveToken } from '@/features/auth/authService';
+import { jwtDecode } from "jwt-decode";
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { decodedUser, saveToken } from '../../../features/auth/authService';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -73,14 +74,18 @@ const LoginPage = () => {
     let isValid = true;
     const newErrors = { ...errors };
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
+      newErrors.username = 'Email is required';
       isValid = false;
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    } else if (!emailRegex.test(formData.username.trim())) {
+      newErrors.username = 'Please enter a valid email address';
       isValid = false;
     }
 
+    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -102,25 +107,32 @@ const LoginPage = () => {
       try {
         const response = await Login({ email: formData.username, password: formData.password }).unwrap();
 
-        // Save or remove credentials based on rememberMe
-        if (formData.rememberMe) {
-          localStorage.setItem('rememberedCredentials', JSON.stringify({
-            username: formData.username,
-            password: formData.password
-          }));
+        const decoded = jwtDecode(response?.data?.accessToken);
+        if (decoded.role === "USER") {
+          if (formData.rememberMe) {
+            localStorage.setItem('rememberedCredentials', JSON.stringify({
+              username: formData.username,
+              password: formData.password
+            }));
+          } else {
+            localStorage.removeItem('rememberedCredentials');
+            localStorage.removeItem('rememberUser');
+          }
+
+          localStorage.setItem('isLoggedIn', true);
+          saveToken(response?.data?.accessToken);
+          decodedUser(response?.data?.accessToken);
+
+          // Set reload flag before redirect
+          localStorage.setItem('shouldReloadAfterLogin', 'true');
+
+          router.push("/");
         } else {
-          localStorage.removeItem('rememberedCredentials');
-          localStorage.removeItem('rememberUser');
+          toast.error("This email is reserved for admin accounts. Please provide an alternate email.")
         }
 
-        localStorage.setItem('isLoggedIn', true);
-        saveToken(response?.data?.accessToken);
-        decodedUser(response?.data?.accessToken);
+        // Save or remove credentials based on rememberMe
 
-        // Set reload flag before redirect
-        localStorage.setItem('shouldReloadAfterLogin', 'true');
-
-        router.push("/");
       } catch (error) {
         console.error('Login error:', error);
         toast.error(error?.data?.message || 'Something went wrong!');
@@ -131,22 +143,23 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="">
-      <div className="flex h-screen justify-center">
-        {/* Left Section with Background Image */}
-        <div className="hidden md:flex md:w-1/2 justify-center relative">
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex flex-col md:flex-row h-screen">
+        {/* Left Section with Background Image - Hidden on mobile */}
+        <div className="hidden md:flex md:w-1/2 relative">
           <Image
             src="/images/login.png"
             alt="People smiling"
-            layout="fill"
-            objectFit="cover"
+            fill
+            className="object-cover"
+            priority
           />
         </div>
 
         {/* Right Section with Login Form */}
-        <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-gray-50">
-          <div className="w-full max-w-md bg-white rounded-lg p-8 shadow-sm">
-            <div className="text-center mb-8">
+        <div className="w-full md:w-1/2 flex h-screen items-center justify-center p-4 md:p-8 bg-gray-50">
+          <div className="w-full max-w-md bg-white rounded-lg p-6 md:p-8 shadow-sm">
+            <div className="text-center mb-6 md:mb-8">
               <h2 className="text-2xl font-semibold">Sign In</h2>
               <p className="text-gray-600 mt-1">Sign in to continue</p>
             </div>
@@ -194,6 +207,7 @@ const LoginPage = () => {
                     type="button"
                     onClick={togglePasswordVisibility}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <FaEyeSlash className="h-4 w-4 cursor-pointer" /> : <FaEye className="h-4 w-4 cursor-pointer" />}
                   </button>
@@ -217,7 +231,7 @@ const LoginPage = () => {
                 </div>
                 <div className="text-sm">
                   <Link href="/auth/forget-password" className="text-indigo-600 hover:text-indigo-500">
-                    Forgot your password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>

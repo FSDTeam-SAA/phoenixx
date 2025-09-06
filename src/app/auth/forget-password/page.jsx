@@ -115,7 +115,7 @@ const ForgotPasswordPage = () => {
                 disabled={isSubmitting || isLoading}
                 className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer ${(isSubmitting || isLoading) ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {(isSubmitting || isLoading) ? 'Sending...' : 'Send Reset Link'}
+                {(isSubmitting || isLoading) ? 'Sending...' : 'Send Reset OTP'}
               </button>
             </form>
 

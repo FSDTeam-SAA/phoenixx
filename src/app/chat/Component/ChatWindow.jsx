@@ -27,12 +27,13 @@ const ChatWindow = ({ id }) => {
   const router = useRouter();
   const { data: chatData } = useGetAllChatQuery();
   const chatUser = chatData?.data?.chats?.find(user => user._id === id);
+  console.log("chatUser", chatUser)
   const isOnline = useOnlineStatus();
 
   const { messages, pinnedMessages, isLoading, hasMore, page, currentChatId } = useSelector((state) => state.message);
   const { refetch } = useMessageRefetch();
 
-  const { data: allMessage, isFetching ,  refetch: refetchMessages } = useGetAllMessagesQuery(
+  const { data: allMessage, isFetching, refetch: refetchMessages } = useGetAllMessagesQuery(
     { chatId: id, page, limit: 10 },
     {
       refetchOnMountOrArgChange: true,
@@ -98,8 +99,8 @@ const ChatWindow = ({ id }) => {
       setShowEmojiPicker(false);
       setShowReactionPicker({ messageId: null, show: false, position: null });
       form.resetFields();
-        refetchMessages();
-      
+      refetchMessages();
+
       // Redux স্টেট রিসেট করুন
       dispatch(setCurrentChatId(id));
       dispatch(resetMessages());
@@ -734,6 +735,7 @@ const ChatWindow = ({ id }) => {
             const isDeleted = message.isDeleted === true;
             const isPinnedByCurrentUser = isMessagePinnedByCurrentUser(message);
             const originalMessage = message.replyTo ? getOriginalMessage(message.replyTo) : null;
+            console.log(originalMessage)
             const isFirstMessage = index === 0; // Track if this is the first message
 
             return (
@@ -759,14 +761,21 @@ const ChatWindow = ({ id }) => {
                   <span className={`text-xs flex  ${isCurrentUser ? "justify-end pr-3 pb-2" : "justify-start pl-3 pb-2"}`}>{formatDate(message.createdAt)}</span>
 
                   {/* Reply Indicator */}
-                  {originalMessage?.text && (
-                    <div className="mb-2">
+
+
+                  {originalMessage && (
+                    <div className="mb-0">
                       <div className="flex items-center text-xs text-gray-400 mb-1">
-                        <svg className="w-3 h-3 mr-1 rotate-180" fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                          className="w-3 h-3 mr-1 rotate-180"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path d="M10 12L4 6h12l-6 6z" />
                         </svg>
                         <span>
-                          {isCurrentUser ? 'You' : message.sender?.userName} replied to {originalMessage.sender?.userName}
+                          {isCurrentUser ? "You" : message.sender?.userName} replied to{" "}
+                          {originalMessage.sender?.userName}
                         </span>
                       </div>
 
@@ -774,10 +783,23 @@ const ChatWindow = ({ id }) => {
                         className="reply-preview-bubble cursor-pointer"
                         onClick={() => navigateToRepliedMessage(originalMessage)}
                       >
-                        {originalMessage?.text}
+                        {/* jodi image thake */}
+                        {originalMessage?.images?.length > 0 && (
+                          <img
+                            src={getImageUrl(originalMessage.images[0])}
+                            alt="Message attachment"
+                            className="rounded-lg max-w-full h-auto max-h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        )}
+
+                        {/* jodi text thake */}
+                        {originalMessage?.text && (
+                          <p className="mt-1 text-sm text-gray-700">{originalMessage.text}</p>
+                        )}
                       </div>
                     </div>
                   )}
+
 
                   {/* Pin indicator */}
                   {isPinnedByCurrentUser && (
@@ -858,51 +880,55 @@ const ChatWindow = ({ id }) => {
                   {!isDeleted && (
                     <div className={`message-options absolute ${isCurrentUser ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'
                       } top-1/2 -translate-y-1/2 flex space-x-1`}>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<BsEmojiSmile />}
-                        className={`flex items-center justify-center p-2 rounded-full transition-all ${isDarkMode
-                          ? 'text-gray-300 bg-gray-700 hover:bg-gray-600'
-                          : 'text-gray-600 bg-white hover:bg-gray-100'
-                          } shadow-md hover:shadow-lg`}
-                        onClick={(e) => toggleReactionPicker(message._id, e)}
-                      />
-
-                      <Dropdown
-                        menu={{
-                          items: [
-                            {
-                              key: 'reply',
-                              label: (
-                                <div className="flex items-center space-x-2">
-                                  <MdReply size={16} />
-                                  <span>Reply</span>
-                                </div>
-                              ),
-                              onClick: () => setReplyingTo(message)
-                            },
-                            {
-                              key: 'pin',
-                              label: isPinnedByCurrentUser ? 'Unpin Message' : 'Pin Message',
-                              icon: <TbPinned size={14} />,
-                              onClick: () => handlePinMessage(message._id, isPinnedByCurrentUser ? 'unpin' : 'pin')
-                            }
-                          ]
-                        }}
-                        trigger={['click']}
-                        placement={isCurrentUser ? 'bottomLeft' : 'bottomRight'}
-                      >
-                        <Button
+                      {
+                        chatUser?.isBlocked ? null : <Button
                           type="text"
                           size="small"
-                          icon={<FaEllipsisVertical />}
-                          className={`flex items-center justify-center p-2 rounded-full ${isDarkMode
-                            ? 'text-gray-300 bg-gray-700'
-                            : 'text-gray-600 bg-white'
+                          icon={<BsEmojiSmile />}
+                          className={`flex items-center justify-center p-2 rounded-full transition-all ${isDarkMode
+                            ? 'text-gray-300 bg-gray-700 hover:bg-gray-600'
+                            : 'text-gray-600 bg-white hover:bg-gray-100'
                             } shadow-md hover:shadow-lg`}
+                          onClick={(e) => toggleReactionPicker(message._id, e)}
                         />
-                      </Dropdown>
+                      }
+
+                      {
+                        chatUser?.isBlocked ? null : <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: 'reply',
+                                label: (
+                                  <div className="flex items-center space-x-2">
+                                    <MdReply size={16} />
+                                    <span>Reply</span>
+                                  </div>
+                                ),
+                                onClick: () => setReplyingTo(message)
+                              },
+                              {
+                                key: 'pin',
+                                label: isPinnedByCurrentUser ? 'Unpin Message' : 'Pin Message',
+                                icon: <TbPinned size={14} />,
+                                onClick: () => handlePinMessage(message._id, isPinnedByCurrentUser ? 'unpin' : 'pin')
+                              }
+                            ]
+                          }}
+                          trigger={['click']}
+                          placement={isCurrentUser ? 'bottomLeft' : 'bottomRight'}
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<FaEllipsisVertical />}
+                            className={`flex items-center justify-center p-2 rounded-full ${isDarkMode
+                              ? 'text-gray-300 bg-gray-700'
+                              : 'text-gray-600 bg-white'
+                              } shadow-md hover:shadow-lg`}
+                          />
+                        </Dropdown>
+                      }
                     </div>
                   )}
                 </div>

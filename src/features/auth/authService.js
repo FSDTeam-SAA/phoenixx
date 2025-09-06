@@ -16,13 +16,12 @@ export const removeToken = () => {
 };
 
 export const isAuthenticated = () => {
-  return !!getToken();
+  return getToken();
 };
 
 
 export const decodedUser = (token) => {
   const decoded = jwtDecode(JSON.stringify(token));
   localStorage.setItem("login_user_id", decoded?.id)
-
   // console.log(decoded)
 };

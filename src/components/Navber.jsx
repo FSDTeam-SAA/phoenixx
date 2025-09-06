@@ -57,7 +57,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAccountSuspended, setIsAccountSuspended] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
-  console.log(suggestions)
+  // console.log(suggestions)
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);

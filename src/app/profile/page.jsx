@@ -138,7 +138,6 @@ const ProfilePage = () => {
       setIsDeleteModalOpen(false);
       setPostToDelete(null);
       refetchSavedPosts();
-
     } catch (error) {
       message.error('Failed to delete post');
     } finally {
@@ -203,7 +202,7 @@ const ProfilePage = () => {
       case 'totalPosts':
         return [...userPosts].reverse().map(transformPostData);
       case 'savedPosts':
-        return [...savedPosts].reverse().map(transformSavedPostData).filter(Boolean);
+        return [...savedPosts].reverse().map(transformSavedPostData);
       case 'comments':
         return [...myComment].reverse().map(transformPostData);
       default:

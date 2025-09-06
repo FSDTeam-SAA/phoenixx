@@ -23,11 +23,14 @@ const ProfileBanner = () => {
   const router = useRouter();
   const { id } = useParams();
 
+  const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
+
   const [createChat] = useCreateChatMutation();
   const [likePost] = useLikePostMutation();
   const { data, isLoading: getbuyUserLoading, refetch } = useGetByUserIdQuery(id);
 
   const { data: profile, isLoading: profileLoading } = useGetProfileByIdQuery(id);
+  const isOwnPost = profile?.data?._id === login_user_id;
   const { isDarkMode } = useContext(ThemeContext);
   const [loading, setLoading] = useState(false);
 
@@ -91,31 +94,38 @@ const ProfileBanner = () => {
               </div>
 
               {/* Follow and Message Buttons - Responsive layout */}
-              <div className={`${isMobile ? 'w-full flex justify-between gap-2' : 'ml-auto flex items-center gap-4'}`}>
-                <div className={`${isMobile ? 'flex-1' : ''}`}>
-                  <FollowButton
-                    subscriberId={localStorage.getItem("login_user_id")}
-                    subscribedToId={id}
-                    className={isMobile ? "w-full" : ""}
-                  />
-                </div>
-                <div className={`${isMobile ? 'flex-1' : ''}`}>
-                  <button
-                    loading={loading.toString()}
-                    onClick={() => handleChat(id)}
-                    className={`
+
+
+              {
+                isOwnPost ? null : <div className={`${isMobile ? 'w-full flex justify-between gap-2' : 'ml-auto flex items-center gap-4'}`}>
+                  <div className={`${isMobile ? 'flex-1' : ''}`}>
+                    <FollowButton
+                      subscriberId={localStorage.getItem("login_user_id")}
+                      subscribedToId={id}
+                      className={isMobile ? "w-full" : ""}
+                    />
+                  </div>
+                  <div className={`${isMobile ? 'flex-1' : ''}`}>
+                    <button
+                      loading={loading.toString()}
+                      onClick={() => handleChat(id)}
+                      className={`
                       ${isMobile ? 'w-full px-3 py-2 text-sm' : 'px-4 py-2'} 
                       bg-[#1530c7] hover:bg-[#102499] transition-colors cursor-pointer
                       text-white flex items-center justify-center gap-2
                       rounded-md shadow-sm border-none
                     `}
-                    aria-label="Send message"
-                  >
-                    <LuMessageCircle size={isMobile ? 16 : 20} />
-                    <span className="font-medium">{isMobile ? 'Message' : 'Send Message'}</span>
-                  </button>
+                      aria-label="Send message"
+                    >
+                      <LuMessageCircle size={isMobile ? 16 : 20} />
+                      <span className="font-medium">{isMobile ? 'Message' : 'Send Message'}</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              }
+
+
+
             </div>
 
             {/* Profile Info */}
@@ -172,7 +182,7 @@ const ProfileBanner = () => {
                     postData={post}
                     onLike={handleLike}
                     isDarkMode={isDarkMode}
-                    isMobile={isMobile}
+                  isMobile={isMobile}
                   />
                 </div>
               ))}

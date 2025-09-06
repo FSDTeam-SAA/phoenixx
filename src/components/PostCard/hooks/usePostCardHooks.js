@@ -81,13 +81,14 @@ export const usePostCardHooks = (postData, onLike, onRepost, currentUser) => {
     onRepost?.(postData.id);
   }, [onRepost, postData.id, isOwnPost]);
 
+
   const handleShare = useCallback(async () => {
     try {
       if (!postData?.id) {
         toast.error("Post ID is missing");
         return;
       }
-      const shareUrl = `${window.location.origin}/posts/${postData.id}`;
+      const shareUrl = `${window.location.origin}/posts/${postData.slug}`;
       if (!navigator.clipboard) {
         const textArea = document.createElement('textarea');
         textArea.value = shareUrl;

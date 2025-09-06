@@ -4,7 +4,7 @@ import { notification } from 'antd';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaCheck, FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
 
 const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +15,14 @@ const ResetPasswordPage = () => {
   const [errors, setErrors] = useState({
     newPassword: '',
     confirmPassword: ''
+  });
+
+  const [passwordValidation, setPasswordValidation] = useState({
+    hasMinLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+    hasSpecialChar: false
   });
 
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -42,12 +50,30 @@ const ResetPasswordPage = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
+  const validatePassword = (password) => {
+    const validations = {
+      hasMinLength: password.length >= 8,
+      hasUpperCase: /[A-Z]/.test(password),
+      hasLowerCase: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    };
+
+    setPasswordValidation(validations);
+    return Object.values(validations).every(v => v);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Validate password when newPassword changes
+    if (name === 'newPassword') {
+      validatePassword(value);
+    }
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -68,10 +94,11 @@ const ResetPasswordPage = () => {
     if (!formData.newPassword) {
       newErrors.newPassword = 'New password is required';
       isValid = false;
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
+    } else if (!validatePassword(formData.newPassword)) {
+      newErrors.newPassword = 'Password does not meet requirements';
       isValid = false;
     }
+
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
       isValid = false;
@@ -185,9 +212,33 @@ const ResetPasswordPage = () => {
                     </button>
                   </div>
                   {errors.newPassword && <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>}
-                  <p className="mt-1 text-xs text-gray-500">
-                    Must be at least 8 characters with 1 uppercase letter and 1 number
-                  </p>
+
+                  {/* Password Requirements */}
+                  <div className="mt-2 text-xs">
+                    <p className="text-gray-500 font-medium mb-1">Password must include:</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      <div className={`flex items-center ${passwordValidation.hasMinLength ? 'text-green-600' : 'text-gray-500'}`}>
+                        {passwordValidation.hasMinLength ? <FaCheck className="mr-1" /> : <FaTimes className="mr-1" />}
+                        <span>8+ characters</span>
+                      </div>
+                      <div className={`flex items-center ${passwordValidation.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
+                        {passwordValidation.hasUpperCase ? <FaCheck className="mr-1" /> : <FaTimes className="mr-1" />}
+                        <span>Uppercase letter</span>
+                      </div>
+                      <div className={`flex items-center ${passwordValidation.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
+                        {passwordValidation.hasLowerCase ? <FaCheck className="mr-1" /> : <FaTimes className="mr-1" />}
+                        <span>Lowercase letter</span>
+                      </div>
+                      <div className={`flex items-center ${passwordValidation.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                        {passwordValidation.hasNumber ? <FaCheck className="mr-1" /> : <FaTimes className="mr-1" />}
+                        <span>Number</span>
+                      </div>
+                      <div className={`flex items-center ${passwordValidation.hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>
+                        {passwordValidation.hasSpecialChar ? <FaCheck className="mr-1" /> : <FaTimes className="mr-1" />}
+                        <span>Special character</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mb-6">

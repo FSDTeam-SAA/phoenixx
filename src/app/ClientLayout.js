@@ -3,12 +3,13 @@
 import Navbar from "@/components/Navber";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, theme } from "antd";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createContext, Suspense, useEffect, useState } from 'react';
 import { Toaster } from "react-hot-toast";
 import { Provider } from "react-redux";
 import { store } from "../../utils/store";
 import Loading from '../components/Loading/Loading';
+import { isAuthenticated } from '../features/auth/authService';
 import "./globals.css";
 
 // Create Theme Context with more functionality
@@ -20,8 +21,32 @@ export const ThemeContext = createContext({
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isAuthPage = pathname.startsWith('/auth');
 
+  const isLogin = isAuthenticated();
+
+  // Define protected routes that require authentication
+  const protectedRoutes = [
+    "/posts",
+    "/profiles",
+    "/chat",
+    "/notifications",
+    "/create-new-post",
+    "/profile",
+    "/dashboard",
+    "/settings"
+  ];
+
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    "/",
+    "/about",
+    "/contact",
+    "/auth/login",
+    "/auth/signup",
+    "/auth/forgot"
+  ];
 
   // ✅ routes where footer should not appear
   const noFooterRoutes = ["/auth/login", "/auth/signup", "/auth/forgot"];
@@ -29,8 +54,50 @@ export default function ClientLayout({ children }) {
   const hideFooter = noFooterRoutes.some((route) =>
     pathname.startsWith(route)
   );
+
   const [isDarkMode, setIsDarkMode] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if current route is protected
+  const isProtectedRoute = protectedRoutes.some(route =>
+    pathname.startsWith(route)
+  );
+
+  // Check if current route is public
+  const isPublicRoute = publicRoutes.some(route =>
+    pathname === route || pathname.startsWith(route)
+  );
+
+  // Handle route protection
+  useEffect(() => {
+    if (!mounted) return;
+
+    const checkAuthAndRedirect = () => {
+      // If user is not authenticated and trying to access protected route
+      if (!isLogin && isProtectedRoute) {
+        // Store the intended destination for redirect after login
+        localStorage.setItem('redirectAfterLogin', pathname);
+        router.push('/auth/login');
+        return;
+      }
+
+      // If user is authenticated and trying to access auth pages, redirect to dashboard/home
+      if (isLogin && isAuthPage) {
+        const redirectPath = localStorage.getItem('redirectAfterLogin') || '/dashboard';
+        localStorage.removeItem('redirectAfterLogin');
+        router.push(redirectPath);
+        return;
+      }
+
+      setIsCheckingAuth(false);
+    };
+
+    // Add a small delay to ensure isAuthenticated() has proper time to check
+    const timeoutId = setTimeout(checkAuthAndRedirect, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [mounted, isLogin, isProtectedRoute, isAuthPage, pathname, router]);
 
   // Initialize theme on component mount
   useEffect(() => {
@@ -181,8 +248,8 @@ export default function ClientLayout({ children }) {
     }
   }, [isDarkMode, mounted]);
 
-  // // Show loading state or return null until mounted to prevent hydration mismatch
-  if (!mounted || isDarkMode === null) {
+  // Show loading state until mounted and auth check is complete
+  if (!mounted || isDarkMode === null || isCheckingAuth) {
     return (
       <html lang="en">
         <body className="antialiased h-screen flex justify-center items-center" cz-shortcut-listen="true">
@@ -194,6 +261,18 @@ export default function ClientLayout({ children }) {
     );
   }
 
+  // Don't render protected content if user is not authenticated
+  if (!isLogin && isProtectedRoute) {
+    return (
+      <html lang="en">
+        <body className="antialiased h-screen flex justify-center items-center" cz-shortcut-listen="true">
+          <Suspense fallback={<Loading />}>
+            <Loading />
+          </Suspense>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html lang="en" className={isDarkMode ? 'dark' : ''}>
@@ -225,7 +304,7 @@ export default function ClientLayout({ children }) {
                 />
 
                 {!hideFooter && (
-                  <footer className={`text-sm  text-center pb-10 pt-8 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-500"}`}>
+                  <footer className={`text-sm text-center pb-10 pt-8 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-500"}`}>
                     © 2025 Mehor. All rights reserved.
                   </footer>
                 )}
