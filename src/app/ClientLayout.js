@@ -24,7 +24,7 @@ export default function ClientLayout({ children }) {
   const router = useRouter();
   const isAuthPage = pathname.startsWith('/auth');
 
-  const isLogin = isAuthenticated();
+  const isLogin = typeof window !== 'undefined' ? localStorage.getItem("loginToken") : null;
 
   // Define protected routes that require authentication
   const protectedRoutes = [
