@@ -128,6 +128,9 @@ export const formatPostData = (post, currentUserId) => {
       category: post.category?.name,
       subcategory: post.subCategory?.name
     }],
+
+    category:post.category, 
+    subCategory: post.subCategory, 
     stats: {
       likes: post.stats?.likes || post.likes?.length || 0,
       comments: post.stats?.comments || post.comments?.length || 0,

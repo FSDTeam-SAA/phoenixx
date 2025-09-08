@@ -33,7 +33,6 @@ const { useBreakpoint } = Grid;
 const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, refetchPosts, myCommentPostRefetch }) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(null);
-  console.log(category)
   const [subcategory, setSubcategory] = useState(null);
   const [categorySlug, setCategorySlug] = useState(null);
   const [subCategorySlug, setSubCategorySlug] = useState(null);
@@ -47,6 +46,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   const router = useRouter();
   const screens = useBreakpoint();
   const { isDarkMode } = useContext(ThemeContext);
+
+
+  console.log("subcategory", subcategory)
+
 
   // Add refs to track editor state and prevent unnecessary updates
   const editorInitialized = useRef(false);
@@ -189,11 +192,15 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
   const getSubcategories = useMemo(() => {
     if (!category || !subcategoryData?.data?.length) return [];
-    return subcategoryData.data.map(sub => ({
+
+    // Also check if we're in edit mode and have initial subcategory
+    const subcategories = subcategoryData.data.map(sub => ({
       value: sub._id,
       label: sub.name,
       slug: sub.slug
     }));
+
+    return subcategories;
   }, [category, subcategoryData]);
 
   // FIXED: Improved paste handler
@@ -412,13 +419,24 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   }, [isEditing, initialValues, countWords]);
 
   // Initialize form with initial values when editing
+  // Initialize form with initial values when editing
   useEffect(() => {
     if (initialValues) {
       setTitle(initialValues.title || '');
-      setCategory(initialValues.category || null);
-      setSubcategory(initialValues.subCategory || null);
+
+      // Fix: Set category from the category object's _id
+      setCategory(initialValues.category?._id || null);
+
+      // Fix: Set subcategory from the subCategory object's _id
+      setSubcategory(initialValues.subCategory?._id || null);
+
+      // Fix: Also set the slugs for proper form submission
+      setCategorySlug(initialValues.categorySlug || null);
+      setSubCategorySlug(initialValues.subCategorySlug || null);
+
       setDescription(initialValues.content || '');
       setWordCount(countWords(initialValues.content || ''));
+
       if (initialValues.images && Array.isArray(initialValues.images)) {
         const initialImagesList = initialValues.images.map((image, index) => {
           const imageUrl = image.startsWith('http')
@@ -543,9 +561,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     if (!category) {
       errors.category = 'Category is required';
     }
-    if (category && getSubcategories.length > 0 && !subcategory) {
+
+    // FIX: Only require subcategory if the selected category has subcategories
+    const hasSubcategories = category && getSubcategories.length > 0;
+    if (hasSubcategories && !subcategory) {
       errors.subcategory = 'Subcategory is required';
     }
+
     if (!description.trim()) {
       errors.description = 'Description is required';
     }
@@ -569,6 +591,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       }
       return;
     }
+    console.log("subcategory", subcategory)
+
 
     try {
       setLoading(true);
@@ -578,6 +602,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
       formData.append('categorySlug', categorySlug);
       if (subcategory) formData.append('subCategory', subcategory);
       if (subCategorySlug) formData.append('subCategorySlug', subCategorySlug);
+
       formData.append('content', description);
 
       // Add images for both create and edit cases
@@ -602,7 +627,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           formData.append('deletedImages', JSON.stringify(deletedImages));
         }
       }
-
+1
       const response = isEditing && postId
         ? await editPost({ id: postId, body: formData }).unwrap()
         : await createPost(formData).unwrap();
@@ -726,6 +751,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                     <Select
                       placeholder="Select a category"
                       value={category}
+                      disabled={isEditing}
                       onChange={handleCategoryChange}
                       className={`w-full ${isDarkMode ? 'ant-select-dark' : ''} ${formErrors.category ? 'border-red-500 ant-select-status-error' : ''}`}
                       size={isMobile ? "middle" : "large"}
@@ -750,10 +776,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                       }
                       value={subcategory}
                       onChange={handleSubcategoryChange}
+                      
                       className={`w-full ${isDarkMode ? 'ant-select-dark' : ''} ${formErrors.subcategory ? 'border-red-500 ant-select-status-error' : ''}`}
                       size={isMobile ? "middle" : "large"}
                       options={getSubcategories}
-                      disabled={!category || getSubcategories.length === 0 || isSubcategoriesLoading}
+                      disabled={isEditing || !category || getSubcategories.length === 0 || isSubcategoriesLoading}
                       notFoundContent={category && "No subcategories found"}
                       popupClassName={isDarkMode ? 'dark-dropdown' : ''}
                       status={formErrors.subcategory ? "error" : ""}

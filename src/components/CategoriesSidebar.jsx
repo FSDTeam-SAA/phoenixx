@@ -15,8 +15,6 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   const { isDarkMode } = useContext(ThemeContext);
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
 
-  console.log("categoryData", categoryData)
-
   // Memoize derived data
   const { categories, totalPosts } = useMemo(() => {
     const categories = categoryData?.data?.result || [];
@@ -26,7 +24,6 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   }, [categoryData]);
 
   const toggleCategory = (categorySlug) => {
-    console.log(categorySlug)
     setExpandedCategories(prev => ({
       ...prev,
       [categorySlug]: !prev[categorySlug]

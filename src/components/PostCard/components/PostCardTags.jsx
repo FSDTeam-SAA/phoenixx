@@ -1,4 +1,7 @@
+import Link from 'next/link';
+
 const PostCardTags = ({ postData, isDarkMode }) => {
+
   if (!postData.tags?.length) return null;
 
   return (
@@ -15,7 +18,8 @@ const PostCardTags = ({ postData, isDarkMode }) => {
                 style={{ maxWidth: '150px' }}
                 title={tag.category} // Show full text on hover
               >
-                {tag.category}
+                {/* {tag.category} */}
+                <Link href={`https://mehor.com/?category=${postData.category.slug}`}>{tag.category}</Link>
               </span>
             )}
             {tag.subcategory && (
@@ -27,7 +31,8 @@ const PostCardTags = ({ postData, isDarkMode }) => {
                 style={{ maxWidth: '150px' }}
                 title={tag.subcategory} // Show full text on hover
               >
-                {tag.subcategory}
+                {/* {tag.subcategory} */}
+                <Link href={`https://mehor.com/?subCategory=${postData.subCategory.slug}`}>{tag.subcategory}</Link>
               </span>
             )}
           </div>
