@@ -72,7 +72,7 @@ const PostDetailsPage = () => {
 
   const post = postDetails?.data;
   const comments = post?.comments || [];
-  const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
+  const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?.slug === postId);
   const isLiked = post?.likes?.includes(login_user_id);
   const isMobile = windowWidth < 640;
   const isTablet = windowWidth >= 640 && windowWidth < 1024;
@@ -922,25 +922,25 @@ const PostDetailsPage = () => {
                 </button>
 
                 <div className='sm:block hidden space-x-2'>
-                  {post.categorySlug && (
+                  {post.category && (
                     <span
                       className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
                         ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
                         }`}
                     >
-                      {post.categorySlug}
+                      {post.category?.name}
                     </span>
                   )}
 
-                  {post.subCategorySlug && (
+                  {post.subCategory && (
                     <span
                       className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
                         ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
                         : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
                         }`}
                     >
-                      {post.subCategorySlug}
+                      {post.subCategory?.name}
                     </span>
                   )}
                 </div>

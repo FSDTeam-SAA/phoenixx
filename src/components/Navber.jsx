@@ -85,6 +85,8 @@ export default function Navbar() {
     }
   }, []);
 
+  
+
   useEffect(() => {
     const loggedInUserId = getCurrentUserId();
     if (!loggedInUserId) return;
@@ -317,18 +319,19 @@ export default function Navbar() {
       onClick: toggleTheme,
     },
     { type: 'divider' },
-    {
-      key: 'signout',
-      icon: <LogoutOutlined />,
-      label: 'Sign Out',
-      danger: true,
-      onClick: () => {
-        router.push('/auth/login');
-        clearLogin();
-      },
-      style: { color: '#ff4d4f' },
-      className: 'hover:!bg-gray-100 hover:!text-red-600',
-    }
+      getCurrentUserId() && {
+        key: 'signout',
+        icon: <LogoutOutlined />,
+        label: 'Sign Out',
+        danger: true,
+        onClick: () => {
+          router.push('/auth/login');
+          clearLogin();
+        },
+        style: { color: '#ff4d4f' },
+        className: 'hover:!bg-gray-100 hover:!text-red-600',
+
+    } 
   ];
 
   // -----------------------------

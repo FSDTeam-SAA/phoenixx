@@ -1,8 +1,9 @@
-import { Dropdown } from 'antd';
+import { Avatar, Dropdown, Grid } from 'antd';
 import { useRouter } from 'next/navigation';
 import { AiOutlineEllipsis } from 'react-icons/ai';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 
+const { useBreakpoint } = Grid;
 
 const PostCardHeader = ({
   postData,
@@ -13,20 +14,22 @@ const PostCardHeader = ({
   handleMenuClick,
   isSaving
 }) => {
-
+  const screens = useBreakpoint();
   const router = useRouter();
 
   const renderAuthorAvatar = () => (
     postData.author.avatar ? (
-      <img
+      <Avatar
         src={getImageUrl(postData.author.avatar)}
-        alt="Author avatar"
-        className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
+        size={screens.xs ? 32 : screens.sm ? 36 : 44}
+        style={{ cursor: 'pointer', border: isDarkMode ? '1px solid #333' : 'none' }}
       />
     ) : (
-      <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
-        } flex items-center justify-center text-xs ${isDarkMode ? 'text-gray-200' : 'text-white'
-        }`}>
+      <div className={`${screens.xs ? 'w-8 h-8' : 'w-10 h-10'} rounded-full ${
+        isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+      } flex items-center justify-center text-xs ${
+        isDarkMode ? 'text-gray-200' : 'text-white'
+      }`}>
         {postData.author.name?.charAt(0).toUpperCase() || 'A'}
       </div>
     )
@@ -40,15 +43,18 @@ const PostCardHeader = ({
       >
         {renderAuthorAvatar()}
         <div className="flex flex-col justify-start items-start">
-          <span className={`font-medium cursor-pointer transition-colors ${isMobile ? 'text-xs' : 'text-base'
-            } ${isDarkMode
+          <span className={`font-medium cursor-pointer transition-colors ${
+            screens.xs ? 'text-xs' : 'text-base'
+          } ${
+            isDarkMode
               ? 'text-gray-200 hover:text-blue-400'
               : 'text-gray-800 hover:text-blue-600'
-            }`}>
+          }`}>
             {postData.author.name === "User" ? postData.author.username : postData.author.name}
           </span>
-          <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+          <span className={`${screens.xs ? 'text-xs' : 'text-sm'} ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             {postData.timePosted}
           </span>
         </div>
@@ -68,11 +74,12 @@ const PostCardHeader = ({
         trigger={['click']}
         overlayClassName={isDarkMode ? 'dark-dropdown-overlay' : ''}
       >
-        <button className={`font-bold p-2 rounded transition-colors ${isDarkMode
-          ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200'
-          : 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
-          } cursor-pointer`}>
-          <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+        <button className={`font-bold p-2 rounded transition-colors ${
+          isDarkMode
+            ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200'
+            : 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+        } cursor-pointer`}>
+          <AiOutlineEllipsis className={`${screens.xs ? 'w-4 h-4' : 'w-5 h-5'}`} />
         </button>
       </Dropdown>
     </div>

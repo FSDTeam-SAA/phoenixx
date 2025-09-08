@@ -73,7 +73,7 @@ const ProfileBanner = () => {
   return (
     <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-[#F2F4F7]'} min-h-screen transition-colors duration-200`}>
       {/* Profile Header Section */}
-      <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'} pt-16 sm:pt-20 pb-8 sm:pb-10 transition-colors duration-200`}>
+      <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'} pt-16 sm:pt-20 pb-8 sm:pb-1 transition-colors duration-200`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`${isDarkMode ? 'bg-gray-700 shadow-xl border border-gray-600' : 'bg-white shadow-lg'} rounded-lg mx-auto w-full max-w-6xl transition-all duration-200`}>
             <div className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 py-4 relative">

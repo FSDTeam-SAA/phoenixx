@@ -85,7 +85,7 @@ const FollowButton = ({ subscribedToId, className = "", subscriberId }) => {
   // Check if we're following this specific user
   useEffect(() => {
     if (subscriptionsData?.data && subscribedToId) {
-      const followingThisUser = subscriptionsData.data.some(
+      const followingThisUser = subscriptionsData?.data?.subscriptions?.some(
         subscription => subscription.subscribedTo.userName === subscribedToId
       );
       setIsFollowing(followingThisUser);

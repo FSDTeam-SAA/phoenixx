@@ -27,8 +27,6 @@ const ProfilePostCard = ({
   isGridView = false // Add this prop to determine if it's in grid view
 }) => {
 
-  // console.log("save post", postData?.author.userName)
-
   const router = useRouter();
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
@@ -264,28 +262,28 @@ const ProfilePostCard = ({
     return (
       <div className="flex-shrink-0 max-w-full">
         <div className="flex space-x-2">
-          {(postData?.categorySlug || postData?.category?.slug) && (
+          {postData?.category && (
             <span
               className={`text-xs py-1 px-2 rounded-full truncate ${isDarkMode
                 ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
                 : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
                 }`}
               style={{ maxWidth: isGridView ? '100px' : '280px' }}
-              title={postData?.categorySlug || postData?.category?.slug} // Show full text on hover
+              title={postData?.category.name} // Show full text on hover
             >
-              {postData?.categorySlug || postData?.category?.slug}
-            </span>
+              {postData?.category.name}
+            </span> 
           )}
-          {(postData?.subCategorySlug || postData?.subCategory?.slug) && (
+          {postData?.subCategory && (
             <span
               className={`text-xs py-1 px-2 rounded-full truncate ${isDarkMode
                 ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
                 : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
                 }`}
               style={{ maxWidth: isGridView ? '100px' : '280px' }}
-              title={postData?.subCategorySlug || postData?.subCategory?.slug} // Show full text on hover
+              title={postData?.subCategory.name} // Show full text on hover
             >
-              {postData?.subCategorySlug || postData?.subCategory?.slug}
+              {postData?.subCategory.name}
             </span>
           )}
         </div>
@@ -414,24 +412,24 @@ const ProfilePostCard = ({
         {!isGridView && (
           <div className='sm:hidden block mb-3'>
             <div className='flex justify-center items-center text-center gap-2 py-2'>
-              {postData?.categorySlug && (
+              {postData?.category && (
                 <span
                   className={`text-xs py-1 px-2 rounded-full ${isDarkMode
                     ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
                     : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
                     }`}
                 >
-                  {postData?.categorySlug}
+                  {postData?.category.name}
                 </span>
               )}
-              {postData?.subCategorySlug && (
+              {postData?.subCategory && (
                 <span
                   className={`text-xs py-1 px-2 rounded-full ${isDarkMode
                     ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
                     : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
                     }`}
                 >
-                  {postData?.subCategorySlug}
+                  {postData?.subCategory.name}
                 </span>
               )}
             </div>

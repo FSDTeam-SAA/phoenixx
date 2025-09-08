@@ -26,6 +26,7 @@ const ProfilePage = () => {
     refetch: refetchSavedPosts
   } = useGetSaveAllPostQuery();
 
+
   const { data: myCommentPost, isLoading: myCommentPostLoading, refetch: myCommentPostRefetch } = useMyCommentPostQuery();
 
   const [deletePost, { isLoading: deleteLoading }] = useDeletePostMutation();
@@ -113,7 +114,6 @@ const ProfilePage = () => {
 
   // Handle post actions
   const handleEditPost = (postId) => {
-    console.log("postId", postId);
     const postToEdit = userPosts.find(post => post._id === postId);
     if (postToEdit) {
       setEditingPost(postToEdit);
@@ -182,7 +182,6 @@ const ProfilePage = () => {
     try {
       // Use the saved post record ID (not the original post ID)
       const response = await savepost({ postId: savedPostRecord?.postId?._id }).unwrap();
-      console.log(response)
       toast.success('Post removed from saved items');
       refetchSavedPosts();
     } catch (error) {
@@ -307,22 +306,24 @@ const ProfilePage = () => {
                 {activeTab === 'comments' && 'Your Comments'}
               </h2>
 
-              {/* Grid View Toggle Button */}
-              <Button
-                type="text"
-                icon={isGridView ? <FiList size={screens.xs ? 16 : 18} /> : <FiGrid size={screens.xs ? 16 : 18} />}
-                onClick={toggleGridView}
-                className={`flex items-center justify-center gap-1 sm:gap-2 border px-2 sm:px-3 py-1 sm:py-2 rounded-md transition-all ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: themeStyles.textColor,
-                  border: `1px solid gray`,
-                }}
-              >
-                <span className={`${screens.xs ? 'text-sm' : 'text-base'} -mt-1 font-semibold`}>
-                  {isGridView ? 'List View' : 'Grid View'}
-                </span>
-              </Button>
+              {/* Grid View Toggle Button - Only show in non-phone mode and list view */}
+              {!screens.xs && (
+                <Button
+                  type="text"
+                  icon={isGridView ? <FiList size={screens.xs ? 16 : 18} /> : <FiGrid size={screens.xs ? 16 : 18} />}
+                  onClick={toggleGridView}
+                  className={`flex items-center justify-center gap-1 sm:gap-2 border px-2 sm:px-3 py-1 sm:py-2 rounded-md transition-all ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: themeStyles.textColor,
+                    border: `1px solid gray`,
+                  }}
+                >
+                  <span className={`${screens.xs ? 'text-sm' : 'text-base'} -mt-1 font-semibold`}>
+                    {isGridView ? 'List View' : 'Grid View'}
+                  </span>
+                </Button>
+              )}
             </div>
 
             {isLoading ? (

@@ -15,6 +15,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   const { isDarkMode } = useContext(ThemeContext);
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
 
+  console.log("categoryData", categoryData)
+
   // Memoize derived data
   const { categories, totalPosts } = useMemo(() => {
     const categories = categoryData?.data?.result || [];
@@ -176,7 +178,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
           const isSelected = selectedCategory === category.slug;
 
           return (
-            <div key={category._id}>
+            <div key={category._id} className="space-y-1">
               <div
                 onClick={() => selectCategory(category.slug)}
                 className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${getItemStyle(isSelected)}`}
@@ -201,39 +203,32 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
               </div>
 
               {/* Subcategories */}
-              {hasSubcategories && (
-                <div
-                  className={`overflow-hidden transition-all duration-300 ease-out ${isExpanded ? 'mt-2' : 'mt-0'}`}
-                  style={{
-                    maxHeight: isExpanded ? `${subcategories.length * 48 + 16}px` : '0px',
-                  }}
-                >
-                  <div className="ml-4 space-y-1">
-                    {subcategories.map((subcategory) => {
-                      const isSubSelected = selectedSubCategory === subcategory.slug && selectedCategory === category.slug;
+              {hasSubcategories && isExpanded && (
+                <div className={`ml-6 space-y-1 pb-2 ${isDarkMode ? 'border-l border-gray-600' : 'border-l border-gray-200'} pl-4`}>
+                  {subcategories.map((subcategory) => {
+                    const isSubSelected = selectedSubCategory === subcategory.slug && selectedCategory === category.slug;
 
-                      return (
-                        <div
-                          key={subcategory._id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            selectSubcategory(category.slug, subcategory.slug);
-                          }}
-                          className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-all duration-200 ${getItemStyle(isSubSelected)}`}
-                        >
-                          <div className="flex items-center space-x-2.5">
-                            {renderSubcategoryIcon(subcategory, isSubSelected)}
-                            <h4 className={`font-medium text-sm leading-tight ${getTextStyle(isSubSelected)}`}>
-                              {subcategory.name}
-                            </h4>
-                          </div>
-                          <span className={`text-xs ${getSecondaryTextStyle(isSubSelected)}`}>
-                            {(subcategory.postCount || 0).toLocaleString()}
-                          </span>
+                    return (
+                      <div
+                        key={subcategory._id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectSubcategory(category.slug, subcategory.slug);
+                        }}
+                        className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-all duration-200 ${getItemStyle(isSubSelected)}`}
+                      >
+                        <div className="flex items-center space-x-2.5">
+                          {renderSubcategoryIcon(subcategory, isSubSelected)}
+                          <h4 className={`font-medium text-sm leading-tight ${getTextStyle(isSubSelected)}`}>
+                            {subcategory.name}
+                          </h4>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <span className={`text-xs ${getSecondaryTextStyle(isSubSelected)}`}>
+                          {(subcategory.postCount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
