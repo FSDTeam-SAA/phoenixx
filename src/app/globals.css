@@ -519,3 +519,26 @@ img {
   -ms-user-select: none;
   user-select: none;
 }
+
+
+
+.custom-link {
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.custom-link:hover {
+  color: #1e40af;
+  text-decoration: underline;
+}
+
+/* Force underline in dark mode too */
+.dark .custom-link {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.dark .custom-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}

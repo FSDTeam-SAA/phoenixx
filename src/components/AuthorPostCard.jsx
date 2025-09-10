@@ -11,7 +11,7 @@ import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaRegBookmark } from "react-icons/fa";
 import { isAuthenticated } from '../../utils/auth';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { DarkModeCommentIcon, DarkModeHeartIcon, DarkModeSeeIcon, LightModeCommentIcon, LightModeHeartIcon, LightModeSeeIcon, PostSEEDark, PostSEELight } from '../../utils/svgImage';
+import { DarkModeCommentIcon, DarkModeHeartIcon, DarkModeSeeIcon, LightModeCommentIcon, LightModeHeartIcon, LightModeSeeIcon } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
@@ -24,6 +24,7 @@ const AuthorPostCard = ({
   onUnsave,
   currentUser = { name: "User", avatar: "" }
 }) => {
+
   const router = useRouter();
   const { isDarkMode } = useContext(ThemeContext);
   const [windowSize, setWindowSize] = useState({
@@ -286,25 +287,25 @@ const AuthorPostCard = ({
   const renderTags = () => {
     return (
       <div className='space-x-2'>
-        {postData?.categorySlug && (
+        {(postData?.categorySlug || postData.category) && (
           <span
             className={`sm:text-xs text-sm w-full py-1 sm:px-4 px-2 rounded-full ${isDarkMode
               ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white border border-blue-500'
               : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border border-blue-400'
               }`}
           >
-            {postData?.categorySlug}
+            {postData?.category?.name}
           </span>
         )}
 
-        {postData?.subCategorySlug && (
+        {(postData?.subCategorySlug || postData.subCategory) && (
           <span
             className={`sm:text-xs text-sm py-1 w-full sm:px-4 px-2 rounded-full ${isDarkMode
               ? 'bg-gradient-to-r from-blue-700 to-blue-800 text-white border border-blue-600'
               : 'bg-gradient-to-r from-blue-600 to-blue-800 text-white border border-blue-500'
               }`}
           >
-            {postData?.subCategorySlug}
+            {postData.subCategory.name}
           </span>
         )}
       </div>
@@ -715,7 +716,7 @@ const AuthorPostCard = ({
 
           <div className="flex items-center gap-3">
             <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-               {isDarkMode ? <DarkModeSeeIcon /> : <LightModeSeeIcon />}
+              {isDarkMode ? <DarkModeSeeIcon /> : <LightModeSeeIcon />}
               <span>{postData?.views}</span>
             </div>
 

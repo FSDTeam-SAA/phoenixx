@@ -2,6 +2,7 @@
 import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { useCreatePostMutation, useEditPostMutation } from '@/features/post/postApi';
 import { SaveOutlined, UploadOutlined } from '@ant-design/icons';
+import { Link } from '@tiptap/extension-link';
 import { Underline } from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
@@ -314,7 +315,17 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           },
         },
       }),
-      Underline
+      Underline,
+      // Replace your Link extension configuration with this:
+      // Replace your Link extension configuration with this:
+      Link.configure({
+        openOnClick: true,
+        HTMLAttributes: {
+          class: 'custom-link',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }),
     ],
     content: description,
     onUpdate: handleEditorUpdate,
@@ -627,7 +638,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           formData.append('deletedImages', JSON.stringify(deletedImages));
         }
       }
-1
+      1
       const response = isEditing && postId
         ? await editPost({ id: postId, body: formData }).unwrap()
         : await createPost(formData).unwrap();
@@ -776,7 +787,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                       }
                       value={subcategory}
                       onChange={handleSubcategoryChange}
-                      
+
                       className={`w-full ${isDarkMode ? 'ant-select-dark' : ''} ${formErrors.subcategory ? 'border-red-500 ant-select-status-error' : ''}`}
                       size={isMobile ? "middle" : "large"}
                       options={getSubcategories}
