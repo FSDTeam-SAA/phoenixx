@@ -59,7 +59,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
 
   // API hooks
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
-  const { data: categoryData } = useCategoriesQuery();
+  const { data: categoryData , isLoading } = useCategoriesQuery();
 
   const { data: subcategoryData, isLoading: isSubcategoriesLoading } = useSubCategoriesQuery(category, {
     skip: !category,

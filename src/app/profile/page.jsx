@@ -70,13 +70,12 @@ const ProfilePage = () => {
   // Data preparation
   const userPosts = postsData?.data || [];
   const savedPosts = savePostData?.data || [];
-  // console.log(savedPosts)
   const myComment = myCommentPost?.data || [];
 
   // Activity stats
   const stats = {
     totalPosts: userPosts.length || 0,
-    savedPosts: savedPosts.length || 0,
+    savedPosts: savedPosts.filter(post => post.postId !== null).length || 0,
     comments: myComment.length || 0
   };
 
@@ -98,7 +97,7 @@ const ProfilePage = () => {
     uniqueId: `post-${post._id}`
   });
 
-  // Transform saved post data
+  // Transform saved post data - FIXED: Added null check
   const transformSavedPostData = (savedPost) => {
     if (!savedPost || !savedPost.postId) return null;
 
@@ -195,13 +194,13 @@ const ProfilePage = () => {
     setIsGridView(!isGridView);
   };
 
-  // Use useMemo to prevent unnecessary recalculations and duplication
+  // Use useMemo to prevent unnecessary recalculations and duplication - FIXED: Added filter for null values
   const postsToDisplay = useMemo(() => {
     switch (activeTab) {
       case 'totalPosts':
         return [...userPosts].reverse().map(transformPostData);
       case 'savedPosts':
-        return [...savedPosts].reverse().map(transformSavedPostData);
+        return [...savedPosts].reverse().map(transformSavedPostData).filter(post => post !== null);
       case 'comments':
         return [...myComment].reverse().map(transformPostData);
       default:
