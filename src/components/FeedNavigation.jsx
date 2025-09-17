@@ -68,7 +68,7 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort, devices }) 
 
         {clickCount === 2 && <AppstoreOutlined className={`mr-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'} text-xl`} />}
         <span className={`font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} text-base`}>
-          Your Feeds
+          {clickCount=== 1 ? 'List view' : 'Grid View'}
         </span>
       </div>
 

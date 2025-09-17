@@ -230,7 +230,7 @@ const LoginPage = () => {
                   </label>
                 </div>
                 <div className="text-sm">
-                  <Link href="/auth/forget-password" className="text-indigo-600 hover:text-indigo-500">
+                  <Link href="/auth/forget-password" className="text-[#0000FF] hover:text-indigo-500">
                     Forgot password?
                   </Link>
                 </div>
@@ -239,7 +239,7 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full bg-indigo-600 cursor-pointer text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-[#0000FF] cursor-pointer text-white py-2 px-4 rounded-md hover:bg-[#0000FF] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {isSubmitting ? 'Signing In...' : 'Sign In'}
               </button>
@@ -247,7 +247,7 @@ const LoginPage = () => {
 
             <div className="text-center mt-6 text-sm text-gray-600">
               You don't have an account yet?{' '}
-              <Link href="/auth/signup" className="text-indigo-600 hover:text-indigo-500 font-medium">
+              <Link href="/auth/signup" className="text-[#0000FF] hover:text-indigo-500 font-medium">
                 Sign up
               </Link>
             </div>

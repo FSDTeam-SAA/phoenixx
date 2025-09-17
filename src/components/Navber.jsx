@@ -758,7 +758,7 @@ export default function Navbar() {
           {!showMobileSearch && (
             <Flex align="center" style={{ height: '100%', minWidth: 'fit-content', flex: '0 0 auto' }}>
               {!screens.md && (
-                <Button
+                <Button className='hover:text-[#0000FF]'
                   type="text"
                   icon={<MenuOutlined />}
                   onClick={showDrawer}
@@ -768,7 +768,7 @@ export default function Navbar() {
                     justifyContent: 'center',
                     height: '100%',
                     padding: '0 8px',
-                    color: isDarkMode ? 'var(--text-color)' : 'inherit',
+                    color: isDarkMode ? '#0000FF' : 'inherit',
                     minWidth: '40px'
                   }}
                 />
@@ -785,7 +785,7 @@ export default function Navbar() {
                   paddingRight: screens.xs ? '8px' : '12px'
                 }}
               >
-                {!logoLoading && filteredLogo && (
+                {/* {!logoLoading && filteredLogo && (
                   <Image
                     src={filteredLogo?.logo && `${baseURL}${filteredLogo.logo}`}
                     width={screens.xs ? 80 : screens.sm ? 100 : 130}
@@ -801,7 +801,8 @@ export default function Navbar() {
                     }}
                     priority
                   />
-                )}
+                )} */}
+                <h2 className='text-[40px] md:text-[60px]'>MEHOR</h2>
               </Link>
             </Flex>
           )}
