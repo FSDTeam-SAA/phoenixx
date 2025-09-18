@@ -617,7 +617,7 @@ export default function Navbar() {
           width: '100%',
           height: '50px',
           backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
-          borderRadius: '12px',
+          borderRadius: '25px',
           border: `1px solid ${isDarkMode ? '#424242' : '#D8D8D8'}`,
           boxShadow: isDarkMode ? '0 2px 6px rgba(0,0,0,0.4)' : '0 2px 6px rgba(0,0,0,0.05)',
           overflow: 'hidden',
@@ -687,7 +687,7 @@ export default function Navbar() {
           width: '100%',
           height: '40px',
           background: isDarkMode ? '#1f1f1f' : '#f3f2fa',
-          borderRadius: '10px',
+          borderRadius: '20px',
           border: `1px solid ${isDarkMode ? '#424242' : '#ddd'}`,
           color: isDarkMode ? 'rgba(255, 255, 255, 0.85)' : 'inherit',
           padding: '0 12px',
@@ -818,7 +818,7 @@ export default function Navbar() {
                   <Button
                     onClick={() => handleNavigation('/create-new-post')}
                     type="primary"
-                    icon={<PlusOutlined />}
+                    icon={<PlusOutlined className='text-white' />}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -848,7 +848,7 @@ export default function Navbar() {
                     <Button
                       onClick={() => handleNotificationNavigate("/notification")}
                       type="text"
-                      icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
+                      // icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
                       style={{
                         ...iconButtonStyles,
                         width: screens.lg ? '40px' : '36px',

@@ -80,7 +80,13 @@ const PostCardActions = ({
           <div className={`flex items-center sm:gap-1 gap-2 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
             <div className="w-4 h-4 sm:w-5 sm:h-5">
-              {isDarkMode ? <DarkModeSeeIcon /> : <LightModeSeeIcon />}
+              <Image
+                src={isDarkMode ? "/icon/eye.png" : "/icons/eye.png"}
+                fill
+                sizes="(max-width: 640px) 16px, 20px"
+                alt="share icon"
+                className="object-contain"
+              />
             </div>
             <span>{postData.stats.reads?.toLocaleString() || 0}</span>
           </div>
@@ -94,7 +100,7 @@ const PostCardActions = ({
           >
             <div className="relative w-4 h-4 sm:w-5 sm:h-5">
               <Image
-                src={isDarkMode ? "/icons/action/darkShare.png" : "/icons/action/lightShare.png"}
+                src={isDarkMode ? "/icon/shear.png" : "/icons/shear.png"}
                 fill
                 sizes="(max-width: 640px) 16px, 20px"
                 alt="share icon"
