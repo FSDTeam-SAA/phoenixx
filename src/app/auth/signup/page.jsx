@@ -279,7 +279,7 @@ const SignUp = () => {
         {/* Left Section with Background Image - Hidden on mobile */}
         <div className="hidden md:flex md:w-1/2 relative">
           <Image
-            src="/images/signup.png"
+            src="/images/signup.jpeg"
             alt="People smiling"
             fill
             className="object-cover"

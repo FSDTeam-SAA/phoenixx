@@ -802,7 +802,7 @@ export default function Navbar() {
                     priority
                   />
                 )} */}
-                <h2 className='text-[40px] md:text-[60px]'>MEHOR</h2>
+                <h2 className='text-[40px] font-bold hover:text-[#0000FF] md:text-[60px]'>MEHOR</h2>
               </Link>
             </Flex>
           )}
@@ -835,7 +835,7 @@ export default function Navbar() {
                     <Button
                       onClick={() => handleChatNavigation("/chat")}
                       type="text"
-                      icon={isDarkMode ? <MessageDark /> : <MessageLight />}
+                      icon={isDarkMode ? <Image className=' w-[40px] h-[40px] object-cover text-white dark:invert-100' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-[40px] h-[40px] object-cover ' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} />}
                       style={{
                         ...iconButtonStyles,
                         width: screens.lg ? '40px' : '36px',
@@ -844,17 +844,20 @@ export default function Navbar() {
                     />
                   </Badge>
 
-                  <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={notifications?.unreadCount || 0}>
+                  <Badge  style={{backgroundColor:['2930FF'],  marginTop: "5px", marginRight: "5px" }} count={notifications?.unreadCount || 0}>
                     <Button
+                      
                       onClick={() => handleNotificationNavigate("/notification")}
                       type="text"
-                      // icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
+                      icon={isDarkMode ? <Image className=' w-[40px] h-[40px] object-cover text-white dark:invert-100' src='/icon/notification-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-[40px] h-[40px] object-cover text-white' src='/icon/notification-removebg-preview.png' alt='notification' width={40} height={40} /> }
                       style={{
                         ...iconButtonStyles,
+
                         width: screens.lg ? '40px' : '36px',
                         height: screens.lg ? '40px' : '36px'
                       }}
                     />
+
                   </Badge>
                 </>
               ) : (
@@ -868,6 +871,7 @@ export default function Navbar() {
                     justifyContent: 'center',
                     height: '100%',
                     padding: '0 12px',
+                    backgroundColor: '#0000FF',
                     color: isDarkMode ? 'var(--text-color)' : 'inherit'
                   }}
                 />

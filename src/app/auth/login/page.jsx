@@ -148,7 +148,7 @@ const LoginPage = () => {
         {/* Left Section with Background Image - Hidden on mobile */}
         <div className="hidden md:flex md:w-1/2 relative">
           <Image
-            src="/images/login.png"
+            src="/images/login.jpeg"
             alt="People smiling"
             fill
             className="object-cover"
@@ -169,7 +169,7 @@ const LoginPage = () => {
                 <label htmlFor="username" className="block text-gray-700 mb-2">Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-[#0000FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -223,7 +223,7 @@ const LoginPage = () => {
                     type="checkbox"
                     checked={formData.rememberMe}
                     onChange={handleChange}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-[#0000FF] focus:ring-indigo-500 border-gray-300 rounded"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                     Remember me
