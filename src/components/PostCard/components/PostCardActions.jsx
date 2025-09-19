@@ -40,11 +40,9 @@ const PostCardActions = ({
           >
             <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center transition-colors ${isLiking ? 'animate-pulse' : ''
               }`}>
-              {isDarkMode ? (
-                <DarkModeHeartIcon filled={postData.isLiked} />
-              ) : (
-                <LightModeHeartIcon filled={postData.isLiked} />
-              )}
+              {isDarkMode ? 
+                <Image className='bg-transparent w-[40px] h-[30px]' src='/icon/love-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-[40px] h-[30px] ' src='/icon/love-removebg-preview.png' alt='notification' width={40} height={40} />
+              }
             </div>
             <span className={`ml-1.5 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -60,7 +58,7 @@ const PostCardActions = ({
             aria-label="View comments"
           >
             <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
-              {isDarkMode ? <DarkModeCommentIcon /> : <LightModeCommentIcon />}
+              {isDarkMode ? <Image className='bg-transparent w-[40px] h-[30px]' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-[40px] h-[30px] ' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} />}
             </div>
             <span className={`ml-1.5 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -81,7 +79,7 @@ const PostCardActions = ({
             }`}>
             <div className="w-4 h-4 sm:w-5 sm:h-5">
               <Image
-                src={isDarkMode ? "/icon/eye.png" : "/icons/eye.png"}
+                src={isDarkMode ? "/icon/eye-removebg-preview.png" : "/icon/eye-removebg-preview.png"}
                 fill
                 sizes="(max-width: 640px) 16px, 20px"
                 alt="share icon"
@@ -100,7 +98,7 @@ const PostCardActions = ({
           >
             <div className="relative w-4 h-4 sm:w-5 sm:h-5">
               <Image
-                src={isDarkMode ? "/icon/shear.png" : "/icons/shear.png"}
+                src={isDarkMode ? "/icon/shear-removebg-preview.png" : "/icon/shear-removebg-preview.png"}
                 fill
                 sizes="(max-width: 640px) 16px, 20px"
                 alt="share icon"
