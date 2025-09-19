@@ -277,7 +277,7 @@ export default function ClientLayout({ children }) {
   return (
     <html lang="en" className={isDarkMode ? 'dark' : ''}>
       <body
-        className={`antialiased ${isDarkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-white text-gray-900'}`}
+        className={`antialiased ${isDarkMode ? 'dark:bg-gray-900 dark:text-white' : 'bg-gray-200 text-gray-900'}`}
       >
         <AntdRegistry>
           <ThemeContext.Provider value={{ isDarkMode, toggleTheme, setTheme }}>
@@ -304,7 +304,7 @@ export default function ClientLayout({ children }) {
                 />
 
                 {!hideFooter && (
-                  <footer className={`text-sm text-center pb-10 pt-8 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-50 text-gray-500"}`}>
+                  <footer className={`text-sm text-center pb-10 pt-8 ${isDarkMode ? "bg-gray-800 text-white" : "bg-gray-100 mt-2 text-gray-500"}`}>
                     © 2025 Mehor. All rights reserved.
                   </footer>
                 )}

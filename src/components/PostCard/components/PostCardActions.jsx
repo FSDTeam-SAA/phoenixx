@@ -38,10 +38,10 @@ const PostCardActions = ({
               } ${isLiking ? 'transform scale-110' : ''}`}
             aria-label={postData.isLiked ? 'Unlike post' : 'Like post'}
           >
-            <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center transition-colors ${isLiking ? 'animate-pulse' : ''
+            <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} md:h-6 md:w-6 flex items-center justify-center transition-colors ${isLiking ? 'animate-pulse' : ''
               }`}>
               {isDarkMode ? 
-                <Image className='bg-transparent w-[40px] h-[30px]' src='/icon/love-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-[40px] h-[30px] ' src='/icon/love-removebg-preview.png' alt='notification' width={40} height={40} />
+                <Image className='bg-transparent w-full h-full dark:invert-100 object-cover' src='/icon/love-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-full h-full  object-cover ' src='/icon/love-removebg-preview.png' alt='notification' width={40} height={40} />
               }
             </div>
             <span className={`ml-1.5 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -57,8 +57,8 @@ const PostCardActions = ({
               }`}
             aria-label="View comments"
           >
-            <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} flex items-center justify-center`}>
-              {isDarkMode ? <Image className='bg-transparent w-[40px] h-[30px]' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-[40px] h-[30px] ' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} />}
+            <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} md:h-6 md:w-6 flex items-center justify-center`}>
+              {isDarkMode ? <Image className='bg-transparent w-full h-full dark:invert-100 object-cover' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} /> :<Image className='bg-transparent w-full h-full object-cover' src='/icon/message-removebg-preview.png' alt='notification' width={40} height={40} />}
             </div>
             <span className={`ml-1.5 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
               }`}>
@@ -77,16 +77,17 @@ const PostCardActions = ({
           {/* View Count */}
           <div className={`flex items-center sm:gap-1 gap-2 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>
-            <div className="w-4 h-4 sm:w-5 sm:h-5">
+            <div className="w-6 h-6 sm:w-6 sm:h-6 flex justify-center items-center">
               <Image
                 src={isDarkMode ? "/icon/eye-removebg-preview.png" : "/icon/eye-removebg-preview.png"}
-                fill
-                sizes="(max-width: 640px) 16px, 20px"
+                width={20}
+                height={20}
+                sizes="(max-width: 40px) 16px, 20px"
                 alt="share icon"
-                className="object-contain"
+                className={`w-[40px] h-[40px]  object-cover ${isDarkMode ? 'dark:invert-100' : ''}`}
               />
             </div>
-            <span>{postData.stats.reads?.toLocaleString() || 0}</span>
+            <span className=''>{postData.stats.reads?.toLocaleString() || 0}</span>
           </div>
 
           {/* Share Button */}
@@ -96,13 +97,13 @@ const PostCardActions = ({
               }`}
             aria-label="Share post"
           >
-            <div className="relative w-4 h-4 sm:w-5 sm:h-5">
+            <div className="relative w-4 h-4 sm:w-5 sm:h-5 md:h-6 md:w-6">
               <Image
                 src={isDarkMode ? "/icon/shear-removebg-preview.png" : "/icon/shear-removebg-preview.png"}
                 fill
                 sizes="(max-width: 640px) 16px, 20px"
                 alt="share icon"
-                className="object-contain"
+                className={`object-contain w-full h-full ${isDarkMode ? 'dark:invert-100': ''} `}
               />
             </div>
           </button>

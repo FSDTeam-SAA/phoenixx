@@ -71,16 +71,16 @@ const ProfileBanner = () => {
   }
 
   return (
-    <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-[#F2F4F7]'} min-h-screen transition-colors duration-200`}>
+    <div className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-200'} min-h-screen transition-colors duration-200`}>
       {/* Profile Header Section */}
       <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'} pt-16 sm:pt-20 pb-8 sm:pb-1 transition-colors duration-200`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className={`${isDarkMode ? 'bg-gray-700 shadow-xl border border-gray-600' : 'bg-white shadow-lg'} rounded-lg mx-auto w-full max-w-6xl transition-all duration-200`}>
-            <div className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 py-4 relative">
+          <div className={`${isDarkMode ? 'bg-gray-700 shadow-xl border border-gray-600' : 'bg-white shadow-lg'} rounded-lg mx-auto w-full  transition-all duration-200`}>
+            <div className="flex flex-col sm:flex-row justify-between items-center px-4 sm:px-6 my-0  relative">
               {/* Profile Image - Positioned differently based on screen size */}
-              <div className={`${isMobile ? 'mx-auto -top-12' : 'absolute left-1/2 -translate-x-1/2 -top-16'} relative`}>
-                <div className="relative">
-                  <div className={`${isMobile ? 'w-20 h-20' : 'w-32 h-32'} rounded-full overflow-hidden border-4 shadow-lg ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
+              <div className={`${isMobile ? 'mx-auto left-[-9%] -translate-x-[-9%] -top-6' : 'absolute left-[45%] -translate-x-[45%] -top-16'}  relative`}>
+                <div className=" absolute ">
+                  <div className={`${isMobile ? 'w-16 h-16' : 'w-36 h-36'} rounded-full overflow-hidden border-4 shadow-lg ${isDarkMode ? 'bg-gray-600 border-gray-500' : 'bg-gray-300 border-white'}`}>
                     <img
                       src={getImageUrl(profile?.data?.profile)}
                       alt={`${profile?.data?.name || 'User'}'s profile`}
@@ -129,7 +129,7 @@ const ProfileBanner = () => {
             </div>
 
             {/* Profile Info */}
-            <div className="text-center pb-3 sm:pb-10 px-4">
+            <div className="text-center pb-1 sm:pb-5 px-4 pt-12 md:pt-24">
 
               <h1 className={`${isMobile ? 'text-xl' : isTablet ? 'text-2xl' : 'text-3xl'} font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2 transition-colors duration-200`}>
                 {profile?.data?.name || 'username'}

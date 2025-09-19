@@ -35,7 +35,7 @@ export const Footer = ({
             animate="visible"
             exit="hidden"
             variants={replyVariants}
-            className={`p-3 border-t ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-300'}`}
+            className={`p-3 border-t ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-200'}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3 flex-1">

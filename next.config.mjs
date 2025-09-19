@@ -26,7 +26,8 @@ const nextConfig = {
       "picsum.photos",
       "10.0.60.126",
       "api.mehor.com",
-      "10.10.7.107" // Add your network IP
+      "10.10.7.107", // Add your network IP
+      "localhost"
     ],
   },
 
