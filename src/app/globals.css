@@ -68,11 +68,11 @@
 }
 
 
-/* 
+ 
 @theme {
-  --color-primary: #0001FB;
+  --color-primary: #0000FF;
   --color-secondary: #000000;
-} */
+} 
 
 /* Add to your global CSS */
 .subcategory-enter {

@@ -149,7 +149,7 @@ const ProfileBanner = () => {
   }
 
   return (
-    <div className={`pt-16 md:pt-20 pb-8 md:pb-10 ${isDarkMode ? 'bg-gray-800' : 'bg-[#EBEBFF]'}`}>
+    <div className={`pt-16 md:pt-20 pb-8 md:pb-10 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
       <div className="container mx-auto px-4">
         <div className={`rounded-lg shadow-md ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
           {/* Banner Content */}
