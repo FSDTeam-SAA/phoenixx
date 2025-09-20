@@ -889,7 +889,7 @@ export default function Navbar() {
                     priority
                   />
                 )} */}
-                <h2 className="text-[40px] font-bold hover:text-[#0000FF] md:text-[60px]">
+                <h2 className="text-[40px] font-bold text-[#0000ff] hover:text-[#0000FF] md:text-[60px]">
                   MEHOR
                 </h2>
               </Link>
