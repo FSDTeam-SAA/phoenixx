@@ -814,7 +814,7 @@ export default function Navbar() {
             isDarkMode ? "dark-mode" : "light-mode"
           }`}
           style={{
-            background: isDarkMode ? "#101828" : "#fff",
+            background: isDarkMode ? "#212121" : "#fff",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",

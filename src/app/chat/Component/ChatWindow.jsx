@@ -860,7 +860,7 @@ const ChatWindow = ({ id }) => {
                 id={`msg-${message._id}`}
                 key={message._id}
                 className={`relative flex ${
-                  isCurrentUser ? "justify-end" : "justify-start"
+                  isCurrentUser ? "justify-end" : "justify-start "
                 } ${isFirstMessage ? "mb-6 mt-1" : "mb-6"} message-wrapper`}
                 style={{
                   marginTop: isFirstMessage ? "4px" : undefined,
@@ -871,7 +871,7 @@ const ChatWindow = ({ id }) => {
                   <Avatar
                     src={getImageUrl(message.sender?.profile)}
                     size={32}
-                    className="mr-3 self-start mt-1"
+                    className=" self-start relative top-6 "
                   />
                 )}
 
@@ -880,8 +880,8 @@ const ChatWindow = ({ id }) => {
                   <span
                     className={`text-xs flex ${
                       isCurrentUser
-                        ? "justify-end pr-3 pb-2"
-                        : "justify-start pl-3 pb-2"
+                        ? "justify-end pr-3 pb-2 "
+                        : "justify-start pl-3 pb-2 "
                     }`}
                   >
                     {formatDate(message.createdAt)}
@@ -889,7 +889,7 @@ const ChatWindow = ({ id }) => {
 
                   {/* Message Bubble (group) */}
                   <motion.div
-                    className={`relative pl-4 pt-1 pr-4 rounded-xl group ${
+                    className={`${isCurrentUser?'rounded-bl-md':'rounded-br-md ml-2'} relative pl-4 pt-1 pr-4 rounded-t-md  group ${
                       isDeleted
                         ? "deleted-message"
                         : isDarkMode

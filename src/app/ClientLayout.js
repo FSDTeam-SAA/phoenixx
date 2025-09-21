@@ -277,7 +277,7 @@ export default function ClientLayout({ children }) {
   return (
     <html lang="en" className={isDarkMode ? 'dark' : ''}>
       <body
-        className={`antialiased ${isDarkMode ? 'dark:bg-black dark:text-white' : 'bg-gray-200 text-gray-900'}`}
+        className={`antialiased ${isDarkMode ? 'dark:bg-[#212121] dark:text-white' : 'bg-gray-200 text-gray-900'}`}
       >
         <AntdRegistry>
           <ThemeContext.Provider value={{ isDarkMode, toggleTheme, setTheme }}>

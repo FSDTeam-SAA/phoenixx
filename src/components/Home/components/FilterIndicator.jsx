@@ -55,7 +55,7 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters, onSortChange }) => 
 
         <div className="flex items-center gap-4 self-stretch sm:self-auto justify-start sm:justify-start">
           <span
-            className='text-blue-600 font-medium cursor-pointer hover:underline text-sm sm:text-base whitespace-nowrap'
+            className='font-medium text-blue-600 break-words max-w-ful cursor-pointer hover:underline  whitespace-nowrap'
             onClick={onClearFilters}
           >
             Clear All Filters
