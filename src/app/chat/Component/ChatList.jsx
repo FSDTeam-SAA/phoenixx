@@ -610,12 +610,12 @@ const ChatList = ({ setIsChatActive, status }) => {
           : "bg-[#f9f9f9] border-gray-200"
       }`}
     >
-      <div className="p-4">
+      <div className="p-4 ">
         <Flex gap={8} align="center">
           <Input
             prefix={
               <BsSearch
-                className={`mx-1 ${
+                className={`mx-1  ${
                   isDarkMode ? "text-gray-300" : "text-subtitle"
                 }`}
                 size={20}
@@ -626,7 +626,7 @@ const ChatList = ({ setIsChatActive, status }) => {
             style={{ width: "100%", height: 42 }}
             value={searchTerm}
             onChange={handleSearchChange}
-            className={isDarkMode ? "bg-gray-700 text-white" : ""}
+            className={`${isDarkMode ? "bg-gray-700 text-white " : ""} rounded-full`}
           />
           <Select
             value={viewMode}

@@ -806,7 +806,7 @@ const BlogPostForm = ({
                   priority
                 /> */}
                 <h2 className="text-4xl font-semibold">Create New Post </h2>
-                <p className="text-[18px] font-medium pt-2">
+                <p className="text-sm font-medium pt-2">
                   Share your thoughts with the world !
                 </p>
               </div>
