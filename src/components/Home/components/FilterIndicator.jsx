@@ -47,7 +47,7 @@ const FilterIndicator = ({ urlParams, posts, onClearFilters, onSortChange }) => 
             {displayName}
           </span>
           {sortDisplay && (
-            <span className="text-gray-500 text-sm sm:text-base sm:ml-2 whitespace-nowrap">
+            <span className="text-gray-500 text-sm  sm:ml-2 whitespace-nowrap">
               {sortDisplay}
             </span>
           )}

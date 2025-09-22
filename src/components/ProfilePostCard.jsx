@@ -177,7 +177,7 @@ const ProfilePostCard = ({
                 className={`${
                   isDarkMode
                     ? "text-blue-400 hover:text-blue-300"
-                    : "text-blue-600 hover:text-blue-800"
+                    : "text-[#0000ff] hover:text-[#0000ff]"
                 } cursor-pointer font-medium ml-1`}
                 onClick={handlePostDetails}
               >
@@ -204,7 +204,7 @@ const ProfilePostCard = ({
               className={`${
                 isDarkMode
                   ? "text-blue-400 hover:text-blue-300"
-                  : "text-blue-600 hover:text-blue-800"
+                  : "text-[#0000ff] hover:text-[#0000ff]"
               } cursor-pointer font-medium ml-1`}
               onClick={handleCommentClick}
             >

@@ -52,7 +52,7 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort, devices }) 
   const menuProps = {
     items,
     onClick: handleMenuClick,
-    className: `rounded-lg py-1 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`,
+    className: `rounded-lg py-1 border ${isDarkMode ? 'bg-gray-800 border-[#0000ff]' : 'bg-white border-[#0000ff]'}`,
     selectable: true,
     selectedKeys: [currentSort],
   };
@@ -72,7 +72,7 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort, devices }) 
         </span>
       </div>
 
-      <Dropdown
+      <Dropdown className='hover:border-[#0000ff] hover:text-[#0000ff]'
         menu={menuProps}
         trigger={['click']}
       >
@@ -80,8 +80,8 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort, devices }) 
           type="default"
           className={`flex items-center rounded-lg px-4 h-10 text-base
             ${isDarkMode ?
-              'bg-gray-700 border-gray-600 text-gray-200 hover:border-blue-400 hover:text-blue-400' :
-              'bg-white border-gray-300 text-gray-800 hover:border-blue-500 hover:text-blue-500'}
+              'bg-gray-700 border-gray-600 text-gray-200 hover:border-[#0000ff] hover:text-[#0000ff]' :
+              'bg-white border-gray-300 text-gray-800 hover:border-[#0000ff] hover:text-[#0000ff]'}
             transition-colors duration-200`}
         >
           <RiArrowUpDownLine className="text-lg mr-1" />
