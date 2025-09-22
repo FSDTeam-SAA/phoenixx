@@ -937,14 +937,15 @@ export default function Navbar() {
                     count={pronab?.data?.totalIconUnreadMessages || 0}
                   >
                     <Button
+                    className="w-[40px] h-[40px]"
                       onClick={() => handleChatNavigation("/chat")}
                       type="text"
                       icon={
                         isDarkMode ? (
                           <Image
-                            className={` w-[40px] h-[40px] object-cover text-white  ${isDarkMode ? 'dark:invert-100': ''} `}
+                            className={`w-[40px] h-[40px] object-cover text-white  ${isDarkMode ? 'dark:invert-100': ''} `}
                             src="/icon/message-removebg-preview.png"
-                            alt="notification"
+                            alt="message"
                             width={40}
                             height={40}
                           />
@@ -952,7 +953,7 @@ export default function Navbar() {
                           <Image
                             className="bg-transparent w-[40px] h-[40px] object-cover "
                             src="/icon/message-removebg-preview.png"
-                            alt="notification"
+                            alt="message"
                             width={40}
                             height={40}
                           />
@@ -960,8 +961,8 @@ export default function Navbar() {
                       }
                       style={{
                         ...iconButtonStyles,
-                        width: screens.lg ? "40px" : "36px",
-                        height: screens.lg ? "40px" : "36px",
+                        width: screens.lg ? "40px" : "40px",
+                        height: screens.lg ? "40px" : "40px",
                       }}
                     />
                   </Badge>

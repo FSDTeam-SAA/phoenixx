@@ -889,7 +889,7 @@ const ChatWindow = ({ id }) => {
 
                   {/* Message Bubble (group) */}
                   <motion.div
-                    className={`${isCurrentUser?'rounded-bl-md':'rounded-br-md ml-2'} relative pl-4 pt-1 pr-4 rounded-t-md  group ${
+                    className={`${isCurrentUser?'rounded-bl-md mr-1':'rounded-br-md ml-1'} relative pl-4 pt-1 pr-4 rounded-t-md  group ${
                       isDeleted
                         ? "deleted-message"
                         : isDarkMode
