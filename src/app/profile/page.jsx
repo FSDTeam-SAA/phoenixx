@@ -21,6 +21,7 @@ import {
   FiGrid,
   FiList,
   FiMessageSquare,
+  FiX,
 } from "react-icons/fi";
 import Loading from "../../components/Loading/Loading";
 import { ThemeContext } from "../ClientLayout";
@@ -71,6 +72,8 @@ const ProfilePage = () => {
   const [form] = Form.useForm();
   const [likePost] = useLikePostMutation();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [clickCount, setClickCount] = useState(1);
 
   // Store active tab in localStorage
   useEffect(() => {
@@ -215,15 +218,24 @@ const ProfilePage = () => {
       toast.error("Failed to unsave post");
     }
   };
-    const handleFeedsClick = () => {
+
+  const handleFeedsClick = () => {
     const newCount = (clickCount % 2) + 1;
     setClickCount(newCount);
-    localStorage.setItem('feedGridState', newCount.toString());
+    localStorage.setItem("feedGridState", newCount.toString());
   };
 
-  // Toggle grid view
-  const toggleGridView = () => {
-    setIsGridView(!isGridView);
+  // Open view selection dialog instead of direct toggle
+  const handleViewButtonClick = () => {
+    setShowViewDialog(true);
+  };
+
+  // Handle view selection from dialog
+  const handleViewSelection = (viewType) => {
+    const newGridView = viewType === "grid";
+    setIsGridView(newGridView);
+    setShowViewDialog(false);
+    handleFeedsClick(); // Keep existing logic
   };
 
   // Use useMemo to prevent unnecessary recalculations and duplication - FIXED: Added filter for null values
@@ -254,7 +266,7 @@ const ProfilePage = () => {
   const tabs = [
     {
       key: "totalPosts",
-      icon: "/icon/ChatGPT_Image_Sep_11__2025__02_52_44_PM-removebg-preview-removebg-preview.png",
+      icon: "/icon/file-text.svg",
       label: "Total Posts",
     },
     {
@@ -264,7 +276,7 @@ const ProfilePage = () => {
     },
     {
       key: "comments",
-      icon: "/icon/message-removebg-preview.png",
+      icon: "/icon/message-square-more.svg",
       label: "Comments",
     },
   ];
@@ -345,7 +357,7 @@ const ProfilePage = () => {
                       <img
                         src={icon}
                         alt={label}
-                        className="mr-2 sm:mr-3 w-6 h-6 object-contain"
+                        className="mr-2 sm:mr-3 w-6 h-6 object-cover"
                       />
                       <span>{label}</span>
                     </span>
@@ -383,35 +395,174 @@ const ProfilePage = () => {
                 {activeTab === "comments" && "Your Comments"}
               </h2>
 
-              {/* Grid View Toggle Button - Only show in non-phone mode and list view */}
+              {/* Grid View Toggle Button - Now opens dropdown */}
               {!screens.xs && (
-                <Button
-                  type="text"
-                  icon={
-                    isGridView ? (
-                      <FiList size={screens.xs ? 16 : 18} />
-                    ) : (
-                      <FiGrid size={screens.xs ? 16 : 18} />
-                    )
-                  }
-                  onClick={toggleGridView}
-                  className={`flex items-center justify-center gap-1 sm:gap-2 border px-2 sm:px-3 py-1 sm:py-2 rounded-md transition-all ${
-                    isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                  }`}
-                  style={{
-                    backgroundColor: "transparent",
-                    color: themeStyles.textColor,
-                    border: `1px solid gray`,
-                  }}
-                >
-                  <span onClick={()=>handleFeedsClick()}
-                    className={`  ${
-                      screens.xs ? "text-sm" : "text-base"
-                    } -mt-1 font-semibold`}
+                <div className="relative">
+                  <Button
+                    type="text"
+                    icon={
+                      isGridView ? (
+                        <FiList size={screens.xs ? 16 : 18} />
+                      ) : (
+                        <FiGrid size={screens.xs ? 16 : 18} />
+                      )
+                    }
+                    onClick={handleViewButtonClick}
+                    className={`flex items-center justify-center cursor-pointer gap-1 sm:gap-2 border px-2 sm:px-3 py-1 sm:py-2 rounded-md transition-all ${
+                      isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                    }`}
+                    style={{
+                      backgroundColor: "transparent",
+                      color: themeStyles.textColor,
+                      border: `1px solid gray`,
+                    }}
                   >
-                    {isGridView ? "List View" : "Grid View"}
-                  </span>
-                </Button>
+                    <span
+                      className={`${
+                        screens.xs ? "text-sm" : "text-base"
+                      } -mt-1 font-semibold`}
+                    >
+                      {isGridView ? "List View" : "Grid View"}
+                    </span>
+                  </Button>
+
+                  {/* View Selection Dropdown */}
+                  {showViewDialog && (
+                    <>
+                      {/* Invisible backdrop to close dropdown */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowViewDialog(false)}
+                      />
+
+                      {/* Dropdown positioned near the button */}
+                      <div
+                        className="absolute z-50 mt-2 w-64 rounded-lg shadow-lg border"
+                        style={{
+                          backgroundColor: themeStyles.cardBackground,
+                          borderColor: themeStyles.borderColor,
+                          right: "0",
+                          top: "100%",
+                        }}
+                      >
+                        {/* View Options */}
+                        <div className="p-2">
+                          {/* Grid View Option */}
+                          <button
+                            onClick={() => handleViewSelection("grid")}
+                            className={`w-full p-3 rounded-md flex items-center gap-3 transition-all mb-1`}
+                            style={{
+                              backgroundColor: isGridView
+                                ? themeStyles.activeTabBg
+                                : "transparent",
+                              color: themeStyles.textColor,
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isGridView) {
+                                e.target.style.backgroundColor =
+                                  themeStyles.hoverBg;
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isGridView) {
+                                e.target.style.backgroundColor = isGridView
+                                  ? themeStyles.activeTabBg
+                                  : "transparent";
+                              }
+                            }}
+                          >
+                            <FiGrid
+                              size={18}
+                              style={{ color: themeStyles.textColor }}
+                            />
+                            <div className="text-left flex-1">
+                              <div
+                                className="font-medium text-sm"
+                                style={{ color: themeStyles.textColor }}
+                              >
+                                Grid View
+                              </div>
+                              <div
+                                className="text-xs"
+                                style={{
+                                  color: themeStyles.textColor,
+                                  opacity: 0.7,
+                                }}
+                              >
+                                Display in grid layout
+                              </div>
+                            </div>
+                            {isGridView && (
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    themeStyles.activeTabText || "#3b82f6",
+                                }}
+                              />
+                            )}
+                          </button>
+
+                          {/* List View Option */}
+                          <button
+                            onClick={() => handleViewSelection("list")}
+                            className={`w-full p-3 rounded-md flex items-center gap-3 transition-all cursor-pointer`}
+                            style={{
+                              backgroundColor: !isGridView
+                                ? themeStyles.activeTabBg
+                                : "transparent",
+                              color: themeStyles.textColor,
+                            }}
+                            onMouseEnter={(e) => {
+                              if (isGridView) {
+                                e.target.style.backgroundColor =
+                                  themeStyles.hoverBg;
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (isGridView) {
+                                e.target.style.backgroundColor = !isGridView
+                                  ? themeStyles.activeTabBg
+                                  : "transparent";
+                              }
+                            }}
+                          >
+                            <FiList
+                              size={18}
+                              style={{ color: themeStyles.textColor }}
+                            />
+                            <div className="text-left flex-1">
+                              <div
+                                className="font-medium text-sm"
+                                style={{ color: themeStyles.textColor }}
+                              >
+                                List View
+                              </div>
+                              <div
+                                className="text-xs"
+                                style={{
+                                  color: themeStyles.textColor,
+                                  opacity: 0.7,
+                                }}
+                              >
+                                Display in list layout
+                              </div>
+                            </div>
+                            {!isGridView && (
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    themeStyles.activeTabText || "#3b82f6",
+                                }}
+                              />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
             </div>
 
