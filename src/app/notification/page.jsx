@@ -374,7 +374,7 @@ export default function NotificationPage() {
                   actions={[
                     <Dropdown
                       key="dropdown"
-                      overlay={menu(item.id, item.read)}
+                      // overlay={menu(item.id, item.read)}
                       trigger={["click"]}
                       placement="bottomRight"
                       onClick={(e) => e.stopPropagation()}
