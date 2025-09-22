@@ -227,7 +227,9 @@ const ProfilePage = () => {
 
   // Open view selection dialog instead of direct toggle
   const handleViewButtonClick = () => {
-    setShowViewDialog(true);
+    // setShowViewDialog(true);
+
+    setIsGridView(!isGridView);
   };
 
   // Handle view selection from dialog
@@ -317,9 +319,7 @@ const ProfilePage = () => {
           >
             <Card
               title="Your Activity"
-              className={`shadow-sm hover:shadow transition-shadow ${
-                isDarkMode ? "dark-card" : "light-card"
-              }`}
+              className={`shadow-sm hover:shadow transition-shadow text-[#]`}
               style={{
                 backgroundColor: themeStyles.cardBackground,
                 borderColor: themeStyles.borderColor,
@@ -408,7 +408,7 @@ const ProfilePage = () => {
                       )
                     }
                     onClick={handleViewButtonClick}
-                    className={`flex items-center justify-center cursor-pointer gap-1 sm:gap-2 border px-2 sm:px-3 py-1 sm:py-2 rounded-md transition-all ${
+                    className={`flex items-center justify-center cursor-pointer gap-1 sm:gap-2 border px-2 sm:px-3 py-1 sm:py-2 rounded-md transition-all duration-200 active:scale-95 ${
                       isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
                     }`}
                     style={{
